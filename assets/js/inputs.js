@@ -58,6 +58,22 @@
     refresh(event.detail?.modal || document);
   });
 
+  /* Dropdown Tom Select dirender ke <body>; bersihkan saat modal ditutup. */
+  const cleanupObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.removedNodes.forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        const modals = node.matches('[data-modal]') ? [node] : [...node.querySelectorAll('[data-modal]')];
+        modals.forEach((modal) => {
+          modal.querySelectorAll('select[data-searchable]').forEach((select) => {
+            if (select.tomselect) select.tomselect.destroy();
+          });
+        });
+      });
+    });
+  });
+  cleanupObserver.observe(document.body, { childList: true, subtree: true });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => refresh(document));
   } else {
