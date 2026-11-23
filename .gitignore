@@ -1,0 +1,15 @@
+node_modules/
+config/ai.local.php
+config/database.local.php
+storage/logs/*.log
+screenshoot/
+.agents/
+.serena/
+!AGENTS.md
+uploads/proofs/*
+uploads/avatars/*
+uploads/identities/*
+uploads/settings/*
+.env
+.DS_Store
+Thumbs.db

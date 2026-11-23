@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3F4F0"/>
+      <stop offset="1" stop-color="#E3E9DF"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#g)"/>
+  <g fill="none" stroke="#486255" stroke-opacity=".28" stroke-width="2">
+    <path d="m90 205 55-85 34 52 22-30 55 63H90Z" stroke-linejoin="round"/>
+    <path d="m145 120 17 26" stroke-linecap="round"/>
+    <path d="M118 205h136" stroke-linecap="round"/>
+  </g>
+  <text x="200" y="248" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#486255" letter-spacing="2">RENTIFY</text>
+</svg>

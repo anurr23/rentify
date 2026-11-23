@@ -1,0 +1,227 @@
+# AGENTS.md
+
+Panduan untuk AI coding agent (Codex, Claude Code, Cursor, dll.) yang bekerja di repositori **Rentify Outdoor Karawang**.
+
+---
+
+## 1. Gambaran Proyek
+
+Rentify adalah platform rental perlengkapan outdoor di Karawang.
+
+- **Backend**: PHP 8.5 native, tanpa framework, PDO/MySQL.
+- **Frontend**: Tailwind CSS v4 (build lokal), JavaScript modular vanilla, AJAX/Fetch.
+- **Landing page**: Three.js (vendor lokal).
+- **Admin charts**: Chart.js (vendor lokal).
+- **AI Gear Planner**: server-side proxy ke 9router (OpenAI-compatible), model `ag/gemini-3.8-flash-medium`.
+- **Dua role**: `admin` dan `customer`.
+
+Struktur mengikuti pola sederhana **page → model → PDO**:
+
+```text
+Request → *.php (page/controller) → models/*.php → PDO → MySQL
+API     → api/*.php → api/_bootstrap.php → models → JSON
+```
+
+Jangan menambahkan framework, ORM, atau bundler baru. Semua halaman adalah PHP native.
+
+---
+
+## 2. Perintah Penting
+
+### Build aset
+
+```bash
+npm install
+npm run build          # vendor + Tailwind minified
+npm run build:css      # hanya Tailwind
+npm run watch:css      # watch Tailwind
+```
+
+`npm run build` wajib dijalankan setelah mengubah class Tailwind, `assets/css/app.css`, atau `tailwind.config` bila ada.
+
+### Menjalankan aplikasi
+
+```bash
+php -S localhost:8000 router.php
+```
+
+atau PowerShell:
+
+```powershell
+.\run.ps1
+```
+
+Docker yang dipakai di mesin demo:
+
+```bash
+docker start mysql-server php8.5-apache
+```
+
+- Aplikasi: `http://localhost/rentify/`
+- Health check: `http://localhost/rentify/install.php`
+- MySQL dari host: `127.0.0.1:3306`, user `root`, password `root123`
+- MySQL dari container PHP: host `mysql-server`
+
+### Database
+
+```bash
+mysql -u root -p -e "CREATE DATABASE rentify CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p rentify < database/rentify.sql
+mysql -u root -p rentify < database/seed.sql
+```
+
+Atau buka `install.php` sekali.
+
+### Lint PHP (wajib sebelum selesai)
+
+PowerShell:
+
+```powershell
+Get-ChildItem -Recurse -Filter *.php | Where-Object { $_.FullName -notmatch 'node_modules|_legacy_pos' } | ForEach-Object { php -l $_.FullName }
+```
+
+Semua file harus lolos tanpa syntax error.
+
+### Smoke test manual
+
+Buka dan pastikan tidak ada `Warning`, `Deprecated`, atau `Fatal error`:
+
+```text
+/
+/beranda.php
+/katalog.php
+/detail.php?slug=tenda-dome-alpenaz-4p
+/rekomendasi.php
+/keranjang.php
+/checkout.php
+/pesanan.php
+/profil.php
+/wishlist.php
+/login.php
+/admin/dashboard.php
+/admin/barang.php
+/admin/pesanan.php
+/admin/laporan.php
+/admin/pengaturan.php
+```
+
+Uji juga endpoint yang berubah, termasuk request non-GET dengan CSRF.
+
+---
+
+## 3. Peta Folder
+
+| Path | Isi |
+|---|---|
+| `admin/` | 10 halaman panel admin |
+| `api/` | Endpoint JSON + `_bootstrap.php` |
+| `assets/css/app.css` | Sumber Tailwind + komponen kustom |
+| `assets/css/tailwind.css` | Hasil build, **di-commit** |
+| `assets/js/` | `app.js`, `catalog.js`, `detail.js`, `ai.js`, `cart.js`, `booking.js`, `profile.js`, `auth.js`, `admin.js`, `landing-3d.js` |
+| `assets/vendor/` | Three.js & Chart.js hasil salinan |
+| `config/` | Bootstrap, database, AI, env |
+| `database/` | `rentify.sql`, `seed.sql` |
+| `includes/` | Layout, nav, helper, renderer, auth |
+| `models/` | Logika bisnis & query PDO |
+| `storage/logs/` | Log aplikasi (runtime) |
+| `uploads/` | Foto gear, kategori, bukti bayar, avatar |
+| `docs/screenshots/` | Screenshot untuk README |
+| `screenshoot/` | Referensi desain awal (tidak di-commit) |
+
+---
+
+## 4. Konvensi Kode
+
+### PHP
+
+- `declare(strict_types=1);` di file baru.
+- Gunakan `e()` untuk escape HTML: `<?= e($value) ?>`.
+- Gunakan `url()`, `asset()`, `redirect()`, `input()`, `input_int()`, `flash()` dari `includes/helpers.php`.
+- Query **wajib** prepared statement. Jangan interpolasi input user ke SQL.
+- Gunakan model yang sudah ada (`Item`, `Booking`, `Payment`, `User`, dll.) sebelum membuat query baru di halaman.
+- Transaksi database untuk operasi multi-tabel (booking, pembayaran, stok).
+- Jangan menampilkan error mentah ke user. Log ke `storage/logs/app.log` dan tampilkan pesan ramah.
+- Format uang memakai helper yang ada; jangan hardcode `Rp`.
+- Tanggal disimpan `Y-m-d`; durasi sewa **inklusif** (`end - start + 1`).
+
+### API
+
+- Semua endpoint baru harus melalui `api/_bootstrap.php`.
+- `_bootstrap.php` sudah menangani JSON, sesi, dan `verify_csrf()` untuk non-GET. Jangan memanggil `verify_csrf()` ulang.
+- Selalu balas `{ "success": bool, "message": string, ... }`.
+- Gunakan `input()` / `input_int()`; jangan baca `$_POST` mentah.
+- Jangan keluarkan output sebelum `json_encode`; buffer sudah diatur bootstrap.
+
+### JavaScript
+
+- Gunakan `window.RENTIFY` (`api.request`, `api.toast`, `api.formatRupiah`, `api.baseUrl`, `api.loading`).
+- Jangan menaruh URL absolut; gunakan `api.baseUrl('...')` atau `api.apiUrl('...')`.
+- Event delegation untuk elemen dinamis.
+- Tidak ada framework, tidak ada build JS. File dimuat lewat `footer.php` (`defer`) atau `type="module"` untuk landing.
+
+### Tailwind & desain
+
+- Palet resmi (jangan diganti):
+  `#032517`, `#0C1D14`, `#1B3B2B`, `#486255`, `#CBE8CE`, `#B2D8C8`, `#F8FAF6`, `#F5F7F4`, `#F3F4F0`, `#0E2117`, `#E5A440`, `#53CF6C`, `#D9534F`.
+- Font: Plus Jakarta Sans (self-hosted).
+- Mobile-first. Uji minimal lebar 390 px dan 1440 px.
+- Gunakan komponen yang ada: `btn btn-primary`, `card`, `input`, `select`, `section-kicker`, `field-label`, `helper`, `chip`, `stepper`.
+- Setelah mengubah class, jalankan `npm run build:css` (atau `npm run build`).
+
+---
+
+## 5. Aturan Keamanan
+
+- Jangan pernah commit `config/ai.local.php`, `config/database.local.php`, `.env`, log, atau upload user.
+- Jangan menaruh API key di JavaScript, HTML, README, atau screenshot.
+- Jangan melemahkan CSRF, guard role, atau validasi upload.
+- Folder `config/`, `models/`, `includes/`, `database/`, `storage/`, `_legacy_pos/`, `node_modules/`, `scripts/` diblokir `.htaccess` dan `router.php`. Jangan menghapus aturan tersebut.
+- Upload hanya JPG/PNG/WebP, maksimal 5 MB (avatar 3 MB), nama file di-randomize.
+- Jangan menambah dependency tanpa alasan kuat. Prioritaskan stdlib PHP dan aset lokal.
+
+---
+
+## 6. Alur Kerja yang Disarankan
+
+1. Baca file terkait dan cek pola yang sudah ada.
+2. Buat perubahan sekecil mungkin; jangan refactor di luar scope.
+3. Jika mengubah schema, update **keduanya**: `database/rentify.sql` dan `database/seed.sql`.
+4. Jika mengubah UI, jalankan `npm run build:css`.
+5. Lint PHP.
+6. Uji halaman/endpoint yang berubah, termasuk happy path dan error path.
+7. Perbarui `README.md` bila perilaku, setup, atau API berubah.
+8. Jangan membersihkan atau menghapus data demo tanpa diminta.
+
+---
+
+## 7. Jebakan Umum
+
+- **CSS tidak berubah**: lupa `npm run build:css`, atau cache browser. Asset memakai `?v=filemtime`.
+- **URL salah di subfolder**: `BASE_URL` dideteksi otomatis. Jangan hardcode `/rentify/`.
+- **Tunnel HTTPS**: `config/config.php` membaca `X-Forwarded-*` dan `CF-Visitor`. Jangan memaksa `http://`.
+- **AI error dari container**: gunakan `host.docker.internal:20128`, bukan `localhost:20128`.
+- **Opcache container**: `opcache.validate_timestamps=Off`; restart `php8.5-apache` setelah mengubah config PHP bila perubahan tidak terlihat.
+- **Keranjang kosong setelah reload**: keranjang disimpan di sesi PHP; pastikan cookie sesi tidak hilang.
+- **Stok bentrok**: selalu cek ulang stok di server saat create booking, jangan hanya mengandalkan UI.
+- **Durasi salah**: 2D1N = 2 hari, bukan 1. Gunakan `Booking::durationDays()`/helper yang ada.
+
+---
+
+## 8. Definition of Done
+
+- [ ] `php -l` bersih untuk semua file yang diubah.
+- [ ] `npm run build` (atau `build:css`) berhasil.
+- [ ] Halaman/endpoint terkait diuji dan tidak ada warning.
+- [ ] CSRF, role guard, dan validasi tetap aktif.
+- [ ] Tidak ada secret atau file runtime yang ikut ter-commit.
+- [ ] README/AGENTS.md diperbarui bila perlu.
+
+---
+
+## 9. Akun Demo
+
+| Role | Email | Password |
+|---|---|---|
+| Admin / Owner | `admin@rentify.id` | `password` |
+| Customer | `galih@petualang.id` | `password` |
+| Customer | `william@petualang.id` | `password` |
