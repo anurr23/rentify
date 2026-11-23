@@ -88,6 +88,17 @@
     document.querySelectorAll('[data-nearest-store-distance]').forEach((el) => {
       if (nearest?.distance_label) el.textContent = `${nearest.distance_label} dari lokasimu`;
     });
+
+    if (userLat !== null && userLat !== undefined && userLng !== null && userLng !== undefined) {
+      if (nearest && nearest.latitude !== null && nearest.longitude !== null) {
+        map.fitBounds(
+          [[userLat, userLng], [nearest.latitude, nearest.longitude]],
+          { padding: [48, 48], maxZoom: 13 }
+        );
+      } else {
+        map.setView([userLat, userLng], 12);
+      }
+    }
   });
 
   if (api) {
