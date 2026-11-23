@@ -16,18 +16,15 @@ if (!function_exists('e')) {
 }
 require_once __DIR__ . '/config/env.php';
 require_once __DIR__ . '/includes/icons.php';
-$localFile = $root . '/config/database.local.php';
-$local = is_file($localFile) ? (require $localFile) : [];
 $inContainer = is_file('/.dockerenv');
-$envPass = env('DB_PASSWORD');
 $config = [
     'host' => $inContainer
-        ? (env_os('DB_HOST') ?? env_non_empty('DB_DOCKER_HOST') ?? env_non_empty('DB_HOST') ?? (string) ($local['docker_host'] ?? 'mysql-server'))
-        : (env_non_empty('DB_HOST') ?? (string) ($local['host'] ?? '127.0.0.1')),
-    'port' => env_non_empty('DB_PORT') ?? (string) ($local['port'] ?? '3306'),
-    'name' => env_non_empty('DB_NAME') ?? (string) ($local['name'] ?? 'rentify'),
-    'user' => env_non_empty('DB_USER') ?? (string) ($local['username'] ?? 'root'),
-    'pass' => $envPass !== null ? $envPass : (string) ($local['password'] ?? ''),
+        ? (env_os('DB_HOST') ?? env_non_empty('DB_DOCKER_HOST') ?? (string) env('DB_HOST'))
+        : (string) env('DB_HOST'),
+    'port' => (string) env('DB_PORT'),
+    'name' => (string) env('DB_NAME'),
+    'user' => (string) env('DB_USER'),
+    'pass' => (string) env('DB_PASSWORD'),
 ];
 $state = [
     'server' => false,
@@ -62,9 +59,9 @@ function h(?string $value): string
 
 function install_pdo(array $config, bool $withDatabase): PDO
 {
-    $dsn = 'mysql:host=' . $config['host'] . ';port=' . ($config['port'] ?? '3306') . ';charset=utf8mb4';
+    $dsn = 'mysql:host=' . $config['host'] . ';port=' . $config['port'] . ';charset=utf8mb4';
     if ($withDatabase) {
-        $dsn = 'mysql:host=' . $config['host'] . ';port=' . ($config['port'] ?? '3306') . ';dbname=' . $config['name'] . ';charset=utf8mb4';
+        $dsn = 'mysql:host=' . $config['host'] . ';port=' . $config['port'] . ';dbname=' . $config['name'] . ';charset=utf8mb4';
     }
     return new PDO($dsn, $config['user'], $config['pass'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

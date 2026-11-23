@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Loader .env ringan (zero-dependency) untuk Rentify.
- * Prioritas nilai: OS/Docker environment variable > file .env > fallback default.
+ * Prioritas nilai: OS/Docker environment variable > file .env.
  */
 
 if (!function_exists('rentify_load_env')) {

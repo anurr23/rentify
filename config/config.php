@@ -10,7 +10,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/env.php';
 
 define('APP_VERSION', '1.0.0');
-define('APP_ENV', env_non_empty('APP_ENV') ?? 'development');
+define('APP_ENV', (string) env('APP_ENV'));
 
 date_default_timezone_set('Asia/Jakarta');
 mb_internal_encoding('UTF-8');

@@ -15,21 +15,15 @@ class Database
 
     public function __construct()
     {
-        $localFile = __DIR__ . '/database.local.php';
-        $local = is_file($localFile) ? (require $localFile) : [];
         $inContainer = is_file('/.dockerenv');
 
         $this->host = $inContainer
-            ? (env_os('DB_HOST') ?? env_non_empty('DB_DOCKER_HOST') ?? env_non_empty('DB_HOST') ?? (string) ($local['docker_host'] ?? 'mysql-server'))
-            : (env_non_empty('DB_HOST') ?? (string) ($local['host'] ?? '127.0.0.1'));
-        $this->port = env_non_empty('DB_PORT') ?? (string) ($local['port'] ?? '3306');
-        $this->dbName = env_non_empty('DB_NAME') ?? (string) ($local['name'] ?? 'rentify');
-        $this->username = env_non_empty('DB_USER') ?? (string) ($local['username'] ?? 'root');
-
-        $envPassword = env('DB_PASSWORD');
-        $this->password = $envPassword !== null
-            ? $envPassword
-            : (string) ($local['password'] ?? '');
+            ? (env_os('DB_HOST') ?? env_non_empty('DB_DOCKER_HOST') ?? (string) env('DB_HOST'))
+            : (string) env('DB_HOST');
+        $this->port = (string) env('DB_PORT');
+        $this->dbName = (string) env('DB_NAME');
+        $this->username = (string) env('DB_USER');
+        $this->password = (string) env('DB_PASSWORD');
     }
 
     public static function conn(): PDO
