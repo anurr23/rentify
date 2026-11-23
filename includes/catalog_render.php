@@ -24,8 +24,8 @@ function render_catalog_results(array $result, ?array $category = null, string $
             <span class="hidden text-[0.68rem] font-semibold text-muted sm:inline">Urutkan</span>
             <select class="select input h-9 !w-auto !rounded-full !py-0 !pl-3 text-xs font-bold" data-catalog-sort aria-label="Urutkan katalog">
                 <?php
-                $sorts = ['popular' => 'Paling populer', 'rating' => 'Rating tertinggi', 'price_asc' => 'Harga terendah', 'price_desc' => 'Harga tertinggi', 'newest' => 'Terbaru'];
-                $activeSort = $_GET['sort'] ?? 'popular';
+                $sorts = ['nearest' => 'Cabang terdekat', 'popular' => 'Paling populer', 'rating' => 'Rating tertinggi', 'price_asc' => 'Harga terendah', 'price_desc' => 'Harga tertinggi', 'newest' => 'Terbaru'];
+                $activeSort = $_GET['sort'] ?? 'nearest';
                 foreach ($sorts as $value => $label): ?>
                     <option value="<?= e($value) ?>" <?= $activeSort === $value ? 'selected' : '' ?>><?= e($label) ?></option>
                 <?php endforeach; ?>

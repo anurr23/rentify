@@ -156,6 +156,151 @@ class Report extends Model
         );
     }
 
+    public static function storePerformance(string $from, string $to): array
+    {
+        $stores = self::fetchAll('SELECT id, name, code, city, province FROM stores ORDER BY sort_order ASC, id ASC');
+        $fromDate = new DateTimeImmutable($from);
+        $toDate = new DateTimeImmutable($to);
+        $days = max(1, (int) $fromDate->diff($toDate)->days + 1);
+        $prevTo = $fromDate->modify('-1 day')->format('Y-m-d');
+        $prevFrom = $fromDate->modify('-' . $days . ' days')->format('Y-m-d');
+        $today = today();
+
+        $rows = [];
+        foreach ($stores as $store) {
+            $storeId = (int) $store['id'];
+            $revenue = (float) self::fetchValue(
+                "SELECT COALESCE(SUM(p.amount), 0) FROM payments p
+                 JOIN bookings b ON b.id = p.booking_id
+                 WHERE p.status = 'verified' AND b.store_id = ? AND DATE(p.paid_at) BETWEEN ? AND ?",
+                [$storeId, $from, $to]
+            );
+            $prevRevenue = (float) self::fetchValue(
+                "SELECT COALESCE(SUM(p.amount), 0) FROM payments p
+                 JOIN bookings b ON b.id = p.booking_id
+                 WHERE p.status = 'verified' AND b.store_id = ? AND DATE(p.paid_at) BETWEEN ? AND ?",
+                [$storeId, $prevFrom, $prevTo]
+            );
+            $orders = (int) self::fetchValue(
+                'SELECT COUNT(*) FROM bookings WHERE store_id = ? AND DATE(created_at) BETWEEN ? AND ?',
+                [$storeId, $from, $to]
+            );
+            $prevOrders = (int) self::fetchValue(
+                'SELECT COUNT(*) FROM bookings WHERE store_id = ? AND DATE(created_at) BETWEEN ? AND ?',
+                [$storeId, $prevFrom, $prevTo]
+            );
+            $completed = (int) self::fetchValue(
+                "SELECT COUNT(*) FROM bookings WHERE store_id = ? AND status IN ('returned','completed') AND DATE(created_at) BETWEEN ? AND ?",
+                [$storeId, $from, $to]
+            );
+            $customers = (int) self::fetchValue(
+                'SELECT COUNT(DISTINCT user_id) FROM bookings WHERE store_id = ? AND DATE(created_at) BETWEEN ? AND ?',
+                [$storeId, $from, $to]
+            );
+            $activeRentals = (int) self::fetchValue(
+                "SELECT COUNT(*) FROM bookings WHERE store_id = ? AND status IN ('ready','ongoing','preparing','confirmed')",
+                [$storeId]
+            );
+            $lateReturns = (int) self::fetchValue(
+                "SELECT COUNT(*) FROM bookings WHERE store_id = ? AND status IN ('confirmed','preparing','ready','ongoing') AND end_date < ?",
+                [$storeId, $today]
+            );
+            $pendingPayments = (int) self::fetchValue(
+                "SELECT COUNT(*) FROM payments p JOIN bookings b ON b.id = p.booking_id
+                 WHERE b.store_id = ? AND p.status = 'pending'",
+                [$storeId]
+            );
+            $rating = (float) self::fetchValue(
+                'SELECT COALESCE(AVG(r.rating), 0) FROM reviews r JOIN bookings b ON b.id = r.booking_id
+                 WHERE b.store_id = ? AND r.is_published = 1',
+                [$storeId]
+            );
+            $inventory = self::fetchOne(
+                'SELECT COUNT(*) AS items, COALESCE(SUM(stock_total), 0) AS stock
+                 FROM store_items WHERE store_id = ? AND is_active = 1',
+                [$storeId]
+            );
+            $stock = (int) ($inventory['stock'] ?? 0);
+            $rentedNow = (int) self::fetchValue(
+                "SELECT COALESCE(SUM(bi.qty), 0) FROM booking_items bi
+                 JOIN bookings b ON b.id = bi.booking_id
+                 WHERE b.store_id = ? AND b.status IN ('ongoing','ready')
+                   AND bi.start_date <= ? AND bi.end_date >= ?",
+                [$storeId, $today, $today]
+            );
+            $rows[] = [
+                'id' => $storeId,
+                'name' => $store['name'],
+                'code' => $store['code'],
+                'city' => $store['city'],
+                'province' => $store['province'],
+                'revenue' => $revenue,
+                'prev_revenue' => $prevRevenue,
+                'growth' => $prevRevenue > 0 ? round(($revenue - $prevRevenue) / $prevRevenue * 100, 1) : ($revenue > 0 ? 100 : 0),
+                'orders' => $orders,
+                'prev_orders' => $prevOrders,
+                'order_growth' => $prevOrders > 0 ? round(($orders - $prevOrders) / $prevOrders * 100, 1) : ($orders > 0 ? 100 : 0),
+                'completed' => $completed,
+                'customers' => $customers,
+                'active_rentals' => $activeRentals,
+                'late_returns' => $lateReturns,
+                'pending_payments' => $pendingPayments,
+                'rating' => $rating,
+                'items' => (int) ($inventory['items'] ?? 0),
+                'stock' => $stock,
+                'rented_now' => $rentedNow,
+                'utilization' => $stock > 0 ? min(100, round($rentedNow / $stock * 100)) : 0,
+                'aov' => $orders > 0 ? $revenue / $orders : 0,
+            ];
+        }
+        usort($rows, static fn (array $a, array $b): int => $b['revenue'] <=> $a['revenue']);
+        foreach ($rows as $index => &$row) {
+            $row['rank'] = $index + 1;
+        }
+        unset($row);
+        return $rows;
+    }
+
+    public static function monthlyRevenueByStore(int $months = 8): array
+    {
+        $rows = self::fetchAll(
+            "SELECT DATE_FORMAT(p.paid_at, '%Y-%m') AS period, b.store_id, s.name AS store_name,
+                COALESCE(SUM(p.amount), 0) AS total
+             FROM payments p
+             JOIN bookings b ON b.id = p.booking_id
+             JOIN stores s ON s.id = b.store_id
+             WHERE p.status = 'verified' AND p.paid_at >= DATE_SUB(CURDATE(), INTERVAL ? MONTH)
+             GROUP BY period, b.store_id, s.name
+             ORDER BY period ASC, s.sort_order ASC",
+            [$months]
+        );
+        $periods = [];
+        for ($i = $months - 1; $i >= 0; $i--) {
+            $periods[] = date('Y-m', strtotime('-' . $i . ' month'));
+        }
+        $stores = self::fetchAll('SELECT id, name FROM stores ORDER BY sort_order ASC, id ASC');
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(int) $row['store_id']][$row['period']] = (float) $row['total'];
+        }
+        $datasets = [];
+        foreach ($stores as $store) {
+            $data = [];
+            foreach ($periods as $period) {
+                $data[] = $map[(int) $store['id']][$period] ?? 0;
+            }
+            $datasets[] = [
+                'store_id' => (int) $store['id'],
+                'label' => $store['name'],
+                'data' => $data,
+            ];
+        }
+        return [
+            'labels' => array_map(static fn (string $period): string => format_date_id($period . '-01', 'M'), $periods),
+            'datasets' => $datasets,
+        ];
+    }
+
     public static function exportRows(string $from, string $to, ?int $storeId = null): array
     {
         $storeWhere = $storeId !== null ? ' AND b.store_id = ' . (int) $storeId : '';

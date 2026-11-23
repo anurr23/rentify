@@ -11,7 +11,8 @@ $endDate = $dates['end'] ?: date('Y-m-d', strtotime($startDate . ' +1 day'));
 $duration = duration_days($startDate, $endDate);
 $hasItems = (bool) $cart['items'];
 $readyToCheckout = $hasItems && $dates['start'] && $dates['end'] && !$cart['errors'];
-$addons = Item::trending(3);
+$cartStoreId = !empty($cart['store']['id']) ? (int) $cart['store']['id'] : 0;
+$addons = Item::trending(3, $cartStoreId);
 $currentUser = auth_user();
 
 $pageTitle = 'Keranjang Sewa — Rentify Outdoor Karawang';
@@ -84,6 +85,18 @@ require ROOT_PATH . '/includes/customer_nav.php';
                             <button type="button" class="text-[0.68rem] font-bold text-danger hover:underline" data-cart-clear>Kosongkan</button>
                         <?php endif; ?>
                     </div>
+
+                    <?php if (!empty($cart['store'])): ?>
+                        <div class="mt-3 flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-cream-50 p-3">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mint-100 text-forest-700"><?= icon('map-pin', 'h-4 w-4') ?></span>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-forest-500">Cabang penyiapan</p>
+                                <p class="mt-0.5 text-xs font-extrabold text-forest-900"><?= e($cart['store']['name']) ?> · <?= e($cart['store']['city']) ?></p>
+                                <p class="mt-0.5 text-[0.62rem] text-muted"><?= e($cart['store']['phone'] ?? '') ?><?= !empty($cart['store']['opening_hours']) ? ' · ' . e($cart['store']['opening_hours']) : '' ?></p>
+                            </div>
+                            <span class="badge badge-mint">Satu cabang per pesanan</span>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if ($cart['errors']): ?>
                         <div class="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-[0.68rem] leading-relaxed text-amber-800">

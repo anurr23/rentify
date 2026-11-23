@@ -22,6 +22,8 @@
   const selectedChip = picker?.querySelector('.chip-active');
   const state = {
     itemId: Number(root.dataset.itemId || 0),
+    storeId: Number(root.dataset.storeId || 0),
+    storeItemId: Number(root.dataset.storeItemId || 0),
     variantId: selectedChip ? Number(selectedChip.dataset.variantId || 0) : 0,
     price: Number(selectedChip?.dataset.price || root.dataset.basePrice || 0),
     qty: 1,
@@ -102,6 +104,8 @@
     try {
       const params = new URLSearchParams({
         item_id: String(state.itemId),
+        store_id: String(state.storeId),
+        store_item_id: String(state.storeItemId),
         start_date: startInput.value,
         end_date: endInput.value,
         qty: String(state.qty),
@@ -223,18 +227,33 @@
       }
 
       addButtons.forEach((el) => api.setLoading(el, true, 'Menambahkan...'));
+      const body = {
+        action: 'add',
+        item_id: state.itemId,
+        store_id: state.storeId,
+        store_item_id: state.storeItemId,
+        variant_id: state.variantId,
+        quantity: state.qty,
+        start_date: startInput.value,
+        end_date: endInput.value,
+      };
       try {
-        const payload = await api.request('cart.php', {
-          method: 'POST',
-          body: {
-            action: 'add',
-            item_id: state.itemId,
-            variant_id: state.variantId,
-            quantity: state.qty,
-            start_date: startInput.value,
-            end_date: endInput.value,
-          },
-        });
+        let payload;
+        try {
+          payload = await api.request('cart.php', { method: 'POST', body });
+        } catch (error) {
+          const conflict = error.payload?.data?.conflict;
+          if (!conflict) throw error;
+          const current = error.payload.data.current_store?.name || 'cabang lain';
+          const next = error.payload.data.new_store?.name || 'cabang ini';
+          const confirmed = await api.confirmDialog(
+            `Keranjang berisi gear dari ${current}. Ganti ke ${next} dan kosongkan keranjang sebelumnya?`,
+            { title: 'Ganti cabang', confirmText: 'Ya, ganti cabang', danger: true }
+          );
+          if (!confirmed) throw error;
+          await api.request('cart.php', { method: 'POST', body: { action: 'clear' } });
+          payload = await api.request('cart.php', { method: 'POST', body });
+        }
         api.refreshCartBadge(Number(payload.cart_count || 0));
         api.toast(payload.message || 'Ditambahkan ke keranjang.', 'success');
         if (mode === 'checkout') {

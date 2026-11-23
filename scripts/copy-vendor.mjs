@@ -9,6 +9,11 @@ const files = [
   ['node_modules/chart.js/dist/chart.umd.js', 'assets/vendor/chart.umd.js'],
   ['node_modules/leaflet/dist/leaflet.js', 'assets/vendor/leaflet/leaflet.js'],
   ['node_modules/leaflet/dist/leaflet.css', 'assets/vendor/leaflet/leaflet.css'],
+  ['node_modules/flatpickr/dist/flatpickr.min.js', 'assets/vendor/flatpickr/flatpickr.min.js'],
+  ['node_modules/flatpickr/dist/flatpickr.min.css', 'assets/vendor/flatpickr/flatpickr.min.css'],
+  ['node_modules/flatpickr/dist/l10n/id.js', 'assets/vendor/flatpickr/id.js'],
+  ['node_modules/tom-select/dist/js/tom-select.complete.min.js', 'assets/vendor/tom-select/tom-select.min.js'],
+  ['node_modules/tom-select/dist/css/tom-select.min.css', 'assets/vendor/tom-select/tom-select.min.css'],
 ];
 
 for (const [from, to] of files) {

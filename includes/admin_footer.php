@@ -18,6 +18,10 @@ declare(strict_types=1);
 <?php foreach (($pageScripts ?? []) as $script): ?>
     <script src="<?= e(asset('js/' . $script)) ?>" defer></script>
 <?php endforeach; ?>
+<script src="<?= e(asset('vendor/flatpickr/flatpickr.min.js')) ?>" defer></script>
+<script src="<?= e(asset('vendor/flatpickr/id.js')) ?>" defer></script>
+<script src="<?= e(asset('vendor/tom-select/tom-select.min.js')) ?>" defer></script>
+<script src="<?= e(asset('js/inputs.js')) ?>" defer></script>
 <?php if (isset($inlineScript)): ?>
 <script><?= $inlineScript ?></script>
 <?php endif; ?>

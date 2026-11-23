@@ -23,6 +23,9 @@ function item_card(array $item, array $options = []): string
     $extraClass = $options['class'] ?? '';
     $itemId = (int) ($item['id'] ?? 0);
     $detailUrl = url('detail.php?slug=' . rawurlencode((string) ($item['slug'] ?? '')));
+    if (!empty($item['store_slug'])) {
+        $detailUrl .= '&store=' . rawurlencode((string) $item['store_slug']);
+    }
     $image = upload_url($item['primary_image'] ?? null);
     $rating = (float) ($item['rating_avg'] ?? 0);
     $ratingCount = (int) ($item['rating_count'] ?? 0);
@@ -80,12 +83,15 @@ function item_card(array $item, array $options = []): string
             </a>
             <div class="mt-1.5 flex items-center gap-1 text-[0.7rem] text-muted">
                 <?= icon('map-pin', 'h-3.5 w-3.5') ?>
-                <span>Karawang</span>
+                <span class="truncate"><?= e($item['store_name'] ?? $item['store_city'] ?? 'Karawang') ?><?= !empty($item['distance_label']) ? ' · ' . e($item['distance_label']) : '' ?></span>
                 <?php if (!empty($item['category_name'])): ?>
                     <span class="text-line">•</span>
                     <span class="truncate"><?= e($item['category_name']) ?></span>
                 <?php endif; ?>
             </div>
+            <?php if (!empty($item['store_count']) && (int) $item['store_count'] > 1): ?>
+                <p class="mt-1 text-[0.6rem] font-bold text-forest-500">Juga tersedia di <?= (int) $item['store_count'] ?> cabang</p>
+            <?php endif; ?>
 
             <?php if ($features): ?>
                 <div class="mt-2.5 flex flex-wrap gap-1.5">

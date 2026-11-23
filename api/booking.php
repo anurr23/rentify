@@ -32,7 +32,7 @@ if ($action === 'quote') {
     }
     $cart = $validation['cart'];
     $pickupMethod = (string) input('pickup_method', 'pickup') === 'delivery' ? 'delivery' : 'pickup';
-    $storeId = input_int('store_id');
+    $storeId = input_int('store_id') ?: (int) ($cart['store']['id'] ?? 0);
     $store = $storeId > 0 ? Store::find($storeId) : Store::defaultStore();
     if (!$store || (int) $store['is_active'] !== 1) {
         json_error('Toko cabang tidak tersedia.', 422);

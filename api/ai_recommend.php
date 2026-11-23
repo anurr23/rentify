@@ -52,6 +52,7 @@ $participants = max(1, min(12, input_int('participants', 2)));
 $startDate = trim((string) input('start_date', ''));
 $endDate = trim((string) input('end_date', ''));
 $notes = trim((string) input('notes', ''));
+$storeId = input_int('store_id');
 
 if ($startDate !== '' && $startDate < today()) {
     json_error('Tanggal mulai tidak boleh di masa lalu.');
@@ -83,6 +84,7 @@ try {
         'start_date' => $startDate,
         'end_date' => $endDate,
         'notes' => $notes,
+        'store_id' => $storeId,
     ], auth_user());
 
     if (!$result['success']) {

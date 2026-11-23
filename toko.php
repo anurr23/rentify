@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config/config.php';
+require_once ROOT_PATH . '/includes/item_card.php';
 
 $currentUser = auth_user();
 $stores = Store::active();
@@ -13,6 +14,31 @@ if ($currentUser && $currentUser['last_latitude'] !== null && $currentUser['last
 }
 $selectedSlug = trim((string) ($_GET['store'] ?? ''));
 $selectedStore = $selectedSlug !== '' ? Store::findBySlug($selectedSlug) : null;
+$userLat = $currentUser && $currentUser['last_latitude'] !== null ? (float) $currentUser['last_latitude'] : null;
+$userLng = $currentUser && $currentUser['last_longitude'] !== null ? (float) $currentUser['last_longitude'] : null;
+if ($selectedStore && $userLat !== null && $userLng !== null
+    && $selectedStore['latitude'] !== null && $selectedStore['longitude'] !== null) {
+    $selectedStore['distance_km'] = Store::distanceKm(
+        $userLat,
+        $userLng,
+        (float) $selectedStore['latitude'],
+        (float) $selectedStore['longitude']
+    );
+    $selectedStore['distance_label'] = Store::distanceLabel((float) $selectedStore['distance_km']);
+}
+$storeItems = [];
+$storeItemTotal = 0;
+if ($selectedStore) {
+    $storeSearch = Item::search([
+        'store_id' => (int) $selectedStore['id'],
+        'per_page' => 6,
+        'sort' => 'popular',
+        'lat' => $userLat,
+        'lng' => $userLng,
+    ]);
+    $storeItems = $storeSearch['items'];
+    $storeItemTotal = (int) $storeSearch['total'];
+}
 $mapCenter = $selectedStore ?: ($nearest ?: ($stores[0] ?? null));
 $mapCenterLat = $mapCenter['latitude'] !== null ? (float) $mapCenter['latitude'] : -6.301;
 $mapCenterLng = $mapCenter['longitude'] !== null ? (float) $mapCenter['longitude'] : 107.305;
@@ -85,12 +111,64 @@ require ROOT_PATH . '/includes/customer_nav.php';
             </div>
         </div>
 
+        <?php if ($selectedStore): ?>
+            <section class="mt-8" aria-label="Detail cabang <?= e($selectedStore['name']) ?>">
+                <div class="grid gap-5 xl:grid-cols-[.85fr_1.15fr] xl:items-start">
+                    <div class="card overflow-hidden">
+                        <div class="relative h-48 bg-cream-100">
+                            <img src="<?= e(upload_url($selectedStore['image'] ?? null)) ?>" alt="<?= e($selectedStore['name']) ?>" class="h-full w-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-forest-950/85 via-forest-950/20 to-transparent"></div>
+                            <div class="absolute inset-x-0 bottom-0 p-4 text-white">
+                                <p class="text-[0.58rem] font-extrabold uppercase tracking-[0.16em] text-mint-300"><?= e($selectedStore['code']) ?></p>
+                                <h2 class="mt-1 text-xl font-extrabold"><?= e($selectedStore['name']) ?></h2>
+                                <p class="mt-1 text-[0.65rem] text-white/65"><?= e($selectedStore['city']) ?>, <?= e($selectedStore['province']) ?></p>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-xs leading-relaxed text-muted"><?= e($selectedStore['address']) ?></p>
+                            <?php if (!empty($selectedStore['description'])): ?><p class="mt-2 text-xs leading-relaxed text-forest-700"><?= e($selectedStore['description']) ?></p><?php endif; ?>
+                            <div class="mt-3 space-y-2 text-[0.68rem]">
+                                <p class="flex items-center gap-2 text-forest-700"><span class="text-forest-500"><?= icon('clock', 'h-3.5 w-3.5') ?></span> <?= e($selectedStore['opening_hours'] ?: 'Jam operasional menyusul') ?></p>
+                                <p class="flex items-center gap-2 text-forest-700"><span class="text-forest-500"><?= icon('phone', 'h-3.5 w-3.5') ?></span> <?= e($selectedStore['phone'] ?: '-') ?></p>
+                                <p class="flex items-center gap-2 text-forest-700"><span class="text-forest-500"><?= icon('whatsapp', 'h-3.5 w-3.5') ?></span> <?= e($selectedStore['whatsapp'] ?: '-') ?></p>
+                                <p class="flex items-center gap-2 text-forest-700"><span class="text-forest-500"><?= icon('mail', 'h-3.5 w-3.5') ?></span> <?= e($selectedStore['email'] ?: '-') ?></p>
+                                <?php if (!empty($selectedStore['distance_label'])): ?><p class="flex items-center gap-2 font-bold text-forest-900"><span class="text-forest-500"><?= icon('map-pin', 'h-3.5 w-3.5') ?></span> <?= e($selectedStore['distance_label']) ?> dari lokasimu</p><?php endif; ?>
+                            </div>
+                            <div class="mt-4 grid grid-cols-2 gap-2">
+                                <a href="<?= e(store_wa_link($selectedStore, 'Halo ' . $selectedStore['name'] . ', saya ingin bertanya.')) ?>" target="_blank" rel="noopener" class="btn btn-primary btn-sm"><?= icon('whatsapp', 'h-3.5 w-3.5') ?> WhatsApp</a>
+                                <a href="<?= e(store_maps_link($selectedStore)) ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm"><?= icon('map', 'h-3.5 w-3.5') ?> Peta</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <p class="section-kicker">Katalog cabang</p>
+                                <h2 class="mt-1 text-xl font-extrabold tracking-tight text-forest-900">Barang di <?= e($selectedStore['name']) ?></h2>
+                                <p class="mt-1 text-xs text-muted"><?= $storeItemTotal ?> jenis gear tersedia di cabang ini.</p>
+                            </div>
+                            <a href="<?= e(url('katalog.php?store=' . rawurlencode($selectedStore['slug']))) ?>" class="btn btn-outline btn-sm">Lihat semua gear <?= icon('arrow-right', 'h-3.5 w-3.5') ?></a>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-3.5 sm:gap-4">
+                            <?php foreach ($storeItems as $storeItem): ?>
+                                <?= item_card($storeItem) ?>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php if (!$storeItems): ?>
+                            <div class="rounded-2xl border border-dashed border-line bg-white p-8 text-center text-sm text-muted">Belum ada barang aktif di cabang ini.</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
         <section class="mt-8">
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <p class="section-kicker">Daftar cabang</p>
                     <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-forest-900">Pilih basecamp-mu</h2>
-                    <p class="mt-1 text-xs text-muted">Semua cabang terhubung ke katalog dan stok yang sama.</p>
+                    <p class="mt-1 text-xs text-muted">Setiap cabang punya stok dan kontak sendiri.</p>
                 </div>
                 <?php if ($nearest): ?>
                     <span class="chip chip-active"><?= icon('map-pin', 'h-3.5 w-3.5') ?> Terdekat: <?= e($nearest['name']) ?></span>

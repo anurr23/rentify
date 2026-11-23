@@ -252,7 +252,7 @@ require ROOT_PATH . '/includes/admin_header.php';
             <input class="input input-icon !py-2.5 text-sm" type="search" name="q" value="<?= e($filters['q']) ?>" placeholder="Cari kode, nama, email, atau telepon...">
         </div>
         <?php if ($storeOptions): ?>
-            <select class="select input !py-2.5 text-sm" name="store_id">
+            <select class="select input !py-2.5 text-sm" name="store_id" data-searchable>
                 <option value="0">Semua cabang</option>
                 <?php foreach ($storeOptions as $storeOption): ?>
                     <option value="<?= (int) $storeOption['id'] ?>" <?= (int) ($filters['store_id'] ?? 0) === (int) $storeOption['id'] ? 'selected' : '' ?>><?= e($storeOption['name']) ?></option>

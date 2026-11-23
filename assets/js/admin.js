@@ -87,9 +87,10 @@
     form.querySelector('[data-add-variant]')?.addEventListener('click', () => {
       if (!variantList) return;
       const row = document.createElement('div');
-      row.className = 'grid gap-2 rounded-2xl border border-line p-3 sm:grid-cols-[1.4fr_.8fr_.8fr_.8fr_auto]';
+      row.className = 'grid gap-2 rounded-2xl border border-line p-3 sm:grid-cols-[.7fr_1.4fr_.8fr_.8fr_.8fr_auto]';
       row.dataset.variantRow = '';
-      row.innerHTML = `<input class="input !py-2 text-xs" name="variant_label[]" placeholder="Label (mis. 4P)">
+      row.innerHTML = `<input type="hidden" name="variant_id[]" value="0">
+        <input class="input !py-2 text-xs" name="variant_label[]" placeholder="Label (mis. 4P)">
         <input class="input !py-2 text-xs" name="variant_sku[]" placeholder="SKU">
         <input class="input !py-2 text-xs" type="number" min="0" name="variant_stock[]" placeholder="Stok" value="0">
         <input class="input !py-2 text-xs" type="number" min="0" name="variant_price[]" placeholder="Harga/hari">
@@ -207,7 +208,9 @@
       if (!confirmed) return;
       api.setLoading(button, true, '');
       try {
-        const payload = await api.request('admin.php', { method: 'POST', body: { action: `${type}_delete`, id } });
+        const body = { action: `${type}_delete`, id };
+        if (button.dataset.storeId) body.store_id = button.dataset.storeId;
+        const payload = await api.request('admin.php', { method: 'POST', body });
         api.toast(payload.message || 'Dihapus.', 'success');
         window.setTimeout(() => { window.location.reload(); }, 600);
       } catch (error) {

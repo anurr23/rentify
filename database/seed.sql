@@ -329,3 +329,36 @@ LEFT JOIN (
 ) r ON r.item_id = i.id
 SET i.rating_avg = COALESCE(r.avg_rating, i.rating_avg),
     i.rating_count = COALESCE(r.total, i.rating_count);
+
+
+-- Inventaris per cabang: semua produk tersedia di 7 cabang dengan stok/harga bervariasi.
+-- Sebagian kecil sengaja nonaktif agar katalog tiap cabang tidak identik.
+INSERT IGNORE INTO store_items
+(store_id, item_id, price_per_day, deposit, replacement_value, stock_total, min_duration, max_duration,
+ is_active, is_featured, sort_order)
+SELECT
+  s.id,
+  i.id,
+  ROUND(i.price_per_day * (1 + ((s.id + i.id) % 4) * 0.02), 0),
+  i.deposit,
+  i.replacement_value,
+  GREATEST(1, i.stock_total - ((s.id * 5 + i.id) % 4)),
+  i.min_duration,
+  i.max_duration,
+  CASE WHEN (s.id * 11 + i.id) % 23 = 0 THEN 0 ELSE 1 END,
+  CASE WHEN i.is_featured = 1 AND s.id IN (1, 4, 6) THEN 1 ELSE 0 END,
+  i.id
+FROM stores s
+CROSS JOIN items i;
+
+INSERT IGNORE INTO store_item_variants (store_item_id, variant_id, stock_total, price_per_day, is_active)
+SELECT si.id, v.id, GREATEST(0, v.stock_total - ((si.store_id + v.id) % 2)),
+       COALESCE(v.price_per_day, si.price_per_day), 1
+FROM store_items si
+JOIN item_variants v ON v.item_id = si.item_id;
+
+UPDATE booking_items bi
+JOIN bookings b ON b.id = bi.booking_id
+JOIN store_items si ON si.store_id = b.store_id AND si.item_id = bi.item_id
+SET bi.store_item_id = si.id
+WHERE bi.store_item_id IS NULL;

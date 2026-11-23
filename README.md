@@ -104,6 +104,11 @@ Satu akun, banyak basecamp. Superadmin mengelola master toko dan titik lokasinya
 - Pilih titik lokasi dengan **klik peta, geser marker, cari alamat, atau gunakan lokasi saat ini**.
 - Customer dapat mengizinkan lokasi untuk melihat jarak ke setiap cabang dan menjadikan satu toko sebagai **toko utama**.
 - Checkout otomatis memakai cabang terpilih; pesanan, pembayaran, pengembalian, dan laporan admin ter-scope per cabang.
+- **Inventaris milik tiap cabang:** harga, deposit, stok, varian, durasi, dan status unggulan disimpan di `store_items` / `store_item_variants`, bukan lagi satu angka global.
+- Kartu katalog menampilkan **cabang penyedia + jarak**, jumlah cabang yang menyediakan gear, dan default urutan **cabang terdekat**.
+- Halaman `toko.php?store=...` menampilkan **katalog cabang itu, kontak unik (telepon/WhatsApp/email), jam operasional, dan jarak**.
+- Keranjang dan pesanan terikat pada **satu cabang**; pindah cabang harus mengosongkan keranjang agar stok tetap akurat.
+- **Perbandingan Toko** untuk superadmin: leaderboard omzet, share, tren 8 bulan, utilisasi stok, keterlambatan, pembayaran pending, dan export CSV.
 
 <div align="center">
 <table>
@@ -115,6 +120,36 @@ Satu akun, banyak basecamp. Superadmin mengelola master toko dan titik lokasinya
     <td width="50%">
       <img src="docs/screenshots/admin-toko-map.jpg" alt="Pemilih lokasi Leaflet">
       <p align="center"><sub><b>Leaflet picker</b> — klik peta, cari alamat, atau pakai lokasi saat ini.</sub></p>
+    </td>
+  </tr>
+</table>
+</div>
+
+<div align="center">
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/toko-cabang-katalog.jpg" alt="Katalog dan kontak cabang">
+      <p align="center"><sub><b>Halaman cabang</b> — katalog, jarak, dan kontak unik tiap toko.</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/admin-inventaris.jpg" alt="Inventaris cabang">
+      <p align="center"><sub><b>Inventaris cabang</b> — harga, stok, varian, dan status per toko.</sub></p>
+    </td>
+  </tr>
+</table>
+</div>
+
+<div align="center">
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/admin-toko-saya.jpg" alt="Profil toko admin cabang">
+      <p align="center"><sub><b>Toko Saya</b> — admin cabang mengatur kontak, jam, dan lokasi cabangnya.</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/admin-perbandingan.jpg" alt="Perbandingan toko">
+      <p align="center"><sub><b>Perbandingan toko</b> — omzet, share, tren, utilisasi, dan export CSV.</sub></p>
     </td>
   </tr>
 </table>
@@ -145,7 +180,9 @@ Satu akun, banyak basecamp. Superadmin mengelola master toko dan titik lokasinya
 </table>
 </div>
 
-Superadmin mengelola **gear & varian, kategori, toko cabang, pengguna, pengaturan, dan monitoring AI Planner**. Admin cabang fokus pada **pesanan, pelanggan, pengembalian, dan laporan cabangnya** — semuanya dengan audit log.
+Superadmin mengelola **gear & varian, kategori, toko cabang, pengguna, pengaturan, monitoring AI Planner, dan perbandingan toko**. Admin cabang fokus pada **inventaris cabangnya sendiri, profil & lokasi cabang, pesanan, pelanggan, pengembalian, dan laporan cabangnya**
+
+Admin cabang memakai **Barang & Gear** untuk mengatur harga/stok/varian khusus cabangnya dan **Toko Saya** untuk memperbarui kontak serta lokasi cabang. Produk milik cabang (`items.owner_store_id`) hanya bisa diubah cabang pemilik atau superadmin; produk global hanya bisa diubah nilai inventarisnya oleh admin cabang. Semua aksi tercatat di audit log.
 
 ---
 
@@ -154,8 +191,9 @@ Superadmin mengelola **gear & varian, kategori, toko cabang, pengguna, pengatura
 | Lapisan | Teknologi |
 |---|---|
 | Backend | PHP 8.5 native, PDO, arsitektur model/controller sederhana |
-| Database | MySQL 8 / MariaDB 10.4+, 26 tabel, prepared statements |
+| Database | MySQL 8 / MariaDB 10.4+, 28 tabel, prepared statements |
 | Frontend | Tailwind CSS v4 (build lokal), JavaScript modular vanilla, Fetch API |
+| Form | Flatpickr (date picker) + Tom Select (searchable select), tema lokal |
 | 3D | Three.js (vendor lokal) untuk landing page |
 | Peta | Leaflet 1.9 + basemap topografi Esri World Topographic + data © OpenStreetMap |
 | Grafik | Chart.js (vendor lokal) untuk dashboard & laporan |
@@ -283,22 +321,23 @@ Seed berisi **7 toko cabang, 7 admin cabang, 12 kategori, 34 gear, 5 pesanan, pe
 ## Struktur Database
 
 <details>
-<summary><b>26 tabel</b> — klik untuk melihat</summary>
+<summary><b>28 tabel</b> — klik untuk melihat</summary>
 
 | Kelompok | Tabel |
 |---|---|
 | Jaringan | `stores` (kode, alamat, koordinat, jam, biaya antar, default) |
 | Pengguna | `users` (+ `store_id` untuk admin cabang, `preferred_store_id` & lokasi terakhir customer), `remember_tokens`, `password_resets`, `notifications` |
-| Katalog | `categories`, `category_filters`, `items`, `item_images`, `item_variants`, `item_filter_values` |
+| Katalog | `categories`, `category_filters`, `items` (+ `owner_store_id`), `store_items`, `store_item_variants`, `item_images`, `item_variants`, `item_filter_values` |
 | Perjalanan | `activities`, `destinations`, `activity_gear_rules`, `pickup_points` (+ `store_id`) |
-| Transaksi | `bookings` (+ `store_id`), `booking_items`, `booking_status_logs`, `payments` |
+| Transaksi | `bookings` (+ `store_id`), `booking_items` (+ `store_item_id`), `booking_status_logs`, `payments` |
 | Interaksi | `reviews`, `wishlists` |
 | AI | `ai_sessions`, `ai_session_items`, `ai_cache` |
 | Sistem | `settings`, `audit_logs` |
 
 </details>
 
-**Relasi cabang:** `users.store_id` (admin), `bookings.store_id` (cabang penyiapan), `pickup_points.store_id`, dan `users.preferred_store_id` (customer).
+**Relasi cabang:** `users.store_id` (admin), `bookings.store_id` (cabang penyiapan), `pickup_points.store_id`, `items.owner_store_id` (produk milik cabang), `store_items.store_id`, dan `booking_items.store_item_id`.
+`store_items` adalah **sumber utama** harga, deposit, stok, durasi, dan status unggulan untuk katalog, keranjang, booking, dan laporan; kolom harga/stok di `items` hanya nilai dasar/legacy.
 Satu titik pickup otomatis dibuat/diperbarui setiap kali toko disimpan, sehingga alamat dan koordinat selalu sinkron.
 
 **Durasi sewa dihitung inklusif:** `end_date - start_date + 1`.
@@ -318,7 +357,7 @@ Semua respons berupa JSON. Request non-GET wajib menyertakan header `X-CSRF-Toke
 | Method | Endpoint | Fungsi |
 |---|---|---|
 | GET | `/api/items.php` | Filter & pencarian katalog |
-| GET | `/api/availability.php` | Cek stok per tanggal |
+| GET | `/api/availability.php` | Cek stok per tanggal & cabang (`store_id` / `store_item_id`) |
 | GET/POST | `/api/cart.php` | State, add, add_many, update, remove, clear, dates |
 | GET/POST | `/api/wishlist.php` | List / toggle wishlist |
 | POST | `/api/auth.php` | Login, register, logout |
@@ -343,14 +382,15 @@ Semua respons berupa JSON. Request non-GET wajib menyertakan header `X-CSRF-Toke
 | POST | `/api/admin.php?action=store_toggle` | Aktif/nonaktifkan cabang |
 | GET | `/api/admin.php?action=user_form&id=` | Form pengguna + assignment cabang |
 | POST | `/api/admin.php?action=user_save` | Simpan role, cabang, dan status akun |
-| GET | `/api/admin.php?action=item_form&id=` | Form gear |
-| POST | `/api/admin.php?action=item_save` | Simpan gear & varian |
-| POST | `/api/admin.php?action=item_delete` | Hapus gear |
+| GET | `/api/admin.php?action=item_form&id=&store_id=` | Form gear + inventaris cabang (admin cabang otomatis di-scope) |
+| POST | `/api/admin.php?action=item_save` | Simpan produk, harga/stok, dan varian untuk cabang |
+| POST | `/api/admin.php?action=item_delete` | Hapus inventaris cabang (superadmin tanpa `store_id` menghapus produk) |
 | POST | `/api/admin.php?action=booking_status` | Ubah status pesanan |
 | POST | `/api/admin.php?action=payment_verify` | Verifikasi / tolak pembayaran (scoped cabang) |
 | POST | `/api/admin.php?action=category_save` | Simpan kategori |
 | POST | `/api/admin.php?action=settings_save` | Simpan pengaturan |
 | GET | `/admin/laporan.php?export=csv` | Export laporan CSV |
+| GET | `/admin/perbandingan.php?export=csv` | Export leaderboard perbandingan toko (superadmin) |
 
 </details>
 
@@ -379,20 +419,20 @@ Semua respons berupa JSON. Request non-GET wajib menyertakan header `X-CSRF-Toke
 
 ```text
 rentify/
-├── admin/                 Panel admin (11 halaman, termasuk toko.php)
+├── admin/                 Panel admin (15 halaman, termasuk toko.php, toko_saya.php, perbandingan.php)
 ├── api/                   JSON API + _bootstrap.php + location.php
 ├── assets/
 │   ├── css/               Tailwind source & hasil build
 │   ├── fonts/             Plus Jakarta Sans
 │   ├── img/               Logo, hero, placeholder
 │   ├── js/                app, catalog, detail, ai, cart, booking, admin,
-│   │                      location, map-stores, admin-stores
-│   └── vendor/            three.module.js, chart.umd.js, leaflet/
+│   │                      location, map-stores, admin-stores, inputs
+│   └── vendor/            three.module.js, chart.umd.js, leaflet/, flatpickr/, tom-select/
 ├── config/                Bootstrap, database, AI
 ├── database/              Schema, seed, migrate.php
 ├── docs/screenshots/      Screenshot README
 ├── includes/              Layout, nav, helper, auth, renderer
-├── models/                Model PDO native (termasuk Store.php)
+├── models/                Model PDO native (termasuk Store.php, StoreItem.php)
 ├── storage/logs/          Log aplikasi
 ├── uploads/               Foto gear, toko, bukti bayar, avatar
 ├── index.php              Landing Three.js
@@ -400,9 +440,9 @@ rentify/
 ├── katalog.php            Katalog
 ├── detail.php             Detail gear
 ├── rekomendasi.php        AI Planner
-├── toko.php               Peta & daftar cabang (Leaflet)
+├── toko.php               Peta, daftar & detail cabang (katalog + kontak)
 ├── keranjang.php          Keranjang
-├── checkout.php           Checkout + pilih cabang
+├── checkout.php           Checkout (cabang terkunci dari keranjang)
 ├── pesanan.php            Daftar pesanan
 ├── pesanan_detail.php     Detail & pembayaran
 ├── profil.php             Profil customer
@@ -430,6 +470,11 @@ Yang sudah diuji pada mesin demo:
 - AI sukses via 9router dan fallback saat AI offline.
 - CRUD admin: gear, kategori, pengguna, pengaturan, pengembalian.
 - Registrasi, profil, ganti kata sandi, wishlist, notifikasi.
+- Inventaris per cabang: katalog terdekat + label cabang, filter cabang, detail multi-cabang, keranjang satu cabang (konflik 409), stok & varian per cabang, booking menyimpan `store_item_id`.
+- RBAC inventaris: admin cabang hanya bisa mengubah inventaris cabangnya; produk milik cabang lain ditolak 404/403; admin kedua untuk toko yang sama ditolak.
+- Perbandingan toko superadmin: leaderboard, 3 grafik Chart.js, export CSV; halaman ini 302 untuk admin cabang.
+- Migrasi legacy (tanpa `store_items`/`owner_store_id`/`store_item_id`) dan migrasi ulang idempoten; seed baru menghasilkan 238 `store_items` + 126 varian cabang.
+- Flatpickr & Tom Select aktif di katalog, detail, AI Planner, filter admin, dan modal form (termasuk modal dinamis), tanpa error console.
 - Export CSV per cabang dan tampilan responsif 390 px / 1440 px.
 
 Health check cepat:

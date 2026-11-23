@@ -27,14 +27,17 @@ function render_cart_lines(array $cart, bool $editable = true): string
     foreach ($items as $line):
         ?>
         <article class="flex gap-3 border-b border-line py-4 first:pt-0 last:border-0 last:pb-0" data-cart-line="<?= e($line['key']) ?>">
-            <a href="<?= e(url('detail.php?slug=' . rawurlencode($line['slug']))) ?>" class="item-media h-[5.5rem] w-[5.5rem] shrink-0 overflow-hidden rounded-2xl">
+            <a href="<?= e(url('detail.php?slug=' . rawurlencode($line['slug']) . '&store=' . rawurlencode((string) ($line['store_slug'] ?? '')))) ?>" class="item-media h-[5.5rem] w-[5.5rem] shrink-0 overflow-hidden rounded-2xl">
                 <img src="<?= e(upload_url($line['image'])) ?>" alt="<?= e($line['name']) ?>" loading="lazy" class="h-full w-full object-cover">
             </a>
             <div class="min-w-0 flex-1">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="text-[0.6rem] font-extrabold uppercase tracking-[0.12em] text-forest-500"><?= e($line['category_name']) ?></p>
-                        <a href="<?= e(url('detail.php?slug=' . rawurlencode($line['slug']))) ?>" class="mt-0.5 block truncate text-sm font-extrabold text-forest-900 hover:text-forest-600"><?= e($line['name']) ?></a>
+                        <a href="<?= e(url('detail.php?slug=' . rawurlencode($line['slug']) . '&store=' . rawurlencode((string) ($line['store_slug'] ?? '')))) ?>" class="mt-0.5 block truncate text-sm font-extrabold text-forest-900 hover:text-forest-600"><?= e($line['name']) ?></a>
+                        <?php if (!empty($line['store_name'])): ?>
+                            <p class="mt-0.5 flex items-center gap-1 truncate text-[0.62rem] font-bold text-forest-600"><?= icon('map-pin', 'h-3 w-3') ?> <?= e($line['store_name']) ?><?= !empty($line['store_city']) ? ' · ' . e($line['store_city']) : '' ?></p>
+                        <?php endif; ?>
                         <p class="mt-0.5 text-[0.68rem] text-muted">
                             <?= $line['variant_label'] ? e($line['variant_label']) . ' · ' : '' ?>
                             <?= e(format_rupiah($line['price_per_day'])) ?>/hari
@@ -82,6 +85,12 @@ function render_cart_summary(array $cart, float $deliveryFee = 0, float $discoun
     ob_start();
     ?>
     <div class="space-y-2.5 text-sm" data-cart-summary-body>
+        <?php if (!empty($cart['store']['name'])): ?>
+            <div class="flex items-center justify-between gap-3">
+                <span class="text-muted">Cabang</span>
+                <span class="font-bold text-forest-900"><?= e($cart['store']['name']) ?></span>
+            </div>
+        <?php endif; ?>
         <div class="flex items-center justify-between gap-3">
             <span class="text-muted">Subtotal sewa</span>
             <span class="font-bold text-forest-900" data-summary-subtotal><?= e(format_rupiah($subtotal)) ?></span>

@@ -6,13 +6,6 @@ require_once ROOT_PATH . '/includes/item_card.php';
 
 $currentUser = auth_user();
 $categories = Category::allActive();
-$trending = Item::trending(8);
-$popular = Item::search(['sort' => 'rating', 'per_page' => 8])['items'];
-$upcoming = $currentUser ? Booking::upcomingForUser((int) $currentUser['id'], 1) : [];
-$activeBooking = $upcoming[0] ?? null;
-$heroImage = $categories[0]['hero_image'] ?? null;
-$firstName = $currentUser ? explode(' ', $currentUser['name'])[0] : 'Petualang';
-$userInitials = $currentUser ? initials($currentUser['name']) : 'P';
 $homeStore = current_store($currentUser);
 $nearestStore = null;
 if ($currentUser && $currentUser['last_latitude'] !== null && $currentUser['last_longitude'] !== null) {
@@ -20,6 +13,14 @@ if ($currentUser && $currentUser['last_latitude'] !== null && $currentUser['last
     $nearestStore = $nearestList[0] ?? null;
 }
 $homeStore = $nearestStore ?: $homeStore;
+$homeStoreId = $homeStore ? (int) $homeStore['id'] : 0;
+$trending = Item::trending(8, $homeStoreId);
+$popular = Item::search(['sort' => 'rating', 'per_page' => 8, 'store_id' => $homeStoreId])['items'];
+$upcoming = $currentUser ? Booking::upcomingForUser((int) $currentUser['id'], 1) : [];
+$activeBooking = $upcoming[0] ?? null;
+$heroImage = $categories[0]['hero_image'] ?? null;
+$firstName = $currentUser ? explode(' ', $currentUser['name'])[0] : 'Petualang';
+$userInitials = $currentUser ? initials($currentUser['name']) : 'P';
 
 $pageTitle = ($currentUser ? 'Halo, ' . $firstName : 'Beranda') . ' — Rentify Outdoor Karawang';
 $metaDescription = 'Temukan gear outdoor terbaik di Karawang. Rekomendasi AI, katalog lengkap, dan pemesanan online.';

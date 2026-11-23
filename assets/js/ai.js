@@ -131,7 +131,13 @@
       sourceEl.innerHTML = `<svg viewBox="0 0 24 24" class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M12 19v2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M3 12h2M19 12h2M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>${api.escapeHtml(source.label)}`;
     }
     if (metaEl) {
-      metaEl.textContent = `${result.activity?.name || 'Camping'} · ${result.destination_name || 'Karawang'} · ${result.duration_days} hari · ${result.participants} orang`;
+      metaEl.textContent = [
+        result.activity?.name || 'Camping',
+        result.destination_name || 'Karawang',
+        `${result.duration_days} hari`,
+        `${result.participants} orang`,
+        result.store_name || '',
+      ].filter(Boolean).join(' · ');
     }
     if (titleEl) {
       titleEl.textContent = `Gear ${result.activity?.name || 'outdoor'} untuk ${result.destination_name || 'Karawang'}`;
@@ -378,6 +384,8 @@
             action: 'add_many',
             items: selected.map((item) => ({
               item_id: item.item_id,
+              store_id: item.store_id,
+              store_item_id: item.store_item_id,
               variant_id: item.variant_id,
               qty: item.qty,
             })),

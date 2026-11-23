@@ -33,14 +33,27 @@ if (is_array($rawFilters)) {
 }
 
 $q = trim((string) ($_GET['q'] ?? ''));
-$sort = (string) ($_GET['sort'] ?? 'popular');
-$allowedSorts = ['popular', 'rating', 'price_asc', 'price_desc', 'newest'];
+$sort = (string) ($_GET['sort'] ?? 'nearest');
+$allowedSorts = ['nearest', 'popular', 'rating', 'price_asc', 'price_desc', 'newest'];
 if (!in_array($sort, $allowedSorts, true)) {
-    $sort = 'popular';
+    $sort = 'nearest';
 }
+
+$storeSlug = trim((string) ($_GET['store'] ?? ''));
+$storeFilter = $storeSlug !== '' ? Store::findBySlug($storeSlug) : null;
+if ($storeSlug !== '' && (!$storeFilter || (int) $storeFilter['is_active'] !== 1)) {
+    $storeFilter = null;
+}
+$stores = Store::active();
+$currentUser = auth_user();
+$catalogLat = $currentUser && $currentUser['last_latitude'] !== null ? (float) $currentUser['last_latitude'] : null;
+$catalogLng = $currentUser && $currentUser['last_longitude'] !== null ? (float) $currentUser['last_longitude'] : null;
+$preferredStore = current_store($currentUser);
+$catalogStoreId = $storeFilter ? (int) $storeFilter['id'] : 0;
+
 $page = page_number();
 $perPage = $category ? 9 : 12;
-$hasFilterContext = $q !== '' || $activeFilters || $sort !== 'popular' || $page > 1;
+$hasFilterContext = $q !== '' || $activeFilters || $sort !== 'popular' || $page > 1 || (bool) $storeFilter;
 $result = Item::search([
     'category_id' => $category['id'] ?? 0,
     'q' => $q,
@@ -48,10 +61,14 @@ $result = Item::search([
     'sort' => $sort,
     'page' => $page,
     'per_page' => $perPage,
+    'store_id' => $catalogStoreId,
+    'preferred_store_id' => $preferredStore ? (int) $preferredStore['id'] : 0,
+    'lat' => $catalogLat,
+    'lng' => $catalogLng,
 ]);
 
 $categories = Category::allActive();
-$popularItems = Item::trending(4);
+$popularItems = Item::trending(4, $catalogStoreId ?: ($preferredStore['id'] ?? 0));
 $topItem = $result['items'][0] ?? ($popularItems[0] ?? null);
 $categoryAdvisors = [
     'tenda-shelter' => 'AI Tent Advisor',
@@ -105,6 +122,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 
             <form action="<?= e(url('katalog.php')) ?>" method="get" class="hero-search mx-auto mt-5 max-w-2xl" role="search" data-catalog-search-form>
                 <?php if ($category): ?><input type="hidden" name="category" value="<?= e($category['slug']) ?>"><?php endif; ?>
+                <?php if ($storeFilter): ?><input type="hidden" name="store" value="<?= e($storeFilter['slug']) ?>"><?php endif; ?>
                 <span class="text-white/55"><?= icon('search', 'h-[1.15rem] w-[1.15rem]') ?></span>
                 <input type="search" name="q" value="<?= e($q) ?>" placeholder="<?= $category ? 'Cari di ' . e(explode(' ', $category['name'])[0]) . '...' : 'Cari tenda, kompor, carrier ultralight...' ?>" aria-label="Cari gear" data-catalog-search autocomplete="off">
                 <button type="button" class="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white <?= $q === '' ? 'hidden' : '' ?>" data-catalog-search-clear aria-label="Hapus pencarian"><?= icon('x', 'h-4 w-4') ?></button>
@@ -163,7 +181,19 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
         <?php if (!$category): ?>
             <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
                 <div class="min-w-0">
-                    <section id="katalog-lengkap" class="scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <label class="text-[0.65rem] font-extrabold uppercase tracking-[0.1em] text-muted" for="catalog-store">Cabang</label>
+                            <select id="catalog-store" class="select input h-9 !w-auto !rounded-full !py-0 !pl-3 pr-8 text-xs font-bold" data-catalog-store data-searchable="pill">
+                                <option value="">Semua cabang · terdekat</option>
+                                <?php foreach ($stores as $storeOption): ?>
+                                    <option value="<?= e($storeOption['slug']) ?>" <?= $storeFilter && (int) $storeFilter['id'] === (int) $storeOption['id'] ? 'selected' : '' ?>><?= e($storeOption['name']) ?> · <?= e($storeOption['city']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <p class="text-[0.62rem] text-muted"><?= $catalogLat !== null ? 'Diurutkan dari lokasimu' : 'Aktifkan lokasi untuk melihat jarak cabang' ?></p>
+                    </div>
+                    <section id="katalog-lengkap" class="scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="" data-store="<?= e($storeFilter['slug'] ?? '') ?>">
                         <div data-catalog-results>
                             <?= render_catalog_results($result, $category) ?>
                         </div>
@@ -213,7 +243,19 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
                 </aside>
             </div>
         <?php else: ?>
-            <section id="katalog-lengkap" class="mt-8 scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="<?= e($category['slug'] ?? '') ?>">
+            <div class="mt-5 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <label class="text-[0.65rem] font-extrabold uppercase tracking-[0.1em] text-muted" for="catalog-store">Cabang</label>
+                    <select id="catalog-store" class="select input h-9 !w-auto !rounded-full !py-0 !pl-3 pr-8 text-xs font-bold" data-catalog-store data-searchable="pill">
+                        <option value="">Semua cabang · terdekat</option>
+                        <?php foreach ($stores as $storeOption): ?>
+                            <option value="<?= e($storeOption['slug']) ?>" <?= $storeFilter && (int) $storeFilter['id'] === (int) $storeOption['id'] ? 'selected' : '' ?>><?= e($storeOption['name']) ?> · <?= e($storeOption['city']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <p class="text-[0.62rem] text-muted"><?= $catalogLat !== null ? 'Diurutkan dari lokasimu' : 'Aktifkan lokasi untuk melihat jarak cabang' ?></p>
+            </div>
+            <section id="katalog-lengkap" class="mt-4 scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="<?= e($category['slug'] ?? '') ?>" data-store="<?= e($storeFilter['slug'] ?? '') ?>">
                 <div data-catalog-results>
                     <?= render_catalog_results($result, $category) ?>
                 </div>

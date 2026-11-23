@@ -13,16 +13,26 @@ if (!$validation['valid']) {
     redirect('keranjang.php');
 }
 
-$stores = Store::active();
-$selectedStore = current_store($currentUser);
-if (!$selectedStore || empty($selectedStore['is_active'])) {
-    $selectedStore = $stores[0] ?? null;
+$cartStore = $cart['store'] ?? null;
+$selectedStore = $cartStore ? Store::find((int) $cartStore['id']) : null;
+if (!$selectedStore || (int) $selectedStore['is_active'] !== 1) {
+    flash('warning', 'Cabang pada keranjang tidak tersedia. Pilih barang dari cabang lain.');
+    redirect('keranjang.php');
 }
-$selectedStoreId = $selectedStore ? (int) $selectedStore['id'] : 0;
-$nearestStore = null;
-if ($currentUser && $currentUser['last_latitude'] !== null && $currentUser['last_longitude'] !== null) {
-    $nearestList = Store::nearest((float) $currentUser['last_latitude'], (float) $currentUser['last_longitude'], 1);
-    $nearestStore = $nearestList[0] ?? null;
+$stores = [$selectedStore];
+$selectedStoreId = (int) $selectedStore['id'];
+$nearestStore = $selectedStore;
+if ($currentUser && $currentUser['last_latitude'] !== null && $currentUser['last_longitude'] !== null
+    && $selectedStore['latitude'] !== null && $selectedStore['longitude'] !== null) {
+    $distance = Store::distanceKm(
+        (float) $currentUser['last_latitude'],
+        (float) $currentUser['last_longitude'],
+        (float) $selectedStore['latitude'],
+        (float) $selectedStore['longitude']
+    );
+    $selectedStore['distance_km'] = $distance;
+    $selectedStore['distance_label'] = Store::distanceLabel($distance);
+    $nearestStore = $selectedStore;
 }
 $storePickupPoints = $selectedStore ? Store::pickupPoints($selectedStoreId) : [];
 $primaryPoint = $storePickupPoints[0] ?? null;
@@ -93,11 +103,11 @@ require ROOT_PATH . '/includes/customer_nav.php';
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
                             <p class="section-kicker">Toko cabang</p>
-                            <h2 class="mt-1 text-base font-extrabold text-forest-900">Pilih cabang terdekat</h2>
+                            <h2 class="mt-1 text-base font-extrabold text-forest-900">Cabang penyiapan gear</h2>
                         </div>
-                        <button type="button" class="btn btn-outline btn-sm" data-use-location data-location-target="#checkout-store"><?= icon('map-pin', 'h-3.5 w-3.5') ?> Gunakan lokasi saya</button>
+                        <span class="badge badge-mint"><?= icon('lock', 'h-3 w-3') ?> Terikat keranjang</span>
                     </div>
-                    <p class="mt-1 text-[0.68rem] leading-relaxed text-muted">Aktifkan lokasi agar Rentify merekomendasikan cabang terdekat. Gear disiapkan dari cabang yang kamu pilih.</p>
+                    <p class="mt-1 text-[0.68rem] leading-relaxed text-muted">Keranjang ini terikat pada satu cabang. Untuk pindah cabang, kosongkan keranjang lalu pilih gear dari cabang lain.</p>
                     <div class="mt-3">
                         <label class="field-label" for="checkout-store">Cabang penyiapan gear</label>
                         <select id="checkout-store" class="select input" name="store_id" data-store-select>
@@ -116,9 +126,9 @@ require ROOT_PATH . '/includes/customer_nav.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <p class="mt-2 flex items-center gap-1.5 text-[0.65rem] font-semibold text-forest-700" data-location-status <?= (!$nearestStore && empty($currentUser['preferred_store_id'])) ? 'data-location-auto' : '' ?>>
+                    <p class="mt-2 flex items-center gap-1.5 text-[0.65rem] font-semibold text-forest-700" data-location-status>
                         <?= icon('map-pin', 'h-3.5 w-3.5') ?>
-                        <?= $nearestStore ? 'Lokasi tersimpan · terdekat: ' . e($nearestStore['name']) . ' (' . e($nearestStore['distance_label']) . ')' : 'Aktifkan lokasi untuk rekomendasi cabang terdekat.' ?>
+                        <?= !empty($selectedStore['distance_label']) ? 'Cabang ini ' . e($selectedStore['distance_label']) . ' dari lokasimu.' : 'Gear disiapkan dari cabang yang terikat pada keranjang.' ?>
                     </p>
                     <div class="mt-3 rounded-2xl border border-line bg-cream-50 p-3.5">
                         <div class="flex items-start gap-3">

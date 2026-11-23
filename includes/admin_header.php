@@ -57,6 +57,9 @@ $adminInitials = $currentUser ? initials($currentUser['name']) : 'A';
     <?php foreach (($pageStyles ?? []) as $style): ?>
         <link rel="stylesheet" href="<?= e(asset($style)) ?>">
     <?php endforeach; ?>
+    <link rel="stylesheet" href="<?= e(asset('vendor/flatpickr/flatpickr.min.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('vendor/tom-select/tom-select.min.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('css/inputs.css')) ?>">
 </head>
 <body class="bg-cream-100 text-ink antialiased">
 <div id="global-loader" class="fixed inset-x-0 top-0 z-[130] hidden h-0.5 overflow-hidden bg-mint-100">

@@ -139,6 +139,7 @@ CREATE TABLE IF NOT EXISTS category_filters (
 CREATE TABLE IF NOT EXISTS items (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   category_id BIGINT UNSIGNED NOT NULL,
+  owner_store_id BIGINT UNSIGNED DEFAULT NULL,
   name VARCHAR(180) NOT NULL,
   slug VARCHAR(200) NOT NULL,
   brand VARCHAR(100) DEFAULT NULL,
@@ -166,10 +167,12 @@ CREATE TABLE IF NOT EXISTS items (
   PRIMARY KEY (id),
   UNIQUE KEY uq_items_slug (slug),
   KEY idx_items_category (category_id, is_active),
+  KEY idx_items_owner_store (owner_store_id),
   KEY idx_items_featured (is_featured, is_active),
   KEY idx_items_price (price_per_day),
   KEY idx_items_rating (rating_avg),
-  CONSTRAINT fk_items_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT
+  CONSTRAINT fk_items_category FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_items_owner_store FOREIGN KEY (owner_store_id) REFERENCES stores (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS item_images (
@@ -198,6 +201,47 @@ CREATE TABLE IF NOT EXISTS item_variants (
   UNIQUE KEY uq_variant_sku (sku),
   KEY idx_variants_item (item_id, is_active),
   CONSTRAINT fk_variants_item FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS store_items (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  store_id BIGINT UNSIGNED NOT NULL,
+  item_id BIGINT UNSIGNED NOT NULL,
+  price_per_day DECIMAL(12,2) NOT NULL DEFAULT 0,
+  deposit DECIMAL(12,2) NOT NULL DEFAULT 0,
+  replacement_value DECIMAL(12,2) DEFAULT NULL,
+  stock_total INT NOT NULL DEFAULT 0,
+  min_duration INT NOT NULL DEFAULT 1,
+  max_duration INT NOT NULL DEFAULT 30,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  is_featured TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_by BIGINT UNSIGNED DEFAULT NULL,
+  updated_by BIGINT UNSIGNED DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_store_item (store_id, item_id),
+  KEY idx_store_items_item (item_id, is_active),
+  KEY idx_store_items_store (store_id, is_active),
+  CONSTRAINT fk_store_items_store FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE CASCADE,
+  CONSTRAINT fk_store_items_item FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE CASCADE,
+  CONSTRAINT fk_store_items_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL,
+  CONSTRAINT fk_store_items_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS store_item_variants (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  store_item_id BIGINT UNSIGNED NOT NULL,
+  variant_id BIGINT UNSIGNED NOT NULL,
+  stock_total INT NOT NULL DEFAULT 0,
+  price_per_day DECIMAL(12,2) DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_store_item_variant (store_item_id, variant_id),
+  KEY idx_store_variant_variant (variant_id),
+  CONSTRAINT fk_siv_store_item FOREIGN KEY (store_item_id) REFERENCES store_items (id) ON DELETE CASCADE,
+  CONSTRAINT fk_siv_variant FOREIGN KEY (variant_id) REFERENCES item_variants (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS item_filter_values (
@@ -317,6 +361,7 @@ CREATE TABLE IF NOT EXISTS booking_items (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   booking_id BIGINT UNSIGNED NOT NULL,
   item_id BIGINT UNSIGNED NOT NULL,
+  store_item_id BIGINT UNSIGNED DEFAULT NULL,
   variant_id BIGINT UNSIGNED DEFAULT NULL,
   item_name VARCHAR(180) NOT NULL,
   variant_label VARCHAR(120) DEFAULT NULL,
@@ -330,9 +375,11 @@ CREATE TABLE IF NOT EXISTS booking_items (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_booking_items_booking (booking_id),
+  KEY idx_booking_items_store_item (store_item_id),
   KEY idx_booking_items_availability (item_id, variant_id, start_date, end_date),
   CONSTRAINT fk_bi_booking FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE,
   CONSTRAINT fk_bi_item FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_bi_store_item FOREIGN KEY (store_item_id) REFERENCES store_items (id) ON DELETE SET NULL,
   CONSTRAINT fk_bi_variant FOREIGN KEY (variant_id) REFERENCES item_variants (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

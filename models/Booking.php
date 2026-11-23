@@ -17,7 +17,11 @@ class Booking extends Model
         $start = !empty($data['start_date']) ? (string) $data['start_date'] : $dates['start'];
         $end = !empty($data['end_date']) ? (string) $data['end_date'] : $dates['end'];
         $pickupMethod = ($data['pickup_method'] ?? 'pickup') === 'delivery' ? 'delivery' : 'pickup';
-        $storeId = (int) ($data['store_id'] ?? 0);
+        $cartStoreId = (int) ($cart['store']['id'] ?? 0);
+        $storeId = (int) ($data['store_id'] ?? 0) ?: $cartStoreId;
+        if ($cartStoreId > 0 && $storeId !== $cartStoreId) {
+            return ['success' => false, 'message' => 'Keranjang berisi gear dari cabang lain. Selesaikan atau kosongkan keranjang terlebih dahulu.'];
+        }
         $pickupPointId = !empty($data['pickup_point_id']) ? (int) $data['pickup_point_id'] : null;
         $deliveryAddress = $pickupMethod === 'delivery' ? trim((string) ($data['delivery_address'] ?? '')) : null;
 
@@ -60,20 +64,31 @@ class Booking extends Model
 
             $recheck = [];
             foreach ($cart['items'] as $line) {
+                $storeItemId = (int) ($line['store_item_id'] ?? 0);
+                if ($storeItemId <= 0) {
+                    throw new RuntimeException('Barang ' . $line['name'] . ' tidak terhubung ke cabang.');
+                }
+                $stockStmt = $db->prepare('SELECT stock_total, store_id, item_id FROM store_items WHERE id = ? FOR UPDATE');
+                $stockStmt->execute([$storeItemId]);
+                $offer = $stockStmt->fetch();
+                if (!$offer || (int) $offer['store_id'] !== $storeId || (int) $offer['item_id'] !== (int) $line['item_id']) {
+                    throw new RuntimeException('Barang ' . $line['name'] . ' tidak tersedia di cabang ini.');
+                }
                 if ($line['variant_id']) {
-                    $stockStmt = $db->prepare('SELECT stock_total FROM item_variants WHERE id = ? AND item_id = ? FOR UPDATE');
-                    $stockStmt->execute([$line['variant_id'], $line['item_id']]);
+                    $variantStock = $db->prepare(
+                        'SELECT stock_total FROM store_item_variants WHERE store_item_id = ? AND variant_id = ? FOR UPDATE'
+                    );
+                    $variantStock->execute([$storeItemId, $line['variant_id']]);
+                    $stock = $variantStock->fetchColumn();
                 } else {
-                    $stockStmt = $db->prepare('SELECT stock_total FROM items WHERE id = ? FOR UPDATE');
-                    $stockStmt->execute([$line['item_id']]);
+                    $stock = $offer['stock_total'];
                 }
-                $stock = $stockStmt->fetchColumn();
                 if ($stock === false) {
-                    throw new RuntimeException('Item ' . $line['name'] . ' tidak ditemukan.');
+                    throw new RuntimeException('Stok ' . $line['name'] . ' tidak ditemukan.');
                 }
-                $booked = item_booked_qty($db, $line['item_id'], $line['variant_id'], $start, $end);
+                $booked = StoreItem::bookedQty($storeId, (int) $line['item_id'], $line['variant_id'], $start, $end);
                 if ((int) $line['qty'] > ((int) $stock - $booked)) {
-                    throw new RuntimeException('Stok ' . $line['name'] . ' tidak cukup untuk tanggal ini.');
+                    throw new RuntimeException('Stok ' . $line['name'] . ' tidak cukup di cabang ini untuk tanggal tersebut.');
                 }
                 $recheck[] = $line;
             }
@@ -115,14 +130,14 @@ class Booking extends Model
             $bookingId = (int) $db->lastInsertId();
 
             $insertItem = $db->prepare(
-                'INSERT INTO booking_items (booking_id, item_id, variant_id, item_name, variant_label, qty,
+                'INSERT INTO booking_items (booking_id, item_id, store_item_id, variant_id, item_name, variant_label, qty,
                     price_per_day, duration_days, subtotal, deposit, start_date, end_date)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             foreach ($recheck as $line) {
                 $lineSubtotal = (float) $line['price_per_day'] * (int) $line['qty'] * $duration;
                 $insertItem->execute([
-                    $bookingId, $line['item_id'], $line['variant_id'], $line['name'], $line['variant_label'],
+                    $bookingId, $line['item_id'], $line['store_item_id'], $line['variant_id'], $line['name'], $line['variant_label'],
                     $line['qty'], $line['price_per_day'], $duration, $lineSubtotal, $line['deposit'], $start, $end,
                 ]);
                 $db->prepare('UPDATE items SET rented_count = rented_count + ? WHERE id = ?')

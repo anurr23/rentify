@@ -12,8 +12,9 @@ $monthly = Report::monthlyRevenue(8, $storeScope);
 $statusRows = Report::bookingsByStatus($storeScope);
 $recent = Report::recentBookings(7, $storeScope);
 $pendingPayments = Payment::pending(4, $storeScope);
-$lowStock = is_superadmin() ? Item::lowStock(4, 5) : [];
+$lowStock = StoreItem::lowStock($storeScope, 5, 4);
 $dueSoon = Booking::dueSoon($storeScope);
+$storeBoard = is_superadmin() ? Report::storePerformance(date('Y-m-01'), today()) : [];
 
 $statusLabels = [];
 $statusValues = [];
@@ -122,6 +123,33 @@ require ROOT_PATH . '/includes/admin_header.php';
         <?php endforeach; ?>
     </div>
 
+    <?php if ($storeBoard): ?>
+        <section class="admin-card p-4 sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <p class="text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-muted">Perbandingan cabang</p>
+                    <h3 class="mt-1 text-base font-extrabold text-forest-900">Performa toko bulan ini</h3>
+                </div>
+                <a href="<?= e(url('admin/perbandingan.php')) ?>" class="text-xs font-extrabold text-forest-700">Lihat perbandingan lengkap</a>
+            </div>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <?php $maxRevenue = max(1, (float) $storeBoard[0]['revenue']); ?>
+                <?php foreach (array_slice($storeBoard, 0, 4) as $row): ?>
+                    <a href="<?= e(url('admin/perbandingan.php')) ?>" class="rounded-2xl border border-line p-3 transition hover:border-mint-300 hover:bg-cream-50">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="badge <?= $row['rank'] === 1 ? 'badge-dark' : 'badge-neutral' ?>">#<?= (int) $row['rank'] ?></span>
+                            <span class="text-[0.6rem] font-bold text-muted"><?= e($row['city']) ?></span>
+                        </div>
+                        <p class="mt-2 truncate text-xs font-extrabold text-forest-900"><?= e($row['name']) ?></p>
+                        <p class="mt-1 text-lg font-extrabold text-forest-900"><?= e(format_rupiah_short($row['revenue'])) ?></p>
+                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-cream-200"><div class="h-full rounded-full bg-forest-700" style="width:<?= max(4, (int) round((float) $row['revenue'] / $maxRevenue * 100)) ?>%"></div></div>
+                        <p class="mt-1.5 text-[0.6rem] text-muted"><?= (int) $row['orders'] ?> pesanan · <?= (int) $row['items'] ?> barang</p>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
     <div class="grid gap-4 xl:grid-cols-[1.35fr_.65fr]">
         <div class="admin-card p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-2">
@@ -196,27 +224,19 @@ require ROOT_PATH . '/includes/admin_header.php';
     <div class="grid gap-4 xl:grid-cols-3">
         <section class="admin-card p-4 sm:p-5">
             <div class="flex items-center justify-between">
-                <h3 class="text-sm font-extrabold text-forest-900"><?= $adminStore ? 'Informasi cabang' : 'Stok menipis' ?></h3>
-                <a href="<?= e(url($adminStore ? 'toko.php?store=' . rawurlencode($adminStore['slug']) : 'admin/barang.php')) ?>" class="text-[0.68rem] font-bold text-forest-600"><?= $adminStore ? 'Lihat toko' : 'Kelola' ?></a>
+                <h3 class="text-sm font-extrabold text-forest-900">Stok menipis</h3>
+                <a href="<?= e(url('admin/barang.php')) ?>" class="text-[0.68rem] font-bold text-forest-600">Kelola</a>
             </div>
-            <?php if ($adminStore): ?>
-                <div class="mt-3 space-y-2 text-[0.68rem]">
-                    <p class="flex items-start gap-2 rounded-xl bg-cream-50 p-2.5"><span class="mt-0.5 text-forest-500"><?= icon('map-pin', 'h-3.5 w-3.5') ?></span><span class="leading-relaxed text-forest-700"><?= e($adminStore['address']) ?></span></p>
-                    <p class="flex items-center gap-2 rounded-xl bg-cream-50 p-2.5"><span class="text-forest-500"><?= icon('clock', 'h-3.5 w-3.5') ?></span><span class="text-forest-700"><?= e($adminStore['opening_hours']) ?></span></p>
-                    <p class="flex items-center gap-2 rounded-xl bg-cream-50 p-2.5"><span class="text-forest-500"><?= icon('phone', 'h-3.5 w-3.5') ?></span><span class="text-forest-700"><?= e($adminStore['phone']) ?></span></p>
-                </div>
-            <?php else: ?>
-                <div class="mt-3 space-y-2">
-                    <?php if (!$lowStock): ?><p class="py-4 text-center text-xs text-muted">Semua stok aman.</p><?php endif; ?>
-                    <?php foreach ($lowStock as $item): ?>
-                        <div class="flex items-center gap-2.5 rounded-xl bg-cream-50 p-2">
-                            <div class="h-9 w-9 overflow-hidden rounded-lg bg-cream-100"><img src="<?= e(upload_url($item['primary_image'])) ?>" alt="" class="h-full w-full object-cover"></div>
-                            <div class="min-w-0 flex-1"><p class="truncate text-[0.7rem] font-bold text-forest-900"><?= e($item['name']) ?></p><p class="text-[0.6rem] text-muted"><?= e($item['category_name']) ?></p></div>
-                            <span class="badge badge-warning"><?= (int) $item['stock_total'] ?></span>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+            <div class="mt-3 space-y-2">
+                <?php if (!$lowStock): ?><p class="py-4 text-center text-xs text-muted">Semua stok aman.</p><?php endif; ?>
+                <?php foreach ($lowStock as $item): ?>
+                    <div class="flex items-center gap-2.5 rounded-xl bg-cream-50 p-2">
+                        <div class="h-9 w-9 overflow-hidden rounded-lg bg-cream-100"><img src="<?= e(upload_url($item['primary_image'])) ?>" alt="" class="h-full w-full object-cover"></div>
+                        <div class="min-w-0 flex-1"><p class="truncate text-[0.7rem] font-bold text-forest-900"><?= e($item['name']) ?></p><p class="text-[0.6rem] text-muted"><?= e($item['category_name']) ?><?= is_superadmin() ? ' · ' . e($item['store_name']) : '' ?></p></div>
+                        <span class="badge badge-warning"><?= (int) $item['stock_total'] ?></span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </section>
 
         <section class="admin-card p-4 sm:p-5">

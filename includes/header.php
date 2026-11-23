@@ -48,6 +48,9 @@ $homeLink = $isAdminArea ? 'admin/dashboard.php' : ($currentUser ? 'beranda.php'
     <?php foreach (($pageStyles ?? []) as $style): ?>
         <link rel="stylesheet" href="<?= e(asset($style)) ?>">
     <?php endforeach; ?>
+    <link rel="stylesheet" href="<?= e(asset('vendor/flatpickr/flatpickr.min.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('vendor/tom-select/tom-select.min.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('css/inputs.css')) ?>">
 </head>
 <body class="bg-cream-50 text-ink antialiased <?= e($bodyClass) ?>" data-page="<?= e($bodyDataPage ?? '') ?>">
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[120] focus:rounded-full focus:bg-forest-900 focus:px-5 focus:py-3 focus:text-sm focus:font-bold focus:text-white">Lewati ke konten utama</a>

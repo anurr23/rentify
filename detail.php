@@ -26,10 +26,58 @@ if (!$item) {
 $category = Category::find((int) $item['category_id']);
 $reviews = Item::reviews((int) $item['id'], 8);
 $breakdown = Item::ratingBreakdown((int) $item['id']);
-$related = Item::related((int) $item['id'], (int) $item['category_id'], 4);
 $filters = Item::filterValues((int) $item['id']);
 $wishlistIds = is_logged_in() ? Wishlist::ids((int) auth_user()['id']) : [];
 $isWished = in_array((int) $item['id'], $wishlistIds, true);
+
+$currentUser = auth_user();
+$userLat = $currentUser && $currentUser['last_latitude'] !== null ? (float) $currentUser['last_latitude'] : null;
+$userLng = $currentUser && $currentUser['last_longitude'] !== null ? (float) $currentUser['last_longitude'] : null;
+$offers = StoreItem::forItem((int) $item['id'], $userLat, $userLng);
+if (!$offers) {
+    http_response_code(404);
+    $pageTitle = 'Gear tidak tersedia — Rentify';
+    require ROOT_PATH . '/includes/header.php';
+    require ROOT_PATH . '/includes/customer_nav.php';
+    ?>
+    <main id="main" class="container-app py-20 text-center">
+        <span class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-cream-100 text-muted"><?= icon('package', 'h-8 w-8') ?></span>
+        <h1 class="mt-5 text-2xl font-extrabold text-forest-900">Belum tersedia di cabang mana pun</h1>
+        <p class="mx-auto mt-2 max-w-md text-sm text-muted">Gear ini belum memiliki stok aktif di cabang Rentify. Coba gear lain atau hubungi admin.</p>
+        <a href="<?= e(url('katalog.php')) ?>" class="btn btn-primary mt-6">Kembali ke katalog</a>
+    </main>
+    <?php require ROOT_PATH . '/includes/customer_footer.php';
+    exit;
+}
+$requestedStoreSlug = trim((string) ($_GET['store'] ?? ''));
+$preferredStore = current_store($currentUser);
+$selectedOffer = null;
+foreach ($offers as $offer) {
+    if ($requestedStoreSlug !== '' && $offer['store_slug'] === $requestedStoreSlug) {
+        $selectedOffer = $offer;
+        break;
+    }
+}
+if (!$selectedOffer && cart_store_id() > 0) {
+    foreach ($offers as $offer) {
+        if ((int) $offer['store_id'] === cart_store_id()) {
+            $selectedOffer = $offer;
+            break;
+        }
+    }
+}
+if (!$selectedOffer && $preferredStore) {
+    foreach ($offers as $offer) {
+        if ((int) $offer['store_id'] === (int) $preferredStore['id']) {
+            $selectedOffer = $offer;
+            break;
+        }
+    }
+}
+$selectedOffer ??= $offers[0];
+$selectedStoreId = (int) $selectedOffer['store_id'];
+$selectedStoreItemId = (int) $selectedOffer['id'];
+$related = Item::related((int) $item['id'], (int) $item['category_id'], 4, $selectedStoreId);
 
 $gallery = [];
 if (!empty($item['primary_image'])) {
@@ -44,14 +92,17 @@ if (!$gallery) {
     $gallery[] = null;
 }
 
-$variants = $item['variants'] ?? [];
+$variants = StoreItem::variants($selectedStoreItemId);
 $selectedVariant = $variants[0] ?? null;
 $selectedVariantId = $selectedVariant ? (int) $selectedVariant['id'] : null;
-$unitPrice = (float) ($selectedVariant['price_per_day'] ?? $item['price_per_day']);
-$stock = $selectedVariant ? (int) $selectedVariant['stock_total'] : (int) $item['stock_total'];
+$unitPrice = (float) ($selectedVariant['price_per_day'] ?? $selectedOffer['price_per_day']);
+$stock = $selectedVariant ? (int) $selectedVariant['stock_total'] : (int) $selectedOffer['stock_total'];
+$itemDeposit = (float) $selectedOffer['deposit'];
+$itemMinDuration = max(1, (int) $selectedOffer['min_duration']);
+$itemMaxDuration = max($itemMinDuration, (int) $selectedOffer['max_duration']);
 
 $cartDates = cart_dates();
-$minDays = max(1, (int) $item['min_duration']);
+$minDays = $itemMinDuration;
 $defaultStart = $cartDates['start'] ?: tomorrow();
 $defaultDays = $cartDates['start'] ? max(1, duration_days($cartDates['start'], $cartDates['end'])) : max(2, $minDays);
 $defaultEnd = $cartDates['end'] ?: date('Y-m-d', strtotime($defaultStart . ' +' . ($defaultDays - 1) . ' days'));
@@ -59,7 +110,7 @@ if ($defaultEnd < $defaultStart) {
     $defaultEnd = date('Y-m-d', strtotime($defaultStart . ' +' . max(1, $minDays - 1) . ' days'));
 }
 $duration = duration_days($defaultStart, $defaultEnd);
-$initialAvailable = item_available_qty(Database::conn(), (int) $item['id'], $selectedVariantId, $defaultStart, $defaultEnd);
+$initialAvailable = StoreItem::availableQty($selectedStoreItemId, $selectedVariantId, $defaultStart, $defaultEnd);
 $initialSubtotal = $unitPrice * $duration;
 
 $pageTitle = $item['name'] . ' — Rentify Outdoor Karawang';
@@ -74,11 +125,13 @@ require ROOT_PATH . '/includes/customer_nav.php';
       data-item-id="<?= (int) $item['id'] ?>"
       data-item-name="<?= e($item['name']) ?>"
       data-base-price="<?= $unitPrice ?>"
-      data-deposit="<?= (float) $item['deposit'] ?>"
+      data-deposit="<?= $itemDeposit ?>"
       data-start="<?= e($defaultStart) ?>"
       data-end="<?= e($defaultEnd) ?>"
       data-min-days="<?= $minDays ?>"
-      data-max-days="<?= (int) $item['max_duration'] ?>">
+      data-max-days="<?= $itemMaxDuration ?>"
+      data-store-id="<?= $selectedStoreId ?>"
+      data-store-item-id="<?= $selectedStoreItemId ?>">
     <section class="relative bg-forest-950 text-white">
         <div class="container-app pb-24 pt-3">
             <div class="flex items-center justify-between">
@@ -125,7 +178,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                         <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                             <span class="inline-flex items-center gap-1"><?= icon('map-pin', 'h-3.5 w-3.5') ?> Karawang</span>
                             <span class="text-line">•</span>
-                            <span class="inline-flex items-center gap-1"><?= icon('package', 'h-3.5 w-3.5') ?> <?= (int) $item['stock_total'] ?> unit</span>
+                            <span class="inline-flex items-center gap-1"><?= icon('package', 'h-3.5 w-3.5') ?> <?= (int) $stock ?> unit di <?= e($selectedOffer['store_name']) ?></span>
                             <span class="text-line">•</span>
                             <span class="inline-flex items-center gap-1"><?= icon('star-filled', 'h-3.5 w-3.5 text-star') ?> <?= (int) $item['rating_count'] ?> review</span>
                         </div>
@@ -145,13 +198,36 @@ require ROOT_PATH . '/includes/customer_nav.php';
                     </div>
                 <?php endif; ?>
 
+                <div class="mt-4">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="field-label !mb-0">Tersedia di cabang</p>
+                        <?php if (count($offers) > 1): ?><span class="text-[0.62rem] font-semibold text-muted"><?= count($offers) ?> cabang</span><?php endif; ?>
+                    </div>
+                    <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                        <?php foreach ($offers as $offer): ?>
+                            <?php $isSelectedOffer = (int) $offer['id'] === $selectedStoreItemId; ?>
+                            <a href="<?= e(url('detail.php?slug=' . rawurlencode($item['slug']) . '&store=' . rawurlencode($offer['store_slug']))) ?>" class="flex items-center gap-2 rounded-xl border p-2.5 transition <?= $isSelectedOffer ? 'border-forest-700 bg-mint-100/60' : 'border-line bg-white hover:border-sage-300' ?>">
+                                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full <?= $isSelectedOffer ? 'bg-forest-900 text-mint-300' : 'bg-cream-100 text-forest-700' ?>"><?= icon('map-pin', 'h-3.5 w-3.5') ?></span>
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate text-[0.68rem] font-extrabold text-forest-900"><?= e($offer['store_name']) ?></span>
+                                    <span class="block truncate text-[0.6rem] text-muted"><?= e($offer['store_city']) ?><?= !empty($offer['distance_label']) ? ' · ' . e($offer['distance_label']) : '' ?></span>
+                                </span>
+                                <span class="shrink-0 text-right">
+                                    <span class="block text-[0.65rem] font-extrabold text-forest-900"><?= e(format_rupiah_short($offer['price_per_day'])) ?></span>
+                                    <span class="block text-[0.55rem] text-muted"><?= (int) $offer['stock_total'] ?> unit</span>
+                                </span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
                 <div class="mt-4 flex items-end justify-between rounded-2xl bg-cream-100 px-4 py-3">
                     <div>
                         <p class="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-muted">Mulai dari</p>
                         <p class="mt-0.5 text-2xl font-extrabold tracking-tight text-forest-900" data-detail-price><?= e(format_rupiah($unitPrice)) ?><span class="text-xs font-semibold text-muted">/hari</span></p>
                     </div>
                     <div class="text-right text-[0.68rem] text-muted">
-                        <p>Deposit <span class="font-bold text-forest-800" data-detail-deposit><?= e(format_rupiah($item['deposit'])) ?></span></p>
+                        <p>Deposit <span class="font-bold text-forest-800" data-detail-deposit><?= e(format_rupiah($itemDeposit)) ?></span></p>
                         <p class="mt-0.5">Min. <?= $minDays ?> hari</p>
                     </div>
                 </div>
@@ -161,7 +237,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                         <p class="field-label">Pilih ukuran / varian</p>
                         <div class="flex flex-wrap gap-2" data-variant-picker>
                             <?php foreach ($variants as $index => $variant): ?>
-                                <button type="button" class="chip <?= $index === 0 ? 'chip-active' : '' ?>" data-variant-id="<?= (int) $variant['id'] ?>" data-price="<?= (float) ($variant['price_per_day'] ?? $item['price_per_day']) ?>" data-stock="<?= (int) $variant['stock_total'] ?>" data-label="<?= e($variant['label']) ?>">
+                                <button type="button" class="chip <?= $index === 0 ? 'chip-active' : '' ?>" data-variant-id="<?= (int) $variant['id'] ?>" data-price="<?= (float) ($variant['price_per_day'] ?? $selectedOffer['price_per_day']) ?>" data-stock="<?= (int) $variant['stock_total'] ?>" data-label="<?= e($variant['label']) ?>">
                                     <?= e($variant['label']) ?>
                                     <span class="ml-1 text-[0.62rem] font-semibold opacity-70"><?= (int) $variant['stock_total'] ?> stok</span>
                                 </button>

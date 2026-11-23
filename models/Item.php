@@ -105,10 +105,23 @@ class Item extends Model
         $end = $options['end'] ?? null;
         $page = max(1, (int) ($options['page'] ?? 1));
         $perPage = min(48, max(1, (int) ($options['per_page'] ?? 12)));
+        $storeId = (int) ($options['store_id'] ?? 0);
+        $preferredStoreId = (int) ($options['preferred_store_id'] ?? 0);
+        $latitude = isset($options['lat']) && is_numeric($options['lat']) ? (float) $options['lat'] : null;
+        $longitude = isset($options['lng']) && is_numeric($options['lng']) ? (float) $options['lng'] : null;
+        $excludeItemId = (int) ($options['exclude_item_id'] ?? 0);
 
-        $where = ['i.is_active = 1', 'c.is_active = 1'];
+        $where = ['si.is_active = 1', 's.is_active = 1', 'i.is_active = 1', 'c.is_active = 1'];
         $params = [];
 
+        if ($storeId > 0) {
+            $where[] = 'si.store_id = ?';
+            $params[] = $storeId;
+        }
+        if ($excludeItemId > 0) {
+            $where[] = 'i.id <> ?';
+            $params[] = $excludeItemId;
+        }
         if ($categoryId > 0) {
             $where[] = 'i.category_id = ?';
             $params[] = $categoryId;
@@ -122,11 +135,11 @@ class Item extends Model
             array_push($params, $like, $like, $like, $like, $like);
         }
         if ($minPrice !== null && $minPrice !== '' && (float) $minPrice > 0) {
-            $where[] = 'i.price_per_day >= ?';
+            $where[] = 'si.price_per_day >= ?';
             $params[] = (float) $minPrice;
         }
         if ($maxPrice !== null && $maxPrice !== '' && (float) $maxPrice > 0) {
-            $where[] = 'i.price_per_day <= ?';
+            $where[] = 'si.price_per_day <= ?';
             $params[] = (float) $maxPrice;
         }
         if ($capacity > 0) {
@@ -138,7 +151,7 @@ class Item extends Model
             $params[] = $rating;
         }
         if ($featured) {
-            $where[] = 'i.is_featured = 1';
+            $where[] = 'si.is_featured = 1';
         }
         foreach ($filters as $filterKey => $values) {
             $filterKey = preg_replace('/[^a-z0-9_]+/', '', strtolower((string) $filterKey));
@@ -163,80 +176,180 @@ class Item extends Model
         }
 
         $whereSql = implode(' AND ', $where);
-        $countSql = "SELECT COUNT(*) FROM items i JOIN categories c ON c.id = i.category_id WHERE $whereSql";
-        $total = (int) self::fetchValue($countSql, $params);
-
-        $orderBy = match ($sort) {
-            'price_asc' => 'i.price_per_day ASC, i.rating_avg DESC',
-            'price_desc' => 'i.price_per_day DESC, i.rating_avg DESC',
-            'rating' => 'i.rating_avg DESC, i.rating_count DESC',
-            'newest' => 'i.created_at DESC',
-            'name' => 'i.name ASC',
-            'stock' => 'i.stock_total DESC',
-            default => 'i.rented_count DESC, i.is_featured DESC, i.rating_avg DESC',
-        };
-
-        $pagination = paginate($total, $perPage, $page);
         $rows = self::fetchAll(
-            "SELECT i.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon
-             FROM items i JOIN categories c ON c.id = i.category_id
-             WHERE $whereSql
-             ORDER BY $orderBy
-             LIMIT {$pagination['per_page']} OFFSET {$pagination['offset']}",
+            "SELECT si.id AS store_item_id, si.store_id,
+                si.price_per_day AS store_price, si.deposit AS store_deposit,
+                si.replacement_value AS store_replacement, si.stock_total AS store_stock,
+                si.min_duration AS store_min_duration, si.max_duration AS store_max_duration,
+                si.is_featured AS store_featured, si.sort_order AS store_item_sort,
+                i.*, c.name AS category_name, c.slug AS category_slug, c.icon AS category_icon,
+                s.name AS store_name, s.slug AS store_slug, s.city AS store_city, s.province AS store_province,
+                s.address AS store_address, s.phone AS store_phone, s.whatsapp AS store_whatsapp,
+                s.email AS store_email, s.opening_hours AS store_hours,
+                s.latitude AS store_latitude, s.longitude AS store_longitude,
+                s.is_default AS store_default, s.sort_order AS store_sort_order
+             FROM store_items si
+             JOIN items i ON i.id = si.item_id
+             JOIN categories c ON c.id = i.category_id
+             JOIN stores s ON s.id = si.store_id
+             WHERE $whereSql",
             $params
         );
 
-        foreach ($rows as &$row) {
-            $row['features'] = safe_json_decode($row['features'], []);
-            $row['specs'] = safe_json_decode($row['specs'], []);
-            $row['filter_values'] = self::filterValues((int) $row['id']);
-            $row['available_now'] = item_available_qty(self::pdo(), (int) $row['id'], null, $start ?: null, $end ?: null);
+        $grouped = [];
+        foreach ($rows as $row) {
+            $itemId = (int) $row['id'];
+            $row['distance_km'] = null;
+            $row['distance_label'] = null;
+            if ($latitude !== null && $longitude !== null
+                && $row['store_latitude'] !== null && $row['store_longitude'] !== null) {
+                $row['distance_km'] = Store::distanceKm(
+                    $latitude,
+                    $longitude,
+                    (float) $row['store_latitude'],
+                    (float) $row['store_longitude']
+                );
+                $row['distance_label'] = Store::distanceLabel((float) $row['distance_km']);
+            }
+            $grouped[$itemId][] = $row;
         }
 
-        return ['items' => $rows, 'pagination' => $pagination, 'total' => $total];
-    }
+        $items = [];
+        foreach ($grouped as $offers) {
+            usort($offers, static function (array $a, array $b): int {
+                $aDistance = $a['distance_km'] ?? INF;
+                $bDistance = $b['distance_km'] ?? INF;
+                if ($aDistance !== $bDistance) {
+                    return $aDistance <=> $bDistance;
+                }
+                if ((float) $a['store_price'] !== (float) $b['store_price']) {
+                    return (float) $a['store_price'] <=> (float) $b['store_price'];
+                }
+                return (int) $a['store_sort_order'] <=> (int) $b['store_sort_order'];
+            });
 
-    public static function featured(int $limit = 8): array
-    {
-        return self::search(['featured' => true, 'per_page' => $limit, 'sort' => 'popular'])['items'];
-    }
+            $chosen = $offers[0];
+            if ($storeId > 0) {
+                foreach ($offers as $offer) {
+                    if ((int) $offer['store_id'] === $storeId) {
+                        $chosen = $offer;
+                        break;
+                    }
+                }
+            } elseif ($preferredStoreId > 0) {
+                foreach ($offers as $offer) {
+                    if ((int) $offer['store_id'] === $preferredStoreId) {
+                        $chosen = $offer;
+                        break;
+                    }
+                }
+            } else {
+                foreach ($offers as $offer) {
+                    if ((int) $offer['store_default'] === 1) {
+                        $chosen = $offer;
+                        break;
+                    }
+                }
+            }
 
-    public static function trending(int $limit = 8): array
-    {
-        return self::search(['per_page' => $limit, 'sort' => 'popular'])['items'];
-    }
-
-    public static function newest(int $limit = 4): array
-    {
-        return self::search(['per_page' => $limit, 'sort' => 'newest'])['items'];
-    }
-
-    public static function related(int $itemId, int $categoryId, int $limit = 4): array
-    {
-        $rows = self::fetchAll(
-            "SELECT i.*, c.name AS category_name, c.slug AS category_slug
-             FROM items i JOIN categories c ON c.id = i.category_id
-             WHERE i.is_active = 1 AND i.category_id = ? AND i.id <> ?
-             ORDER BY i.rented_count DESC LIMIT ?",
-            [$categoryId, $itemId, $limit]
-        );
-        foreach ($rows as &$row) {
-            $row['features'] = safe_json_decode($row['features'], []);
+            $item = $chosen;
+            $item['price_per_day'] = $chosen['store_price'];
+            $item['deposit'] = $chosen['store_deposit'];
+            $item['replacement_value'] = $chosen['store_replacement'];
+            $item['stock_total'] = $chosen['store_stock'];
+            $item['min_duration'] = $chosen['store_min_duration'];
+            $item['max_duration'] = $chosen['store_max_duration'];
+            $item['is_featured'] = $chosen['store_featured'];
+            $item['store_count'] = count($grouped[(int) $chosen['id']] ?? []);
+            $item['features'] = safe_json_decode($item['features'], []);
+            $item['specs'] = safe_json_decode($item['specs'], []);
+            $item['filter_values'] = self::filterValues((int) $item['id']);
+            $item['available_now'] = StoreItem::availableQty(
+                (int) $item['store_item_id'],
+                null,
+                $start ?: null,
+                $end ?: null
+            );
+            $items[] = $item;
         }
-        return $rows;
+
+        $sortMode = $sort;
+        if ($sortMode === 'nearest' && ($latitude === null || $longitude === null)) {
+            $sortMode = 'popular';
+        }
+        usort($items, static function (array $a, array $b) use ($sortMode): int {
+            switch ($sortMode) {
+                case 'nearest':
+                    $aDistance = $a['distance_km'] ?? INF;
+                    $bDistance = $b['distance_km'] ?? INF;
+                    if ($aDistance !== $bDistance) {
+                        return $aDistance <=> $bDistance;
+                    }
+                    break;
+                case 'price_asc':
+                    return (float) $a['price_per_day'] <=> (float) $b['price_per_day'];
+                case 'price_desc':
+                    return (float) $b['price_per_day'] <=> (float) $a['price_per_day'];
+                case 'rating':
+                    return (float) $b['rating_avg'] <=> (float) $a['rating_avg'];
+                case 'newest':
+                    return strcmp((string) $b['created_at'], (string) $a['created_at']);
+                case 'name':
+                    return strcasecmp((string) $a['name'], (string) $b['name']);
+                case 'stock':
+                    return (int) $b['stock_total'] <=> (int) $a['stock_total'];
+            }
+            return (int) $b['store_count'] <=> (int) $a['store_count']
+                ?: (int) $b['rented_count'] <=> (int) $a['rented_count']
+                ?: (float) $b['rating_avg'] <=> (float) $a['rating_avg'];
+        });
+
+        $total = count($items);
+        $pagination = paginate($total, $perPage, $page);
+        $items = array_slice($items, $pagination['offset'], $pagination['per_page']);
+
+        return ['items' => $items, 'pagination' => $pagination, 'total' => $total];
     }
 
-    public static function availability(int $itemId, ?int $variantId, string $start, string $end): array
+    public static function featured(int $limit = 8, ?int $storeId = null): array
+    {
+        return self::search(['featured' => true, 'per_page' => $limit, 'sort' => 'popular', 'store_id' => $storeId ?: 0])['items'];
+    }
+
+    public static function trending(int $limit = 8, ?int $storeId = null): array
+    {
+        return self::search(['per_page' => $limit, 'sort' => 'popular', 'store_id' => $storeId ?: 0])['items'];
+    }
+
+    public static function newest(int $limit = 4, ?int $storeId = null): array
+    {
+        return self::search(['per_page' => $limit, 'sort' => 'newest', 'store_id' => $storeId ?: 0])['items'];
+    }
+
+    public static function related(int $itemId, int $categoryId, int $limit = 4, ?int $storeId = null): array
+    {
+        return self::search([
+            'category_id' => $categoryId,
+            'exclude_item_id' => $itemId,
+            'store_id' => $storeId ?: 0,
+            'sort' => 'popular',
+            'per_page' => $limit,
+        ])['items'];
+    }
+
+    public static function availability(int $itemId, ?int $variantId, string $start, string $end, ?int $storeId = null): array
     {
         $item = self::find($itemId);
         if (!$item) {
             return ['success' => false, 'message' => 'Alat tidak ditemukan.'];
         }
-        if ($variantId && !array_filter($item['variants'], static fn ($v) => (int) $v['id'] === $variantId)) {
-            return ['success' => false, 'message' => 'Varian tidak cocok.'];
+        $storeId = $storeId ?: default_store_id();
+        $offer = store_item_for($storeId, $itemId);
+        if (!$offer) {
+            return ['success' => false, 'message' => 'Barang tidak tersedia di cabang ini.'];
         }
-        $stock = item_stock(self::pdo(), $itemId, $variantId);
-        $available = item_available_qty(self::pdo(), $itemId, $variantId, $start, $end);
+        $stock = StoreItem::stock((int) $offer['id'], $variantId);
+        $available = StoreItem::availableQty((int) $offer['id'], $variantId, $start, $end);
         return [
             'success' => true,
             'stock' => $stock,
@@ -260,8 +373,13 @@ class Item extends Model
             ? array_values(array_filter($data['features']))
             : array_values(array_filter(array_map('trim', explode(',', (string) ($data['features'] ?? '')))));
 
+        $ownerStoreId = array_key_exists('owner_store_id', $data) && $data['owner_store_id'] !== null
+            ? (int) $data['owner_store_id']
+            : null;
+
         $payload = [
             $data['category_id'],
+            $ownerStoreId,
             $data['name'],
             $slug,
             $data['brand'] ?: null,
@@ -287,7 +405,7 @@ class Item extends Model
         try {
             if ($id) {
                 $stmt = self::pdo()->prepare(
-                    'UPDATE items SET category_id = ?, name = ?, slug = ?, brand = ?, short_description = ?,
+                    'UPDATE items SET category_id = ?, owner_store_id = ?, name = ?, slug = ?, brand = ?, short_description = ?,
                         description = ?, price_per_day = ?, deposit = ?, replacement_value = ?, stock_total = ?,
                         min_duration = ?, max_duration = ?, capacity_person = ?, weight_gram = ?, specs = ?,
                         features = ?, primary_image = ?, is_featured = ?, is_active = ?, search_keywords = ?
@@ -297,10 +415,10 @@ class Item extends Model
                 $itemId = $id;
             } else {
                 $stmt = self::pdo()->prepare(
-                    'INSERT INTO items (category_id, name, slug, brand, short_description, description,
+                    'INSERT INTO items (category_id, owner_store_id, name, slug, brand, short_description, description,
                         price_per_day, deposit, replacement_value, stock_total, min_duration, max_duration,
                         capacity_person, weight_gram, specs, features, primary_image, is_featured, is_active, search_keywords)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
                 $stmt->execute($payload);
                 $itemId = (int) self::pdo()->lastInsertId();
@@ -323,25 +441,67 @@ class Item extends Model
                 }
             }
 
-            self::pdo()->prepare('DELETE FROM item_variants WHERE item_id = ?')->execute([$itemId]);
+            $existingVariants = self::fetchAll(
+                'SELECT id, label FROM item_variants WHERE item_id = ? ORDER BY id ASC',
+                [$itemId]
+            );
+            $variantById = [];
+            $variantByLabel = [];
+            foreach ($existingVariants as $existingVariant) {
+                $variantById[(int) $existingVariant['id']] = true;
+                $variantByLabel[mb_strtolower((string) $existingVariant['label'])] = (int) $existingVariant['id'];
+            }
+
+            $keepVariantIds = [];
             $sort = 0;
             foreach ($variants as $variant) {
-                if (trim((string) ($variant['label'] ?? '')) === '') {
+                $label = trim((string) ($variant['label'] ?? ''));
+                if ($label === '') {
                     continue;
                 }
                 $sort++;
+                $variantId = (int) ($variant['id'] ?? 0);
+                if ($variantId <= 0 || !isset($variantById[$variantId])) {
+                    $variantId = $variantByLabel[mb_strtolower($label)] ?? 0;
+                }
+                $values = [
+                    $variant['sku'] ?: null,
+                    $label,
+                    json_encode(['ukuran' => $label], JSON_UNESCAPED_UNICODE),
+                    max(0, (int) ($variant['stock_total'] ?? 0)),
+                    ($variant['price_per_day'] ?? '') !== '' ? (float) $variant['price_per_day'] : null,
+                    $sort,
+                ];
+                if ($variantId > 0) {
+                    self::pdo()->prepare(
+                        'UPDATE item_variants SET sku = ?, label = ?, attributes = ?, stock_total = ?, price_per_day = ?,
+                            is_active = 1, sort_order = ? WHERE id = ? AND item_id = ?'
+                    )->execute([...$values, $variantId, $itemId]);
+                    $keepVariantIds[] = $variantId;
+                    continue;
+                }
                 self::pdo()->prepare(
                     'INSERT INTO item_variants (item_id, sku, label, attributes, stock_total, price_per_day, is_active, sort_order)
                      VALUES (?, ?, ?, ?, ?, ?, 1, ?)'
                 )->execute([
                     $itemId,
-                    $variant['sku'] ?: null,
-                    $variant['label'],
-                    json_encode(['ukuran' => $variant['label']], JSON_UNESCAPED_UNICODE),
-                    max(0, (int) ($variant['stock_total'] ?? 0)),
-                    ($variant['price_per_day'] ?? '') !== '' ? (float) $variant['price_per_day'] : null,
+                    $values[0],
+                    $values[1],
+                    $values[2],
+                    $values[3],
+                    $values[4],
                     $sort,
                 ]);
+                $keepVariantIds[] = (int) self::pdo()->lastInsertId();
+            }
+
+            if ($keepVariantIds) {
+                $placeholders = implode(',', array_fill(0, count($keepVariantIds), '?'));
+                self::pdo()->prepare(
+                    "UPDATE item_variants SET is_active = 0 WHERE item_id = ? AND id NOT IN ($placeholders)"
+                )->execute([$itemId, ...$keepVariantIds]);
+            } else {
+                self::pdo()->prepare('UPDATE item_variants SET is_active = 0 WHERE item_id = ?')->execute([$itemId]);
             }
 
             self::pdo()->commit();

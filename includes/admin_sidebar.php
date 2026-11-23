@@ -6,8 +6,10 @@ $adminStoreNav = admin_current_store();
 $adminNav = [
     ['key' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'chart', 'url' => 'admin/dashboard.php'],
     ['key' => 'pesanan', 'label' => 'Pesanan', 'icon' => 'clipboard', 'url' => 'admin/pesanan.php', 'badge' => $pendingBookingCount ?? 0],
+    ['key' => 'perbandingan', 'label' => 'Perbandingan Toko', 'icon' => 'chart-line', 'url' => 'admin/perbandingan.php', 'super' => true],
     ['key' => 'toko', 'label' => 'Toko Cabang', 'icon' => 'map-pin', 'url' => 'admin/toko.php', 'super' => true],
-    ['key' => 'barang', 'label' => 'Barang & Gear', 'icon' => 'package', 'url' => 'admin/barang.php', 'super' => true],
+    ['key' => 'toko_saya', 'label' => 'Toko Saya', 'icon' => 'map-pin', 'url' => 'admin/toko_saya.php', 'branch' => true],
+    ['key' => 'barang', 'label' => 'Barang & Gear', 'icon' => 'package', 'url' => 'admin/barang.php'],
     ['key' => 'kategori', 'label' => 'Kategori', 'icon' => 'grid', 'url' => 'admin/kategori.php', 'super' => true],
     ['key' => 'pelanggan', 'label' => 'Pelanggan', 'icon' => 'users', 'url' => 'admin/pelanggan.php'],
     ['key' => 'pengembalian', 'label' => 'Pengembalian', 'icon' => 'rotate', 'url' => 'admin/pengembalian.php'],
@@ -18,6 +20,8 @@ $adminNav = [
 ];
 if (!$isSuperadminNav) {
     $adminNav = array_values(array_filter($adminNav, static fn (array $item): bool => empty($item['super'])));
+} else {
+    $adminNav = array_values(array_filter($adminNav, static fn (array $item): bool => empty($item['branch'])));
 }
 $adminRoleLabel = $isSuperadminNav ? 'Superadmin' : ('Admin · ' . ($adminStoreNav['name'] ?? 'Tanpa cabang'));
 ?>

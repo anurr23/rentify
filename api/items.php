@@ -31,9 +31,24 @@ if (is_array($rawFilters)) {
 }
 
 $q = trim((string) ($_GET['q'] ?? ''));
-$sort = (string) ($_GET['sort'] ?? 'popular');
-if (!in_array($sort, ['popular', 'rating', 'price_asc', 'price_desc', 'newest'], true)) {
-    $sort = 'popular';
+$sort = (string) ($_GET['sort'] ?? 'nearest');
+if (!in_array($sort, ['nearest', 'popular', 'rating', 'price_asc', 'price_desc', 'newest'], true)) {
+    $sort = 'nearest';
+}
+$storeSlug = trim((string) ($_GET['store'] ?? ''));
+$storeFilter = $storeSlug !== '' ? Store::findBySlug($storeSlug) : null;
+if ($storeFilter && (int) $storeFilter['is_active'] !== 1) {
+    $storeFilter = null;
+}
+$currentUser = auth_user();
+$preferredStore = current_store($currentUser);
+$latitude = isset($_GET['lat']) && is_numeric($_GET['lat']) ? (float) $_GET['lat'] : null;
+$longitude = isset($_GET['lng']) && is_numeric($_GET['lng']) ? (float) $_GET['lng'] : null;
+if ($latitude === null && $currentUser && $currentUser['last_latitude'] !== null) {
+    $latitude = (float) $currentUser['last_latitude'];
+}
+if ($longitude === null && $currentUser && $currentUser['last_longitude'] !== null) {
+    $longitude = (float) $currentUser['last_longitude'];
 }
 $view = ($_GET['view'] ?? 'grid') === 'list' ? 'list' : 'grid';
 $page = max(1, (int) ($_GET['page'] ?? 1));
@@ -46,6 +61,10 @@ $result = Item::search([
     'sort' => $sort,
     'page' => $page,
     'per_page' => $perPage,
+    'store_id' => $storeFilter ? (int) $storeFilter['id'] : 0,
+    'preferred_store_id' => $preferredStore ? (int) $preferredStore['id'] : 0,
+    'lat' => $latitude,
+    'lng' => $longitude,
 ]);
 
 json_success([
@@ -58,4 +77,6 @@ json_success([
     'filters' => $activeFilters,
     'sort' => $sort,
     'view' => $view,
+    'store' => $storeFilter['slug'] ?? '',
+    'store_id' => $storeFilter ? (int) $storeFilter['id'] : 0,
 ]);

@@ -188,6 +188,60 @@ if (!function_exists('rentify_migrate')) {
             }
         }
 
+        if (!rentify_migrate_has_column($pdo, 'items', 'owner_store_id')) {
+            $pdo->exec('ALTER TABLE items ADD COLUMN owner_store_id BIGINT UNSIGNED DEFAULT NULL AFTER category_id');
+            $messages[] = 'Kolom items.owner_store_id ditambahkan.';
+        }
+        if (!rentify_migrate_has_column($pdo, 'booking_items', 'store_item_id')) {
+            $pdo->exec('ALTER TABLE booking_items ADD COLUMN store_item_id BIGINT UNSIGNED DEFAULT NULL AFTER item_id');
+            $messages[] = 'Kolom booking_items.store_item_id ditambahkan.';
+        }
+
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS store_items (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                store_id BIGINT UNSIGNED NOT NULL,
+                item_id BIGINT UNSIGNED NOT NULL,
+                price_per_day DECIMAL(12,2) NOT NULL DEFAULT 0,
+                deposit DECIMAL(12,2) NOT NULL DEFAULT 0,
+                replacement_value DECIMAL(12,2) DEFAULT NULL,
+                stock_total INT NOT NULL DEFAULT 0,
+                min_duration INT NOT NULL DEFAULT 1,
+                max_duration INT NOT NULL DEFAULT 30,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                is_featured TINYINT(1) NOT NULL DEFAULT 0,
+                sort_order INT NOT NULL DEFAULT 0,
+                created_by BIGINT UNSIGNED DEFAULT NULL,
+                updated_by BIGINT UNSIGNED DEFAULT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_store_item (store_id, item_id),
+                KEY idx_store_items_item (item_id, is_active),
+                KEY idx_store_items_store (store_id, is_active),
+                CONSTRAINT fk_store_items_store FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE CASCADE,
+                CONSTRAINT fk_store_items_item FOREIGN KEY (item_id) REFERENCES items (id) ON DELETE CASCADE,
+                CONSTRAINT fk_store_items_created_by FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL,
+                CONSTRAINT fk_store_items_updated_by FOREIGN KEY (updated_by) REFERENCES users (id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS store_item_variants (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                store_item_id BIGINT UNSIGNED NOT NULL,
+                variant_id BIGINT UNSIGNED NOT NULL,
+                stock_total INT NOT NULL DEFAULT 0,
+                price_per_day DECIMAL(12,2) DEFAULT NULL,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_store_item_variant (store_item_id, variant_id),
+                KEY idx_store_variant_variant (variant_id),
+                CONSTRAINT fk_siv_store_item FOREIGN KEY (store_item_id) REFERENCES store_items (id) ON DELETE CASCADE,
+                CONSTRAINT fk_siv_variant FOREIGN KEY (variant_id) REFERENCES item_variants (id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+        $messages[] = 'Tabel inventaris per cabang siap.';
+
         if (!rentify_migrate_has_column($pdo, 'pickup_points', 'store_id')) {
             $pdo->exec('ALTER TABLE pickup_points ADD COLUMN store_id BIGINT UNSIGNED DEFAULT NULL AFTER id');
             $messages[] = 'Kolom pickup_points.store_id ditambahkan.';
@@ -271,6 +325,14 @@ if (!function_exists('rentify_migrate')) {
             }
         }
 
+        if (!rentify_migrate_has_fk($pdo, 'items', 'fk_items_owner_store')) {
+            $pdo->exec('ALTER TABLE items ADD CONSTRAINT fk_items_owner_store FOREIGN KEY (owner_store_id) REFERENCES stores (id) ON DELETE SET NULL');
+            $messages[] = 'Relasi items.owner_store_id ditambahkan.';
+        }
+        if (!rentify_migrate_has_fk($pdo, 'booking_items', 'fk_bi_store_item')) {
+            $pdo->exec('ALTER TABLE booking_items ADD CONSTRAINT fk_bi_store_item FOREIGN KEY (store_item_id) REFERENCES store_items (id) ON DELETE SET NULL');
+            $messages[] = 'Relasi booking_items.store_item_id ditambahkan.';
+        }
         if (!rentify_migrate_has_fk($pdo, 'pickup_points', 'fk_pickup_store')) {
             $pdo->exec('ALTER TABLE pickup_points ADD CONSTRAINT fk_pickup_store FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE CASCADE');
             $messages[] = 'Relasi pickup_points.store_id ditambahkan.';
@@ -339,6 +401,47 @@ if (!function_exists('rentify_migrate')) {
                  SET b.store_id = pp.store_id WHERE b.store_id IS NULL AND pp.store_id IS NOT NULL'
             )->execute();
             $pdo->prepare('UPDATE bookings SET store_id = ? WHERE store_id IS NULL')->execute([$defaultId]);
+        }
+
+        $pdo->exec(
+            "INSERT IGNORE INTO store_items
+                (store_id, item_id, price_per_day, deposit, replacement_value, stock_total, min_duration, max_duration,
+                 is_active, is_featured, sort_order)
+             SELECT s.id, i.id,
+                ROUND(i.price_per_day * (1 + ((s.id + i.id) % 4) * 0.02), 0),
+                i.deposit, i.replacement_value,
+                GREATEST(1, i.stock_total - ((s.id * 5 + i.id) % 4)),
+                i.min_duration, i.max_duration,
+                CASE WHEN (s.id * 11 + i.id) % 23 = 0 THEN 0 ELSE 1 END,
+                CASE WHEN i.is_featured = 1 AND s.id IN (1, 4, 6) THEN 1 ELSE 0 END,
+                i.id
+             FROM stores s CROSS JOIN items i"
+        );
+        $pdo->exec(
+            "INSERT IGNORE INTO store_item_variants (store_item_id, variant_id, stock_total, price_per_day, is_active)
+             SELECT si.id, v.id, GREATEST(0, v.stock_total - ((si.store_id + v.id) % 2)),
+                    COALESCE(v.price_per_day, si.price_per_day), 1
+             FROM store_items si JOIN item_variants v ON v.item_id = si.item_id"
+        );
+        $pdo->exec(
+            'UPDATE booking_items bi
+             JOIN bookings b ON b.id = bi.booking_id
+             JOIN store_items si ON si.store_id = b.store_id AND si.item_id = bi.item_id
+             SET bi.store_item_id = si.id
+             WHERE bi.store_item_id IS NULL'
+        );
+        $messages[] = 'Inventaris toko dan varian per cabang disiapkan.';
+
+        foreach ([
+            ['items', 'idx_items_owner_store', 'owner_store_id'],
+            ['booking_items', 'idx_booking_items_store_item', 'store_item_id'],
+            ['store_items', 'idx_store_items_item', 'item_id, is_active'],
+            ['store_items', 'idx_store_items_store', 'store_id, is_active'],
+            ['store_item_variants', 'idx_store_variant_variant', 'variant_id'],
+        ] as [$table, $index, $columns]) {
+            if (!rentify_migrate_has_index($pdo, $table, $index)) {
+                $pdo->exec("ALTER TABLE $table ADD KEY $index ($columns)");
+            }
         }
 
         return ['success' => true, 'messages' => $messages];

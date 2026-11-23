@@ -9,6 +9,7 @@ $presetActivity = (string) ($_GET['activity'] ?? 'camping');
 $presetDestination = (int) ($_GET['destination'] ?? 0);
 $defaultStart = tomorrow();
 $user = auth_user();
+$aiStore = current_store($user);
 
 $pageTitle = 'AI Gear Planner — Rentify Outdoor Karawang';
 $metaDescription = 'Rekomendasi perlengkapan camping dan hiking personal dengan AI. Pilih aktivitas, destinasi, dan durasi, lalu dapatkan daftar gear wajib dan opsional.';
@@ -53,6 +54,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
     <div class="container-app relative -mt-4">
         <div class="grid gap-6 lg:grid-cols-[.92fr_1.08fr] lg:items-start">
             <form class="card p-5 sm:p-6 lg:sticky lg:top-24" data-ai-form novalidate>
+                <input type="hidden" name="store_id" value="<?= (int) ($aiStore['id'] ?? 0) ?>">
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="section-kicker">Langkah 1</p>
@@ -60,6 +62,9 @@ require ROOT_PATH . '/includes/customer_nav.php';
                     </div>
                     <span class="flex h-9 w-9 items-center justify-center rounded-full bg-mint-100 text-forest-700"><?= icon('compass', 'h-4 w-4') ?></span>
                 </div>
+                <?php if ($aiStore): ?>
+                    <p class="mt-2 flex items-center gap-1.5 rounded-xl bg-cream-50 px-3 py-2 text-[0.65rem] font-bold text-forest-600"><?= icon('map-pin', 'h-3.5 w-3.5') ?> Rekomendasi & stok dari <?= e($aiStore['name']) ?></p>
+                <?php endif; ?>
 
                 <div class="mt-4">
                     <p class="field-label">Aktivitas</p>
@@ -82,7 +87,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <label class="field-label" for="ai-destination">Destinasi</label>
-                        <select id="ai-destination" class="select input" name="destination_id" data-ai-destination>
+                        <select id="ai-destination" class="select input" name="destination_id" data-ai-destination data-searchable>
                             <?php foreach ($destinations as $destination): ?>
                                 <option value="<?= (int) $destination['id'] ?>" <?= $presetDestination === (int) $destination['id'] ? 'selected' : '' ?>><?= e($destination['name']) ?> — <?= e($destination['region']) ?></option>
                             <?php endforeach; ?>

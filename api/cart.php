@@ -24,10 +24,19 @@ function cart_api_state(): array
         'total' => $total,
         'duration' => (int) $cart['duration'],
         'dates' => $cart['dates'],
+        'store' => $cart['store'] ? [
+            'id' => (int) $cart['store']['id'],
+            'name' => $cart['store']['name'],
+            'slug' => $cart['store']['slug'],
+            'city' => $cart['store']['city'],
+        ] : null,
         'errors' => $cart['errors'],
         'items' => array_map(static fn (array $line): array => [
             'key' => $line['key'],
             'item_id' => $line['item_id'],
+            'store_id' => $line['store_id'],
+            'store_item_id' => $line['store_item_id'],
+            'store_name' => $line['store_name'],
             'variant_id' => $line['variant_id'],
             'name' => $line['name'],
             'qty' => $line['qty'],
@@ -49,6 +58,16 @@ $action = (string) input('action', 'state');
 switch ($action) {
     case 'add':
         $itemId = input_int('item_id');
+        $storeId = input_int('store_id');
+        $storeItemId = input_int('store_item_id');
+        if ($storeItemId > 0) {
+            $offer = StoreItem::find($storeItemId);
+            if (!$offer) {
+                json_error('Barang cabang tidak ditemukan.', 404);
+            }
+            $itemId = (int) $offer['item_id'];
+            $storeId = (int) $offer['store_id'];
+        }
         $variantId = input_int('variant_id');
         $qty = max(1, input_int('quantity', input_int('qty', 1)));
         $start = (string) input('start_date', '');
@@ -56,9 +75,9 @@ switch ($action) {
         if ($itemId <= 0) {
             json_error('Item tidak valid.');
         }
-        $result = cart_add($itemId, $variantId ?: null, $qty, $start ?: null, $end ?: null);
+        $result = cart_add($itemId, $variantId ?: null, $qty, $start ?: null, $end ?: null, $storeId ?: null);
         if (!$result['success']) {
-            json_error($result['message']);
+            json_error($result['message'], !empty($result['conflict']) ? 409 : 422, [], $result);
         }
         $state = cart_api_state();
         json_success(array_merge($state, [
@@ -86,6 +105,8 @@ switch ($action) {
             }
             $normalized[] = [
                 'item_id' => $itemId,
+                'store_id' => (int) ($entry['store_id'] ?? 0) ?: null,
+                'store_item_id' => (int) ($entry['store_item_id'] ?? 0) ?: null,
                 'variant_id' => (int) ($entry['variant_id'] ?? 0) ?: null,
                 'qty' => max(1, (int) ($entry['qty'] ?? 1)),
             ];
@@ -95,7 +116,8 @@ switch ($action) {
         }
         $start = (string) input('start_date', '');
         $end = (string) input('end_date', '');
-        $result = cart_add_multiple($normalized, $start ?: null, $end ?: null);
+        $storeId = input_int('store_id');
+        $result = cart_add_multiple($normalized, $start ?: null, $end ?: null, $storeId ?: null);
         if (!$result['success']) {
             json_error($result['message'], 422, $result['errors'] ?? []);
         }

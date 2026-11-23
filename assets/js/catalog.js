@@ -17,9 +17,10 @@
 
   const state = {
     q: initial.get('q') || '',
-    sort: initial.get('sort') || 'popular',
+    sort: initial.get('sort') || 'nearest',
     page: Number(initial.get('page') || 1) || 1,
     view: window.localStorage.getItem('rentify-catalog-view') || 'grid',
+    store: initial.get('store') || root.dataset.store || '',
     filters: {},
   };
 
@@ -37,6 +38,7 @@
     if (category) params.set('category', category);
     if (state.q) params.set('q', state.q);
     if (state.sort !== 'popular') params.set('sort', state.sort);
+    if (state.store) params.set('store', state.store);
     if (state.view === 'list') params.set('view', 'list');
     if (includePage && page > 1) params.set('page', String(page));
     Object.entries(state.filters).forEach(([key, value]) => {
@@ -295,7 +297,14 @@
       state.sort = event.target.value;
       load({ page: 1 });
     }
+    if (event.target.matches('[data-catalog-store]')) {
+      state.store = event.target.value;
+      load({ page: 1 });
+    }
   });
+
+  const storeSelect = document.querySelector('[data-catalog-store]');
+  if (storeSelect) storeSelect.value = state.store;
 
   setActiveChips();
   setSortValue();

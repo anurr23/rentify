@@ -19,6 +19,8 @@ class AiRecommender extends Model
     private int $participants = 1;
     private string $startDate = '';
     private string $endDate = '';
+    private int $storeId = 0;
+    private string $storeName = '';
 
     public function __construct()
     {
@@ -70,6 +72,27 @@ class AiRecommender extends Model
         }
         $duration = duration_days($start, $end);
         $notes = trim((string) ($input['notes'] ?? ''));
+        $storeId = (int) ($input['store_id'] ?? 0);
+        if ($storeId <= 0) {
+            $store = null;
+            if ($user && $user['last_latitude'] !== null && $user['last_longitude'] !== null) {
+                $nearest = Store::nearest((float) $user['last_latitude'], (float) $user['last_longitude'], 1);
+                $store = $nearest[0] ?? null;
+            }
+            if (!$store) {
+                $store = current_store($user);
+            }
+            $storeId = $store ? (int) $store['id'] : 0;
+        } else {
+            $store = Store::find($storeId);
+            if (!$store || (int) $store['is_active'] !== 1) {
+                $storeId = 0;
+            }
+        }
+        if ($storeId <= 0) {
+            $store = Store::defaultStore();
+            $storeId = $store ? (int) $store['id'] : 0;
+        }
 
         $this->activityName = $activity['name'];
         $this->destinationName = $destinationText;
@@ -77,15 +100,17 @@ class AiRecommender extends Model
         $this->participants = $participants;
         $this->startDate = $start;
         $this->endDate = $end;
-        $this->buildCandidates($activity, $destination, $participants, $duration);
+        $this->storeId = $storeId;
+        $this->storeName = $store['name'] ?? '';
+        $this->buildCandidates($activity, $destination, $participants, $duration, $storeId);
 
         if (!$this->candidates) {
-            return ['success' => false, 'message' => 'Belum ada gear tersedia untuk aktivitas ini.'];
+            return ['success' => false, 'message' => 'Belum ada gear tersedia di cabang ini untuk aktivitas tersebut.'];
         }
 
         $promptHash = hash('sha256', implode('|', [
             $activity['id'], $destination['id'] ?? 0, strtolower($destinationText), $days, $participants,
-            $notes, $this->config['model'], $this->candidateHash(),
+            $notes, $storeId, $this->config['model'], $this->candidateHash(),
         ]));
         $cache = $this->readCache($promptHash);
         if ($cache !== null) {
@@ -127,7 +152,7 @@ class AiRecommender extends Model
         return substr(hash('sha256', implode(',', array_keys($this->candidateMap))), 0, 12);
     }
 
-    private function buildCandidates(array $activity, ?array $destination, int $participants, int $duration): void
+    private function buildCandidates(array $activity, ?array $destination, int $participants, int $duration, int $storeId): void
     {
         $rules = self::fetchAll(
             'SELECT r.*, c.name AS category_name, c.slug AS category_slug
@@ -149,15 +174,20 @@ class AiRecommender extends Model
             return;
         }
         $placeholders = implode(',', array_fill(0, count($categoryIds), '?'));
+        $params = [$storeId, ...$categoryIds];
         $rows = self::fetchAll(
-            "SELECT i.id, i.name, i.brand, i.category_id, i.price_per_day, i.stock_total, i.capacity_person,
-                i.weight_gram, i.features, i.short_description, i.rating_avg, i.rented_count,
-                c.name AS category_name
-             FROM items i JOIN categories c ON c.id = i.category_id
-             WHERE i.is_active = 1 AND i.stock_total > 0 AND i.category_id IN ($placeholders)
-             ORDER BY i.rented_count DESC, i.rating_avg DESC
+            "SELECT i.id, i.name, i.brand, i.category_id, si.price_per_day, si.deposit, si.stock_total,
+                si.id AS store_item_id, i.capacity_person, i.weight_gram, i.features, i.short_description,
+                i.rating_avg, i.rented_count, c.name AS category_name, s.name AS store_name, s.slug AS store_slug
+             FROM store_items si
+             JOIN items i ON i.id = si.item_id
+             JOIN categories c ON c.id = i.category_id
+             JOIN stores s ON s.id = si.store_id
+             WHERE si.store_id = ? AND si.is_active = 1 AND s.is_active = 1
+               AND i.is_active = 1 AND si.stock_total > 0 AND i.category_id IN ($placeholders)
+             ORDER BY si.is_featured DESC, i.rented_count DESC, i.rating_avg DESC
              LIMIT 70",
-            $categoryIds
+            $params
         );
 
         $ruleByCategory = [];
@@ -178,10 +208,14 @@ class AiRecommender extends Model
             $features = safe_json_decode($row['features'], []);
             $variant = null;
             $variantStmt = self::pdo()->prepare(
-                'SELECT id, label, stock_total, price_per_day FROM item_variants
-                 WHERE item_id = ? AND is_active = 1 AND stock_total > 0 ORDER BY stock_total DESC, sort_order ASC LIMIT 1'
+                'SELECT v.id, v.label, siv.stock_total, COALESCE(siv.price_per_day, si.price_per_day) AS price_per_day
+                 FROM item_variants v
+                 JOIN store_items si ON si.id = ?
+                 LEFT JOIN store_item_variants siv ON siv.store_item_id = si.id AND siv.variant_id = v.id
+                 WHERE v.item_id = ? AND v.is_active = 1 AND COALESCE(siv.stock_total, 0) > 0
+                 ORDER BY siv.stock_total DESC, v.sort_order ASC LIMIT 1'
             );
-            $variantStmt->execute([(int) $row['id']]);
+            $variantStmt->execute([(int) $row['store_item_id'], (int) $row['id']]);
             $variant = $variantStmt->fetch() ?: null;
             $rule = $ruleByCategory[$categoryId] ?? null;
             if ($rule) {
@@ -196,7 +230,12 @@ class AiRecommender extends Model
                 'category_id' => $categoryId,
                 'category' => $row['category_name'],
                 'price' => (float) $row['price_per_day'],
+                'deposit' => (float) $row['deposit'],
                 'stock' => (int) $row['stock_total'],
+                'store_id' => $storeId,
+                'store_name' => $row['store_name'],
+                'store_slug' => $row['store_slug'],
+                'store_item_id' => (int) $row['store_item_id'],
                 'capacity' => $row['capacity_person'] !== null ? (int) $row['capacity_person'] : null,
                 'features' => array_slice($features, 0, 4),
                 'rating' => (float) $row['rating_avg'],
@@ -430,6 +469,8 @@ PROMPT;
             'participants' => $this->participants,
             'start_date' => $this->startDate,
             'end_date' => $this->endDate,
+            'store_id' => $this->storeId,
+            'store_name' => $this->storeName,
             'summary' => $summary,
             'tips' => $tips,
             'items' => $items,
@@ -455,13 +496,16 @@ PROMPT;
             'price_per_day' => $candidate['price'],
             'qty' => $qty,
             'stock' => $candidate['stock'],
+            'store_id' => $candidate['store_id'] ?? $this->storeId,
+            'store_name' => $candidate['store_name'] ?? $this->storeName,
+            'store_item_id' => $candidate['store_item_id'] ?? null,
             'duration_days' => $this->duration,
             'subtotal' => $subtotal,
-            'deposit' => (float) ($item['deposit'] ?? 0) * $qty,
+            'deposit' => (float) ($candidate['deposit'] ?? $item['deposit'] ?? 0) * $qty,
             'priority' => $priority,
             'reason' => $reason,
             'features' => $candidate['features'],
-            'detail_url' => 'detail.php?slug=' . ($item['slug'] ?? ''),
+            'detail_url' => 'detail.php?slug=' . ($item['slug'] ?? '') . '&store=' . rawurlencode((string) ($candidate['store_slug'] ?? '')),
         ];
     }
 
@@ -558,6 +602,8 @@ PROMPT;
             'participants' => $this->participants,
             'start_date' => $this->startDate,
             'end_date' => $this->endDate,
+            'store_id' => $this->storeId,
+            'store_name' => $this->storeName,
             'summary' => $summary,
             'tips' => $tips,
             'items' => $items,
