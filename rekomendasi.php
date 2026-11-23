@@ -19,7 +19,7 @@ $pageScripts = ['ai.js'];
 require ROOT_PATH . '/includes/header.php';
 require ROOT_PATH . '/includes/customer_nav.php';
 ?>
-<main id="main" data-ai-root>
+<main id="main" class="pb-16 lg:pb-24" data-ai-root>
     <section class="app-hero !pb-16">
         <div class="absolute inset-0 topo-bg opacity-20"></div>
         <div class="absolute -right-20 top-0 h-64 w-64 rounded-full bg-mint-300/10 blur-3xl"></div>

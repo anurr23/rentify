@@ -23,7 +23,7 @@ $pageScripts = ['cart.js'];
 require ROOT_PATH . '/includes/header.php';
 require ROOT_PATH . '/includes/customer_nav.php';
 ?>
-<main id="main" class="pb-10" data-cart-root
+<main id="main" class="pb-16 lg:pb-24" data-cart-root
       data-has-items="<?= $hasItems ? '1' : '0' ?>"
       data-has-dates="<?= ($dates['start'] && $dates['end']) ? '1' : '0' ?>">
     <section class="app-hero !pb-14">

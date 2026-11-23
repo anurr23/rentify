@@ -121,7 +121,7 @@ $pageScripts = ['detail.js'];
 require ROOT_PATH . '/includes/header.php';
 require ROOT_PATH . '/includes/customer_nav.php';
 ?>
-<main id="main" data-detail-root
+<main id="main" class="pb-16 lg:pb-24" data-detail-root
       data-item-id="<?= (int) $item['id'] ?>"
       data-item-name="<?= e($item['name']) ?>"
       data-base-price="<?= $unitPrice ?>"

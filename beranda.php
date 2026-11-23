@@ -30,7 +30,7 @@ $pageScripts = ['location.js'];
 require ROOT_PATH . '/includes/header.php';
 require ROOT_PATH . '/includes/customer_nav.php';
 ?>
-<main id="main">
+<main id="main" class="pb-16 lg:pb-24">
     <section class="app-hero">
         <div class="absolute inset-0 bg-cover bg-center opacity-40" style="background-image:url('<?= e(upload_url($heroImage)) ?>');"></div>
         <div class="absolute inset-0 bg-gradient-to-b from-forest-950/55 via-forest-950/50 to-forest-900"></div>

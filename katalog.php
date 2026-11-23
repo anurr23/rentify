@@ -98,7 +98,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
 
 $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 ?>
-<main id="main">
+<main id="main" class="pb-16 lg:pb-24">
     <section class="app-hero -mb-7 pb-14">
         <div class="absolute inset-0 bg-cover bg-center opacity-35" style="background-image:url('<?= e(upload_url($heroImage)) ?>');"></div>
         <div class="absolute inset-0 bg-gradient-to-b from-forest-950/65 via-forest-950/70 to-forest-900"></div>

@@ -17,7 +17,7 @@ $pageScripts = ['profile.js'];
 require ROOT_PATH . '/includes/header.php';
 require ROOT_PATH . '/includes/customer_nav.php';
 ?>
-<main id="main" class="pb-10" data-profile-root>
+<main id="main" class="pb-16 lg:pb-24" data-profile-root>
     <section class="app-hero !pb-16">
         <div class="absolute inset-0 topo-bg opacity-15"></div>
         <div class="container-app relative pt-3">

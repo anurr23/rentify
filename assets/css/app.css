@@ -58,6 +58,7 @@
 
 @layer base {
   html {
+  scroll-padding-top: 5.5rem;
     scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
   }
