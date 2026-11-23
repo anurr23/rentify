@@ -143,34 +143,6 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
                     <?php endforeach; ?>
                 </div>
             </section>
-
-            <section class="mt-6">
-                <div class="flex items-end justify-between gap-3">
-                    <div>
-                        <h2 class="text-xl font-extrabold tracking-tight text-forest-900">Katalog Kategori <span class="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-cream-200 px-1.5 align-middle text-[0.6rem] font-extrabold text-forest-700"><?= count($categories) ?></span></h2>
-                        <p class="mt-1 text-xs text-muted">Pilih kategori, temukan gear yang pas.</p>
-                    </div>
-                    <a href="#katalog-lengkap" class="text-xs font-extrabold text-forest-700">Lihat semua gear →</a>
-                </div>
-                <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-                    <?php foreach ($categories as $index => $itemCategory): ?>
-                        <a href="<?= e(url('katalog.php?category=' . $itemCategory['slug'])) ?>" class="group <?= $index === 0 ? 'col-span-2 md:col-span-2' : '' ?>">
-                            <div class="relative overflow-hidden rounded-[1.25rem] <?= $index === 0 ? 'aspect-[16/9] md:aspect-[2.4/1]' : 'aspect-[4/3]' ?>">
-                                <img src="<?= e(upload_url($itemCategory['hero_image'])) ?>" alt="<?= e($itemCategory['name']) ?>" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
-                                <div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-forest-950/15 to-transparent"></div>
-                                <div class="absolute inset-x-0 bottom-0 p-3.5">
-                                    <p class="text-[0.55rem] font-bold uppercase tracking-[0.12em] text-mint-300"><?= (int) $itemCategory['item_count'] ?> unit</p>
-                                    <h3 class="mt-0.5 text-xs font-extrabold text-white <?= $index === 0 ? 'sm:text-base' : '' ?>"><?= e($itemCategory['name']) ?></h3>
-                                    <?php if ($index === 0): ?>
-                                        <p class="mt-1 hidden max-w-xs text-[0.7rem] text-white/55 sm:block"><?= e($itemCategory['description']) ?></p>
-                                    <?php endif; ?>
-                                </div>
-                                <span class="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur"><?= icon('arrow-up-right', 'h-3.5 w-3.5') ?></span>
-                            </div>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            </section>
         <?php else: ?>
             <section class="pt-6">
                 <div class="card p-4 sm:p-5" data-filter-card>
@@ -188,24 +160,78 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
             </section>
         <?php endif; ?>
 
-        <?php if ($topItem && !$hasFilterContext): ?>
-            <section class="mt-7">
-                <div class="flex items-end justify-between gap-3">
-                    <div>
-                        <h2 class="text-base font-extrabold text-forest-900">Paling direkomendasikan di Karawang</h2>
-                        <p class="mt-1 text-xs text-muted">Paling banyak disewa untuk camping & pendakian sekitar Karawang</p>
-                    </div>
-                    <span class="inline-flex items-center gap-1 rounded-full bg-mint-300 px-2.5 py-1 text-[0.6rem] font-extrabold text-forest-900"><?= icon('sparkles', 'h-3 w-3') ?> Pilihan AI</span>
-                </div>
-                <div class="mt-4"><?= item_card($topItem, ['variant' => 'featured', 'class' => 'sm:grid sm:grid-cols-2 sm:items-stretch']) ?></div>
-            </section>
-        <?php endif; ?>
+        <?php if (!$category): ?>
+            <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+                <div class="min-w-0">
+                    <section id="katalog-lengkap" class="scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="">
+                        <div data-catalog-results>
+                            <?= render_catalog_results($result, $category) ?>
+                        </div>
+                    </section>
 
-        <section id="katalog-lengkap" class="mt-8 scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="<?= e($category['slug'] ?? '') ?>">
-            <div data-catalog-results>
-                <?= render_catalog_results($result, $category) ?>
+                    <?php if ($topItem && !$hasFilterContext): ?>
+                        <section class="mt-8">
+                            <div class="flex items-end justify-between gap-3">
+                                <div>
+                                    <h2 class="text-base font-extrabold text-forest-900">Paling direkomendasikan di Karawang</h2>
+                                    <p class="mt-1 text-xs text-muted">Paling banyak disewa untuk camping & pendakian sekitar Karawang</p>
+                                </div>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-mint-300 px-2.5 py-1 text-[0.6rem] font-extrabold text-forest-900"><?= icon('sparkles', 'h-3 w-3') ?> Pilihan AI</span>
+                            </div>
+                            <div class="mt-4"><?= item_card($topItem, ['variant' => 'featured', 'class' => 'sm:grid sm:grid-cols-2 sm:items-stretch']) ?></div>
+                        </section>
+                    <?php endif; ?>
+                </div>
+
+                <aside class="min-w-0 space-y-4 lg:sticky lg:top-24" aria-label="Kategori katalog">
+                    <section class="card min-w-0 p-3.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <div>
+                                <p class="text-[0.58rem] font-extrabold uppercase tracking-[0.14em] text-forest-500">Jelajahi</p>
+                                <h2 class="mt-0.5 text-sm font-extrabold text-forest-900">Katalog Kategori</h2>
+                            </div>
+                            <span class="badge badge-mint"><?= count($categories) ?></span>
+                        </div>
+                        <div class="no-scrollbar mt-3 flex w-full min-w-0 max-w-full gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-2 lg:overflow-visible lg:pb-0">
+                            <?php foreach ($categories as $itemCategory): ?>
+                                <a href="<?= e(url('katalog.php?category=' . $itemCategory['slug'])) ?>" class="group relative block w-[7.5rem] shrink-0 overflow-hidden rounded-xl lg:w-auto" aria-label="Buka kategori <?= e($itemCategory['name']) ?>">
+                                    <div class="relative aspect-[4/3] overflow-hidden bg-cream-100">
+                                        <img src="<?= e(upload_url($itemCategory['hero_image'])) ?>" alt="<?= e($itemCategory['name']) ?>" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                        <div class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-forest-950/15 to-transparent"></div>
+                                        <div class="absolute inset-x-0 bottom-0 p-2">
+                                            <p class="text-[0.5rem] font-bold uppercase tracking-[0.08em] text-mint-300"><?= (int) $itemCategory['item_count'] ?> unit</p>
+                                            <h3 class="mt-0.5 line-clamp-2 text-[0.62rem] font-extrabold leading-tight text-white"><?= e($itemCategory['name']) ?></h3>
+                                        </div>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                        <a href="#katalog-lengkap" class="mt-3 flex items-center justify-center gap-1 rounded-full border border-line px-3 py-2 text-[0.65rem] font-extrabold text-forest-700 transition hover:bg-cream-50">
+                            Lihat semua gear <?= icon('chevron-down', 'h-3.5 w-3.5') ?>
+                        </a>
+                    </section>
+                </aside>
             </div>
-        </section>
+        <?php else: ?>
+            <section id="katalog-lengkap" class="mt-8 scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="<?= e($category['slug'] ?? '') ?>">
+                <div data-catalog-results>
+                    <?= render_catalog_results($result, $category) ?>
+                </div>
+            </section>
+
+            <?php if ($topItem && !$hasFilterContext): ?>
+                <section class="mt-8">
+                    <div class="flex items-end justify-between gap-3">
+                        <div>
+                            <h2 class="text-base font-extrabold text-forest-900">Paling direkomendasikan di Karawang</h2>
+                            <p class="mt-1 text-xs text-muted">Paling banyak disewa untuk camping & pendakian sekitar Karawang</p>
+                        </div>
+                        <span class="inline-flex items-center gap-1 rounded-full bg-mint-300 px-2.5 py-1 text-[0.6rem] font-extrabold text-forest-900"><?= icon('sparkles', 'h-3 w-3') ?> Pilihan AI</span>
+                    </div>
+                    <div class="mt-4"><?= item_card($topItem, ['variant' => 'featured', 'class' => 'sm:grid sm:grid-cols-2 sm:items-stretch']) ?></div>
+                </section>
+            <?php endif; ?>
+        <?php endif; ?>
     </div>
 </main>
 
