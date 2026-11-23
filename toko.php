@@ -80,7 +80,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
         <div class="absolute inset-0 topo-bg opacity-20"></div>
         <div class="container-app relative pt-4">
             <div class="flex items-center justify-between gap-3">
-                <a href="<?= e(url($currentUser ? 'beranda.php' : 'index.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
+                <a href="<?= e(url($currentUser ? 'beranda.php' : 'index.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10 lg:hidden" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
                 <span class="badge border border-white/15 bg-white/10 text-white"><?= count($stores) ?> cabang aktif</span>
             </div>
             <div class="mt-8 max-w-2xl">

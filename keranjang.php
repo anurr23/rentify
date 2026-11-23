@@ -30,8 +30,8 @@ require ROOT_PATH . '/includes/customer_nav.php';
         <div class="absolute inset-0 topo-bg opacity-15"></div>
         <div class="container-app relative pt-3">
             <div class="flex items-center justify-between">
-                <a href="<?= e(url('katalog.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
-                <div class="text-center">
+                <a href="<?= e(url('katalog.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10 lg:hidden" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
+                <div class="text-center lg:mx-auto">
                     <p class="text-[0.55rem] font-extrabold uppercase tracking-[0.2em] text-mint-300/70">Langkah 1 dari 3</p>
                     <h1 class="text-base font-extrabold tracking-tight">Keranjang sewa</h1>
                 </div>

@@ -457,6 +457,23 @@
     });
   }
 
+
+  /* Panel notifikasi mobile dipindah ke <body> saat dibuka agar tidak
+     terpotong/tertimpa konten lain di dalam hero. */
+  function setupNotificationPanels() {
+    $$('details[data-notif-portal]').forEach((details) => {
+      const panel = details.querySelector('[data-notif-panel]');
+      if (!panel) return;
+      details.addEventListener('toggle', () => {
+        if (details.open) {
+          document.body.appendChild(panel);
+        } else {
+          details.appendChild(panel);
+        }
+      });
+    });
+  }
+
   function init() {
     initFlashes();
     initLazyReveal();
@@ -466,6 +483,7 @@
     initPasswordToggles();
     initDateDefaults();
     setupModals();
+    setupNotificationPanels();
     document.body.dataset.page = document.body.dataset.page || '';
   }
 

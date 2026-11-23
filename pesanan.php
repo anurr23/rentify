@@ -46,12 +46,12 @@ require ROOT_PATH . '/includes/customer_nav.php';
         <div class="absolute inset-0 topo-bg opacity-15"></div>
         <div class="container-app relative pt-3">
             <div class="flex items-center justify-between">
-                <a href="<?= e(url('beranda.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
-                <div class="text-center">
+                <a href="<?= e(url('beranda.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10 lg:hidden" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
+                <div class="text-center lg:mx-auto">
                     <p class="text-[0.55rem] font-extrabold uppercase tracking-[0.2em] text-mint-300/70">Riwayat & status</p>
                     <h1 class="text-base font-extrabold tracking-tight">Pesanan saya</h1>
                 </div>
-                <a href="<?= e(url('keranjang.php')) ?>" class="icon-btn icon-btn-dark relative h-10 w-10" aria-label="Keranjang">
+                <a href="<?= e(url('keranjang.php')) ?>" class="icon-btn icon-btn-dark relative h-10 w-10 lg:hidden" aria-label="Keranjang">
                     <?= icon('cart', 'h-[1.1rem] w-[1.1rem]') ?>
                     <span class="nav-badge <?= cart_count() ? '' : 'hidden' ?>" data-cart-count><?= cart_count() ?></span>
                 </a>

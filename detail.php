@@ -135,9 +135,9 @@ require ROOT_PATH . '/includes/customer_nav.php';
     <section class="relative bg-forest-950 text-white">
         <div class="container-app pb-24 pt-3">
             <div class="flex items-center justify-between">
-                <a href="<?= e(url('katalog.php?category=' . $category['slug'])) ?>" class="icon-btn icon-btn-dark h-10 w-10" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
+                <a href="<?= e(url('katalog.php?category=' . $category['slug'])) ?>" class="icon-btn icon-btn-dark h-10 w-10 lg:hidden" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
                 <p class="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-mint-300/70"><?= e($item['category_name']) ?></p>
-                <a href="<?= e(url('keranjang.php')) ?>" class="icon-btn icon-btn-dark relative h-10 w-10" aria-label="Keranjang">
+                <a href="<?= e(url('keranjang.php')) ?>" class="icon-btn icon-btn-dark relative h-10 w-10 lg:hidden" aria-label="Keranjang">
                     <?= icon('cart', 'h-[1.1rem] w-[1.1rem]') ?>
                     <span class="nav-badge <?= cart_count() ? '' : 'hidden' ?>" data-cart-count><?= cart_count() ?></span>
                 </a>

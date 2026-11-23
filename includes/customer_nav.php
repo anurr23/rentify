@@ -29,6 +29,13 @@ $navItems = [
         </form>
 
         <div class="ml-auto flex items-center gap-1.5 xl:ml-0">
+            <details class="relative">
+                <summary class="icon-btn relative h-10 w-10 cursor-pointer list-none" aria-label="Notifikasi">
+                    <?= icon('bell', 'h-[1.15rem] w-[1.15rem]') ?>
+                    <span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-success ring-2 ring-cream-50 <?= $unreadNotifications ? '' : 'hidden' ?>" data-notif-dot></span>
+                </summary>
+                <?php $panelVariant = 'header'; require ROOT_PATH . '/includes/notification_panel.php'; ?>
+            </details>
             <a href="<?= e(url('wishlist.php')) ?>" class="icon-btn relative h-10 w-10" aria-label="Wishlist">
                 <?= icon('heart', 'h-[1.15rem] w-[1.15rem]') ?>
                 <span class="nav-badge <?= $wishlistCount ? '' : 'hidden' ?>" data-wishlist-count><?= $wishlistCount ?></span>
