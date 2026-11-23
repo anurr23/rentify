@@ -233,6 +233,175 @@ function initScene() {
   campGroup.add(hiker);
 
   // ---------------------------------------------------------------------
+  // Pendaki bergerak naik/turun di lereng gunung.
+  // ---------------------------------------------------------------------
+  const hikerBodyGeo = new THREE.CapsuleGeometry(0.22, 0.56, 3, 6);
+  const hikerHeadGeo = new THREE.SphereGeometry(0.16, 7, 6);
+  const hikerPackGeo = new THREE.BoxGeometry(0.4, 0.52, 0.24);
+  const hikerLegGeo = new THREE.CylinderGeometry(0.065, 0.055, 0.56, 5);
+  const hikerArmGeo = new THREE.CylinderGeometry(0.05, 0.045, 0.5, 4);
+  const hikerLampGeo = new THREE.SphereGeometry(0.06, 6, 5);
+  const hikerPoleGeo = new THREE.CylinderGeometry(0.016, 0.014, 1.0, 5);
+  const hikerBedrollGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.42, 6);
+  const hikerTorchGeo = new THREE.CylinderGeometry(0.038, 0.046, 0.2, 5);
+  const hikerBeamGeo = new THREE.ConeGeometry(0.24, 2.1, 8, 1, true);
+  const hikerTorchBeamGeo = new THREE.ConeGeometry(0.16, 1.4, 8, 1, true);
+  const hikerDark = new THREE.MeshStandardMaterial({ color: 0x08150f, roughness: 1, flatShading: true });
+  const hikerPack = new THREE.MeshStandardMaterial({ color: 0x5b4a33, roughness: 1, flatShading: true });
+  const hikerLamp = new THREE.MeshBasicMaterial({ color: 0xffedb0 });
+  const hikerPoleMat = new THREE.MeshStandardMaterial({ color: 0xd9c39a, roughness: 0.7 });
+
+  const makeBeam = (geometry, opacity) => {
+    const material = new THREE.MeshBasicMaterial({
+      color: 0xffe5a6,
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = -Math.PI / 2 - 0.06;
+    return mesh;
+  };
+
+  const makeHiker = (color, scale, poles, torch) => {
+    const group = new THREE.Group();
+    group.scale.setScalar(scale);
+    group.rotation.order = 'YXZ';
+
+    const jacket = new THREE.MeshStandardMaterial({ color, roughness: 0.92, flatShading: true });
+    const body = new THREE.Mesh(hikerBodyGeo, jacket);
+    body.position.y = 1.02;
+    group.add(body);
+
+    const head = new THREE.Mesh(hikerHeadGeo, hikerDark);
+    head.position.y = 1.5;
+    group.add(head);
+
+    const pack = new THREE.Mesh(hikerPackGeo, hikerPack);
+    pack.position.set(0, 1.08, -0.26);
+    group.add(pack);
+
+    const bedroll = new THREE.Mesh(hikerBedrollGeo, jacket);
+    bedroll.rotation.z = Math.PI / 2;
+    bedroll.position.set(0, 1.36, -0.26);
+    group.add(bedroll);
+
+    const lamp = new THREE.Mesh(hikerLampGeo, hikerLamp);
+    lamp.position.set(0, 1.48, 0.17);
+    group.add(lamp);
+
+    const headBeam = makeBeam(hikerBeamGeo, 0.1);
+    headBeam.position.set(0, 1.48, 1.1 + 0.17);
+    group.add(headBeam);
+
+    const legs = [-1, 1].map((side) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(side * 0.11, 0.62, 0);
+      const leg = new THREE.Mesh(hikerLegGeo, hikerDark);
+      leg.position.y = -0.28;
+      pivot.add(leg);
+      group.add(pivot);
+      return pivot;
+    });
+
+    const arms = [-1, 1].map((side) => {
+      const pivot = new THREE.Group();
+      pivot.position.set(side * 0.27, 1.2, 0);
+      const arm = new THREE.Mesh(hikerArmGeo, jacket);
+      arm.position.y = -0.23;
+      pivot.add(arm);
+      group.add(pivot);
+      return pivot;
+    });
+
+    const poleLimit = Math.max(0, Math.min(2, poles));
+    arms.forEach((pivot, index) => {
+      if (index >= poleLimit) return;
+      const poleMesh = new THREE.Mesh(hikerPoleGeo, hikerPoleMat);
+      const side = index === 0 ? -1 : 1;
+      poleMesh.position.set(side * 0.03, -0.82, 0.06);
+      poleMesh.rotation.z = side * 0.06;
+      pivot.add(poleMesh);
+    });
+
+    let torchBeam = null;
+    if (torch) {
+      const handTorch = new THREE.Mesh(hikerTorchGeo, hikerDark);
+      handTorch.rotation.x = Math.PI / 2;
+      handTorch.position.set(0, -0.5, 0.12);
+      arms[1].add(handTorch);
+      torchBeam = makeBeam(hikerTorchBeamGeo, 0.09);
+      torchBeam.rotation.x = -Math.PI / 2 - 0.16;
+      torchBeam.position.set(0, -0.5, 0.75 + 0.12);
+      arms[1].add(torchBeam);
+    }
+
+    group.userData = { legs, arms, headBeam, torchBeam };
+    return group;
+  };
+
+  const hikerRoutes = [
+    { a: [-9.0, -4.0], b: [-5.2, -15.5], speed: 0.038, offset: 0.15, scale: 1.32, color: 0xd9803f, poles: 2, torch: false },
+    { a: [-5.2, -15.5], b: [-9.0, -4.0], speed: 0.038, offset: 1.15, scale: 1.32, color: 0xd9803f, poles: 2, torch: false },
+    { a: [4.4, -15.0], b: [6.8, -4.5], speed: 0.034, offset: 0.55, scale: 1.24, color: 0x5fbd7c, poles: 1, torch: true },
+    { a: [0.8, -4.5], b: [2.6, -16.5], speed: 0.045, offset: 0.9, scale: 1.2, color: 0xd5b04a, poles: 1, torch: false },
+    { a: [-9.5, -22.0], b: [-5.5, -30.5], speed: 0.03, offset: 0.35, scale: 1.14, color: 0x6fa7c7, poles: 1, torch: true },
+    { a: [6.2, -21.0], b: [3.2, -30.0], speed: 0.034, offset: 1.4, scale: 1.1, color: 0xc97070, poles: 0, torch: false },
+  ];
+
+  const climbers = hikerRoutes.map((route) => {
+    const group = makeHiker(route.color, route.scale, route.poles, route.torch);
+    scene.add(group);
+    return {
+      ...route,
+      group,
+      legs: group.userData.legs,
+      arms: group.userData.arms,
+      headBeam: group.userData.headBeam,
+      torchBeam: group.userData.torchBeam,
+      ax: route.a[0],
+      az: route.a[1],
+      bx: route.b[0],
+      bz: route.b[1],
+    };
+  });
+
+  const placeClimbers = (elapsed, moving = true) => {
+    climbers.forEach((climber) => {
+      const cycle = (elapsed * climber.speed + climber.offset) % 2;
+      const phase = cycle <= 1 ? cycle : 2 - cycle;
+      const direction = cycle <= 1 ? 1 : -1;
+      const t = 0.5 - 0.5 * Math.cos(Math.PI * phase);
+      const wobble = Math.sin(phase * Math.PI * 2 + climber.offset * 4) * 0.24;
+      const x = THREE.MathUtils.lerp(climber.ax, climber.bx, t) + wobble;
+      const z = THREE.MathUtils.lerp(climber.az, climber.bz, t);
+      const y = heightAt(x, z);
+      const aheadT = THREE.MathUtils.clamp(t + direction * 0.035, 0, 1);
+      const aheadX = THREE.MathUtils.lerp(climber.ax, climber.bx, aheadT) + wobble;
+      const aheadZ = THREE.MathUtils.lerp(climber.az, climber.bz, aheadT);
+      const aheadY = heightAt(aheadX, aheadZ);
+      const yaw = Math.atan2(aheadX - x, aheadZ - z);
+      const run = Math.hypot(aheadX - x, aheadZ - z) || 0.001;
+      const pitch = Math.atan2(aheadY - y, run);
+      const stride = moving ? elapsed * 6.2 + climber.offset * 9 : 0.7;
+      const bob = Math.abs(Math.sin(stride)) * 0.022 * climber.scale;
+
+      climber.group.position.set(x, y + bob, z);
+      climber.group.rotation.y = yaw;
+      climber.group.rotation.x = -pitch * 0.65;
+      climber.legs[0].rotation.x = Math.sin(stride) * 0.55;
+      climber.legs[1].rotation.x = -Math.sin(stride) * 0.55;
+      climber.arms[0].rotation.x = -Math.sin(stride) * 0.36;
+      climber.arms[1].rotation.x = Math.sin(stride) * 0.36;
+      const glow = 0.09 + Math.sin(elapsed * 4.5 + climber.offset * 9) * 0.015;
+      if (climber.headBeam) climber.headBeam.material.opacity = glow;
+      if (climber.torchBeam) climber.torchBeam.material.opacity = glow * 0.9;
+    });
+  };
+
+  // ---------------------------------------------------------------------
   // Bintang dan kabut partikel.
   // ---------------------------------------------------------------------
   const starCount = 420;
@@ -331,10 +500,12 @@ function initScene() {
 
     dust.rotation.y = elapsed * 0.01;
     stars.rotation.y = elapsed * 0.003;
+    placeClimbers(elapsed, true);
     renderer.render(scene, camera);
   };
 
   if (reduceMotion) {
+    placeClimbers(1.2, false);
     renderer.render(scene, camera);
   } else {
     animate();

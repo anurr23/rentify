@@ -59,6 +59,7 @@ Setiap item bisa di-include/exclude, diubah jumlahnya, lalu dimasukkan ke keranj
 
 ![Beranda customer Rentify](docs/screenshots/beranda.jpg)
 
+- Landing page 3D dengan pendaki yang bergerak naik-turun lereng, lengkap dengan headlamp, trekking pole, dan carrier.
 - Sapaan personal, member ID, pesanan mendatang, dan pintasan AI.
 - Kategori dan **Top trends** langsung di beranda.
 - Katalog dengan filter kategori dinamis, urutan, grid/list, dan pagination AJAX.
