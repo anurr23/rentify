@@ -265,5 +265,8 @@ Uji juga endpoint yang berubah, termasuk request non-GET dengan CSRF.
 | Admin Cabang | Karawang Selatan | `dewi@rentify.id` | `password` |
 | Admin Cabang | Cikampek | `rizky@rentify.id` | `password` |
 | Admin Cabang | Bandung | `dimas@rentify.id` | `password` |
+| Admin Cabang | Jakarta | `nadia@rentify.id` | `password` |
+| Admin Cabang | Bogor | `bayu@rentify.id` | `password` |
+| Admin Cabang | Surabaya | `sinta@rentify.id` | `password` |
 | Customer | — | `galih@petualang.id` | `password` |
 | Customer | — | `william@petualang.id` | `password` |

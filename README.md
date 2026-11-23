@@ -270,10 +270,13 @@ Buka **http://localhost/rentify/**.
 | Admin Cabang | Karawang Selatan | `dewi@rentify.id` | `password` |
 | Admin Cabang | Cikampek | `rizky@rentify.id` | `password` |
 | Admin Cabang | Bandung | `dimas@rentify.id` | `password` |
+| Admin Cabang | Jakarta | `nadia@rentify.id` | `password` |
+| Admin Cabang | Bogor | `bayu@rentify.id` | `password` |
+| Admin Cabang | Surabaya | `sinta@rentify.id` | `password` |
 | Customer | — | `galih@petualang.id` | `password` |
 | Customer | — | `william@petualang.id` | `password` |
 
-Seed berisi **7 toko cabang, 4 admin cabang, 12 kategori, 34 gear, 5 pesanan, pembayaran, review, aktivitas, destinasi, pickup point,** dan pengaturan awal.
+Seed berisi **7 toko cabang, 7 admin cabang, 12 kategori, 34 gear, 5 pesanan, pembayaran, review, aktivitas, destinasi, pickup point,** dan pengaturan awal.
 
 ---
 

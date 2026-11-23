@@ -245,6 +245,9 @@ if (!function_exists('rentify_migrate')) {
             ['Dewi Lestari', 'dewi@rentify.id', '081200000022', 'RNT-STAFF-02', 'RNT-KRW-02'],
             ['Rizky Pratama', 'rizky@rentify.id', '081200000023', 'RNT-STAFF-03', 'RNT-KRW-03'],
             ['Dimas Anggara', 'dimas@rentify.id', '081200000024', 'RNT-STAFF-04', 'RNT-BDG-01'],
+            ['Nadia Putri', 'nadia@rentify.id', '081200000025', 'RNT-STAFF-05', 'RNT-JKT-01'],
+            ['Bayu Firmansyah', 'bayu@rentify.id', '081200000026', 'RNT-STAFF-06', 'RNT-BGR-01'],
+            ['Sinta Maharani', 'sinta@rentify.id', '081200000027', 'RNT-STAFF-07', 'RNT-SBY-01'],
         ];
         $findUser = $pdo->prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1');
         $insertUser = $pdo->prepare(

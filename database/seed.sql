@@ -18,7 +18,10 @@ INSERT IGNORE INTO users (id, member_code, name, email, phone, password_hash, ro
 (4, 'RNT-STAFF-01', 'Asep Nugraha', 'asep@rentify.id', '081200000021', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 1, 'Karawang Barat, Jawa Barat', 1, 1, NOW()),
 (5, 'RNT-STAFF-02', 'Dewi Lestari', 'dewi@rentify.id', '081200000022', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 2, 'Karawang Selatan, Jawa Barat', 1, 1, NOW()),
 (6, 'RNT-STAFF-03', 'Rizky Pratama', 'rizky@rentify.id', '081200000023', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 3, 'Cikampek, Karawang', 1, 1, NOW()),
-(7, 'RNT-STAFF-04', 'Dimas Anggara', 'dimas@rentify.id', '081200000024', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 4, 'Bandung, Jawa Barat', 1, 1, NOW());
+(7, 'RNT-STAFF-04', 'Dimas Anggara', 'dimas@rentify.id', '081200000024', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 4, 'Bandung, Jawa Barat', 1, 1, NOW()),
+(8, 'RNT-STAFF-05', 'Nadia Putri', 'nadia@rentify.id', '081200000025', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 5, 'Jakarta Selatan', 1, 1, NOW()),
+(9, 'RNT-STAFF-06', 'Bayu Firmansyah', 'bayu@rentify.id', '081200000026', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 6, 'Bogor Tengah, Jawa Barat', 1, 1, NOW()),
+(10, 'RNT-STAFF-07', 'Sinta Maharani', 'sinta@rentify.id', '081200000027', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 7, 'Surabaya, Jawa Timur', 1, 1, NOW());
 
 INSERT IGNORE INTO categories (id, name, slug, description, icon, hero_image, accent_color, sort_order, is_active) VALUES
 (1, 'Tenda & Shelter', 'tenda-shelter', 'Dome, family, dan glamping tent untuk tidur nyaman di alam terbuka.', 'tent', 'uploads/categories/tent-shelter.jpg', '#CBE8CE', 1, 1),
