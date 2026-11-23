@@ -73,7 +73,6 @@ require ROOT_PATH . '/includes/customer_nav.php';
                         <?php $panelVariant = 'hero'; require ROOT_PATH . '/includes/notification_panel.php'; ?>
                     </details>
                 </div>
-                </div>
             </div>
 
             <div class="mt-7">
@@ -92,7 +91,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                 <span class="ai-orb !h-11 !w-11"><?= icon('sparkles', 'h-5 w-5') ?></span>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-extrabold">AI Gear Recommender</p>
-                    <p class="truncate text-[0.68rem] text-white/50">Temukan perlengkapan terbaik sesuai destinasi</p>
+                    <p class="text-[0.68rem] leading-snug text-white/50">Temukan perlengkapan terbaik sesuai destinasi</p>
                 </div>
                 <span class="btn btn-accent btn-sm hidden shrink-0 sm:inline-flex">Coba Sekarang <?= icon('arrow-right', 'h-3.5 w-3.5') ?></span>
                 <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mint-300 text-forest-900 sm:hidden"><?= icon('arrow-right', 'h-4 w-4') ?></span>
@@ -103,7 +102,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
     </section>
 
     <div class="container-app relative z-10 -mt-1">
-        <div class="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 py-4 sm:mx-0 sm:flex-wrap sm:px-0">
+        <div class="no-scrollbar flex gap-2 overflow-x-auto py-4 sm:flex-wrap">
             <a href="<?= e(url('katalog.php')) ?>" class="chip chip-active shrink-0"><?= icon('grid', 'h-3.5 w-3.5') ?> Semua</a>
             <?php foreach ($categories as $category): ?>
                 <a href="<?= e(url('katalog.php?category=' . $category['slug'])) ?>" class="chip shrink-0">
@@ -134,17 +133,17 @@ require ROOT_PATH . '/includes/customer_nav.php';
     <section class="container-app mt-4" <?= (!$nearestStore && empty($currentUser['preferred_store_id'])) ? 'data-location-auto' : '' ?>>
         <div class="relative overflow-hidden rounded-[1.35rem] border border-line bg-white p-4 shadow-soft sm:p-5">
             <div class="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-mint-100/70 blur-xl"></div>
-            <div class="relative flex flex-wrap items-center gap-3.5">
+            <div class="relative flex flex-wrap items-start gap-3.5 sm:items-center">
                 <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-forest-900 text-mint-300"><?= icon('map-pin', 'h-5 w-5') ?></span>
                 <div class="min-w-0 flex-1">
                     <p class="text-[0.6rem] font-extrabold uppercase tracking-[0.14em] text-forest-500">Cabang terdekat</p>
                     <p class="mt-0.5 truncate text-sm font-extrabold text-forest-900" data-nearest-store-name><?= e($homeStore['name'] ?? 'Rentify Karawang Kota') ?></p>
-                    <p class="mt-0.5 truncate text-[0.68rem] text-muted"><span data-nearest-store-address><?= e($homeStore['address'] ?? '') ?></span> · <span data-nearest-store-distance><?= $nearestStore ? Store::distanceLabel((float) $nearestStore['distance_km']) . ' dari lokasimu' : 'Aktifkan lokasi untuk jarak' ?></span></p>
+                    <p class="mt-0.5 text-[0.68rem] leading-relaxed text-muted"><span data-nearest-store-address><?= e($homeStore['address'] ?? '') ?></span> · <span data-nearest-store-distance><?= $nearestStore ? Store::distanceLabel((float) $nearestStore['distance_km']) . ' dari lokasimu' : 'Aktifkan lokasi untuk jarak' ?></span></p>
                     <p class="mt-1 flex items-center gap-1 text-[0.62rem] font-semibold text-forest-700" data-location-status>
                         <?= icon('map-pin', 'h-3 w-3') ?> <?= $nearestStore ? 'Lokasi aktif · rekomendasi cabang terdekat' : 'Aktifkan lokasi untuk rekomendasi cabang terdekat' ?>
                     </p>
                 </div>
-                <div class="flex shrink-0 flex-wrap gap-2">
+                <div class="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">
                     <button type="button" class="btn btn-outline btn-sm" data-use-location><?= icon('compass', 'h-3.5 w-3.5') ?> Lokasi saya</button>
                     <a href="<?= e(url('toko.php')) ?>" class="btn btn-primary btn-sm">Semua toko <?= icon('arrow-right', 'h-3.5 w-3.5') ?></a>
                 </div>
