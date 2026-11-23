@@ -7,13 +7,28 @@ $currentUser = auth_user();
 $adminTitle = $adminTitle ?? 'Dashboard';
 $adminPage = $adminPage ?? 'dashboard';
 $cartCount = cart_count();
+$adminStore = admin_current_store();
+$adminScopeStoreId = admin_store_id();
+$isSuperadmin = is_superadmin();
 $pendingPaymentCount = 0;
 $pendingBookingCount = 0;
 $unreadNotifications = 0;
 $navNotifications = [];
 try {
-    $pendingPaymentCount = (int) Database::conn()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
-    $pendingBookingCount = (int) Database::conn()->query("SELECT COUNT(*) FROM bookings WHERE status = 'pending'")->fetchColumn();
+    if ($adminScopeStoreId === null) {
+        $pendingPaymentCount = (int) Database::conn()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
+        $pendingBookingCount = (int) Database::conn()->query("SELECT COUNT(*) FROM bookings WHERE status = 'pending'")->fetchColumn();
+    } else {
+        $stmt = Database::conn()->prepare(
+            "SELECT COUNT(*) FROM payments p JOIN bookings b ON b.id = p.booking_id
+             WHERE p.status = 'pending' AND b.store_id = ?"
+        );
+        $stmt->execute([$adminScopeStoreId]);
+        $pendingPaymentCount = (int) $stmt->fetchColumn();
+        $stmt = Database::conn()->prepare("SELECT COUNT(*) FROM bookings WHERE status = 'pending' AND store_id = ?");
+        $stmt->execute([$adminScopeStoreId]);
+        $pendingBookingCount = (int) $stmt->fetchColumn();
+    }
     if ($currentUser) {
         $stmt = Database::conn()->prepare('SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 6');
         $stmt->execute([(int) $currentUser['id']]);
@@ -39,6 +54,9 @@ $adminInitials = $currentUser ? initials($currentUser['name']) : 'A';
     <link rel="icon" type="image/svg+xml" href="<?= e(url('assets/img/favicon.svg')) ?>">
     <link rel="preload" href="<?= e(url('assets/fonts/plus-jakarta-sans.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('css/tailwind.css')) ?>">
+    <?php foreach (($pageStyles ?? []) as $style): ?>
+        <link rel="stylesheet" href="<?= e(asset($style)) ?>">
+    <?php endforeach; ?>
 </head>
 <body class="bg-cream-100 text-ink antialiased">
 <div id="global-loader" class="fixed inset-x-0 top-0 z-[130] hidden h-0.5 overflow-hidden bg-mint-100">
@@ -52,6 +70,7 @@ window.RENTIFY = <?= json_encode([
     'csrf' => csrf_token(),
     'userId' => $currentUser ? (int) $currentUser['id'] : 0,
     'role' => $currentUser['role'] ?? null,
+    'storeId' => $currentUser['store_id'] ?? null,
     'cartCount' => $cartCount,
     'today' => today(),
     'home' => url('admin/dashboard.php'),
@@ -81,7 +100,7 @@ window.RENTIFY = <?= json_encode([
                     <h1 class="truncate text-lg font-extrabold tracking-tight text-forest-900"><?= e($adminTitle) ?></h1>
                 </div>
                 <div class="ml-auto flex items-center gap-1.5">
-                    <a href="<?= e(url('beranda.php')) ?>" target="_blank" class="btn btn-outline btn-sm hidden sm:inline-flex" title="Lihat toko"><?= icon('external', 'h-3.5 w-3.5') ?> Lihat toko</a>
+                    <a href="<?= e(url($adminStore ? 'toko.php?store=' . rawurlencode($adminStore['slug']) : 'beranda.php')) ?>" target="_blank" rel="noopener" class="btn btn-outline btn-sm hidden sm:inline-flex" title="Lihat toko"><?= icon('external', 'h-3.5 w-3.5') ?> Lihat toko</a>
                     <details class="relative">
                         <summary class="icon-btn relative h-10 w-10 list-none" aria-label="Notifikasi">
                             <?= icon('bell', 'h-[1.15rem] w-[1.15rem]') ?>
@@ -117,7 +136,11 @@ window.RENTIFY = <?= json_encode([
                             <?= icon('chevron-down', 'h-3.5 w-3.5 text-muted') ?>
                         </summary>
                         <div class="absolute right-0 mt-2 w-52 rounded-2xl border border-line bg-white p-2 shadow-float">
-                            <a href="<?= e(url('admin/pengaturan.php')) ?>" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-cream-100"><?= icon('settings', 'h-4 w-4') ?> Pengaturan</a>
+                            <?php if (is_superadmin()): ?>
+                                <a href="<?= e(url('admin/pengaturan.php')) ?>" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-cream-100"><?= icon('settings', 'h-4 w-4') ?> Pengaturan</a>
+                            <?php elseif ($adminStore): ?>
+                                <a href="<?= e(url('toko.php?store=' . rawurlencode($adminStore['slug']))) ?>" target="_blank" rel="noopener" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold hover:bg-cream-100"><?= icon('map-pin', 'h-4 w-4') ?> Halaman toko</a>
+                            <?php endif; ?>
                             <a href="<?= e(url('logout.php')) ?>" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-danger hover:bg-red-50"><?= icon('logout', 'h-4 w-4') ?> Keluar</a>
                         </div>
                     </details>

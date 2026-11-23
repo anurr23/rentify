@@ -39,10 +39,73 @@ function is_logged_in(): bool
     return auth_user() !== null;
 }
 
-function is_admin(): bool
+function is_superadmin(): bool
 {
     $user = auth_user();
-    return $user !== null && $user['role'] === 'admin';
+    return $user !== null && $user['role'] === 'superadmin';
+}
+
+function is_staff(): bool
+{
+    $user = auth_user();
+    return $user !== null && in_array($user['role'], ['superadmin', 'admin'], true);
+}
+
+/**
+ * Nama lama tetap dipertahankan: artinya user boleh membuka area admin.
+ */
+function is_admin(): bool
+{
+    return is_staff();
+}
+
+/**
+ * Null = superadmin (semua cabang). Integer = cabang admin. 0 = admin tanpa cabang.
+ */
+function admin_store_id(): ?int
+{
+    $user = auth_user();
+    if (!$user || $user['role'] === 'superadmin') {
+        return null;
+    }
+    if ($user['role'] === 'admin') {
+        return (int) ($user['store_id'] ?? 0);
+    }
+    return null;
+}
+
+function admin_current_store(): ?array
+{
+    $user = auth_user();
+    if (!$user) {
+        return null;
+    }
+    if ($user['role'] === 'admin' && !empty($user['store_id'])) {
+        return Store::find((int) $user['store_id']);
+    }
+    return null;
+}
+
+/**
+ * Cabang yang relevan untuk customer/guest:
+ * preferred store -> cabang terdekat dari lokasi terakhir -> cabang default.
+ */
+function current_store(?array $user = null): ?array
+{
+    $user ??= auth_user();
+    if ($user && !empty($user['preferred_store_id'])) {
+        $store = Store::find((int) $user['preferred_store_id']);
+        if ($store && (int) $store['is_active'] === 1) {
+            return $store;
+        }
+    }
+    if ($user && $user['last_latitude'] !== null && $user['last_longitude'] !== null) {
+        $nearest = Store::nearest((float) $user['last_latitude'], (float) $user['last_longitude'], 1);
+        if ($nearest) {
+            return $nearest[0];
+        }
+    }
+    return Store::defaultStore();
 }
 
 function require_login(): void
@@ -74,6 +137,18 @@ function require_admin(): void
     }
 }
 
+function require_superadmin(): void
+{
+    require_login();
+    if (!is_superadmin()) {
+        if (is_ajax()) {
+            json_error('Akses khusus superadmin.', 403);
+        }
+        flash('error', 'Halaman ini hanya dapat diakses superadmin.');
+        redirect('admin/dashboard.php');
+    }
+}
+
 function api_require_login(): array
 {
     $user = auth_user();
@@ -86,8 +161,17 @@ function api_require_login(): array
 function api_require_admin(): array
 {
     $user = api_require_login();
-    if ($user['role'] !== 'admin') {
+    if (!in_array($user['role'], ['superadmin', 'admin'], true)) {
         json_error('Akses khusus admin.', 403);
+    }
+    return $user;
+}
+
+function api_require_superadmin(): array
+{
+    $user = api_require_login();
+    if ($user['role'] !== 'superadmin') {
+        json_error('Akses khusus superadmin.', 403);
     }
     return $user;
 }
@@ -97,6 +181,7 @@ function login_user(array $user, bool $remember = false): void
     session_regenerate_id(true);
     $_SESSION['user_id'] = (int) $user['id'];
     $_SESSION['user_role'] = $user['role'];
+    $_SESSION['user_store_id'] = $user['store_id'] ?? null;
     $_SESSION['user_name'] = $user['name'];
     $_SESSION['user_email'] = $user['email'];
     $_SESSION['user_avatar'] = $user['avatar'] ?? null;
@@ -232,7 +317,7 @@ function attempt_login(string $login, string $password): array
 
 function login_redirect_for(array $user): string
 {
-    return $user['role'] === 'admin' ? 'admin/dashboard.php' : 'beranda.php';
+    return in_array($user['role'], ['superadmin', 'admin'], true) ? 'admin/dashboard.php' : 'beranda.php';
 }
 
 attempt_remember_login();

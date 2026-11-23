@@ -6,21 +6,32 @@ class Payment extends Model
     public static function find(int $id): ?array
     {
         $payment = self::fetchOne(
-            'SELECT p.*, b.code AS booking_code, b.user_id, b.total AS booking_total, u.name AS user_name
+            'SELECT p.*, b.code AS booking_code, b.user_id, b.store_id, b.total AS booking_total,
+                u.name AS user_name, s.name AS store_name
              FROM payments p JOIN bookings b ON b.id = p.booking_id JOIN users u ON u.id = b.user_id
+             LEFT JOIN stores s ON s.id = b.store_id
              WHERE p.id = ? LIMIT 1',
             [$id]
         );
         return $payment ?: null;
     }
 
-    public static function pending(int $limit = 8): array
+    public static function pending(int $limit = 8, ?int $storeId = null): array
     {
+        $where = "p.status = 'pending'";
+        $params = [];
+        if ($storeId !== null) {
+            $where .= ' AND b.store_id = ?';
+            $params[] = $storeId;
+        }
+        $params[] = $limit;
         return self::fetchAll(
-            "SELECT p.*, b.code AS booking_code, b.total AS booking_total, u.name AS user_name, u.phone AS user_phone
+            "SELECT p.*, b.code AS booking_code, b.total AS booking_total, u.name AS user_name, u.phone AS user_phone,
+                s.name AS store_name
              FROM payments p JOIN bookings b ON b.id = p.booking_id JOIN users u ON u.id = b.user_id
-             WHERE p.status = 'pending' ORDER BY p.created_at ASC LIMIT ?",
-            [$limit]
+             LEFT JOIN stores s ON s.id = b.store_id
+             WHERE $where ORDER BY p.created_at ASC LIMIT ?",
+            $params
         );
     }
 

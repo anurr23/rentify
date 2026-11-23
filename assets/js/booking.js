@@ -12,24 +12,62 @@
     const methods = checkoutRoot.querySelectorAll('[data-pickup-method]');
     const pickupFields = checkoutRoot.querySelector('[data-pickup-fields]');
     const deliveryFields = checkoutRoot.querySelector('[data-delivery-fields]');
-    const pickupSelect = checkoutRoot.querySelector('[name="pickup_point_id"]');
+    const pickupSelect = checkoutRoot.querySelector('[data-store-pickup]');
     const deliveryAddress = checkoutRoot.querySelector('[name="delivery_address"]');
     const deliveryEl = checkoutRoot.querySelector('[data-checkout-delivery]');
     const totalEl = checkoutRoot.querySelector('[data-checkout-total]');
     const submit = checkoutRoot.querySelector('[data-checkout-submit]');
     const agree = checkoutRoot.querySelector('[data-checkout-agree]');
-    const baseFee = Number(checkoutRoot.dataset.deliveryFee || 0);
+    const storeSelect = checkoutRoot.querySelector('[data-store-select]');
+    const storeNameEls = checkoutRoot.querySelectorAll('[data-store-name]');
+    const storeAddressEls = checkoutRoot.querySelectorAll('[data-store-address]');
+    const storeHoursEls = checkoutRoot.querySelectorAll('[data-store-hours], [data-store-pickup-hours]');
+    const storePickupNameEls = checkoutRoot.querySelectorAll('[data-store-pickup-name]');
+    const storePickupAddressEls = checkoutRoot.querySelectorAll('[data-store-pickup-address]');
+    const storeCityEls = checkoutRoot.querySelectorAll('[data-store-city-label]');
+    const storeMapsEl = checkoutRoot.querySelector('[data-store-maps]');
+    const feeLabels = checkoutRoot.querySelectorAll('[data-delivery-fee-label]');
+    let baseFee = Number(checkoutRoot.dataset.deliveryFee || 0);
     let busy = false;
 
     function currentMethod() {
       return checkoutRoot.querySelector('[data-pickup-method]:checked')?.value || 'pickup';
     }
 
+    function currentStoreOption() {
+      return storeSelect?.selectedOptions?.[0] || null;
+    }
+
+    function selectedStoreId() {
+      return Number(storeSelect?.value || 0);
+    }
+
+    function syncStore() {
+      const option = currentStoreOption();
+      if (!option) return;
+      const name = option.dataset.name || option.textContent.trim();
+      const address = option.dataset.address || '';
+      const hours = option.dataset.hours || '';
+      const city = option.dataset.city || '';
+      const fee = Number(option.dataset.fee || 0);
+      baseFee = fee;
+      if (pickupSelect) pickupSelect.value = option.dataset.pickupId || '0';
+      storeNameEls.forEach((el) => { el.textContent = name; });
+      storePickupNameEls.forEach((el) => { el.textContent = name; });
+      storeAddressEls.forEach((el) => { el.textContent = address; });
+      storePickupAddressEls.forEach((el) => { el.textContent = address; });
+      storeHoursEls.forEach((el) => { el.textContent = hours; });
+      storeCityEls.forEach((el) => { el.textContent = city; });
+      feeLabels.forEach((el) => { el.textContent = api.formatRupiah(fee); });
+      if (storeMapsEl && option.dataset.maps) storeMapsEl.href = option.dataset.maps;
+      updateQuote();
+    }
+
     function syncMethod() {
       const delivery = currentMethod() === 'delivery';
       pickupFields?.classList.toggle('hidden', delivery);
       deliveryFields?.classList.toggle('hidden', !delivery);
-      if (pickupSelect) pickupSelect.required = !delivery;
+      if (pickupSelect) pickupSelect.required = false;
       if (deliveryAddress) deliveryAddress.required = delivery;
       updateQuote();
     }
@@ -39,7 +77,7 @@
       try {
         const payload = await api.request('booking.php', {
           method: 'POST',
-          body: { action: 'quote', pickup_method: currentMethod() },
+          body: { action: 'quote', pickup_method: currentMethod(), store_id: selectedStoreId() },
         });
         if (deliveryEl) deliveryEl.textContent = api.formatRupiah(payload.delivery_fee || 0);
         if (totalEl) totalEl.textContent = api.formatRupiah(payload.total || 0);
@@ -48,7 +86,13 @@
       }
     }
 
+    let storeTimer = null;
+    storeSelect?.addEventListener('change', () => {
+      window.clearTimeout(storeTimer);
+      storeTimer = window.setTimeout(syncStore, 80);
+    });
     methods.forEach((radio) => radio.addEventListener('change', syncMethod));
+    syncStore();
     syncMethod();
 
     form?.addEventListener('submit', async (event) => {

@@ -26,7 +26,11 @@ $booking = Booking::find($bookingId);
 if (!$booking) {
     json_error('Pesanan tidak ditemukan.', 404);
 }
-if ((int) $booking['user_id'] !== (int) $user['id'] && $user['role'] !== 'admin') {
+$isStaff = in_array($user['role'], ['superadmin', 'admin'], true);
+$canPay = ((int) $booking['user_id'] === (int) $user['id'] && $user['role'] === 'customer')
+    || $user['role'] === 'superadmin'
+    || ($user['role'] === 'admin' && (int) ($booking['store_id'] ?? 0) === (int) ($user['store_id'] ?? 0));
+if (!$canPay) {
     json_error('Anda tidak berhak membayar pesanan ini.', 403);
 }
 if ($booking['status'] === 'cancelled') {
@@ -50,7 +54,7 @@ if (!empty($_FILES['proof']['name'])) {
 if ($method !== 'cash' && !$proofPath) {
     json_error('Unggah bukti pembayaran terlebih dahulu.');
 }
-if ($method === 'cash' && $user['role'] !== 'admin') {
+if ($method === 'cash' && !$isStaff) {
     json_error('Pembayaran tunai hanya bisa dicatat oleh admin.');
 }
 

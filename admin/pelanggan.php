@@ -4,16 +4,25 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 
 require_admin();
+$storeScope = admin_store_id();
 $customerId = (int) ($_GET['id'] ?? 0);
 $customer = $customerId ? User::find($customerId) : null;
 if ($customerId && (!$customer || $customer['role'] !== 'customer')) {
     flash('error', 'Pelanggan tidak ditemukan.');
     redirect('admin/pelanggan.php');
 }
+if ($customer && $storeScope !== null) {
+    $stmt = Database::conn()->prepare('SELECT COUNT(*) FROM bookings WHERE user_id = ? AND store_id = ?');
+    $stmt->execute([$customerId, $storeScope]);
+    if ((int) $stmt->fetchColumn() === 0) {
+        flash('error', 'Pelanggan ini belum pernah menyewa di cabang Anda.');
+        redirect('admin/pelanggan.php');
+    }
+}
 
 if ($customer) {
-    $stats = User::stats($customerId);
-    $bookings = Booking::forUser($customerId, 'semua', 1, 20)['items'];
+    $stats = User::stats($customerId, $storeScope);
+    $bookings = Booking::forUser($customerId, 'semua', 1, 20, $storeScope)['items'];
     $adminTitle = 'Pelanggan — ' . $customer['name'];
     $adminPage = 'pelanggan';
     require ROOT_PATH . '/includes/admin_header.php';
@@ -100,7 +109,7 @@ if ($customer) {
 
 $q = trim((string) ($_GET['q'] ?? ''));
 $page = page_number();
-$result = User::customersWithStats($q, $page, 15);
+$result = User::customersWithStats($q, $page, 15, $storeScope);
 $customers = $result['items'];
 $pagination = $result['pagination'];
 

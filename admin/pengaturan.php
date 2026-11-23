@@ -3,9 +3,8 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/config.php';
 
-require_admin();
+require_superadmin();
 $grouped = Setting::allGrouped();
-$pickupPoints = Setting::allPickupPoints();
 $groupLabels = [
     'umum' => ['Pengaturan umum', 'Identitas toko yang tampil di seluruh aplikasi.', 'settings'],
     'kontak' => ['Kontak & alamat', 'Informasi yang dilihat pelanggan di footer dan halaman bantuan.', 'whatsapp'],
@@ -88,33 +87,14 @@ require ROOT_PATH . '/includes/admin_header.php';
         <?php endforeach; ?>
     </div>
 
-    <section class="admin-card overflow-hidden">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3.5 sm:px-5">
-            <div><h3 class="text-sm font-extrabold text-forest-900">Titik pengambilan</h3><p class="mt-0.5 text-[0.62rem] text-muted">Basecamp, pos, dan opsi pengantaran.</p></div>
-            <button type="button" class="btn btn-primary btn-sm" data-admin-modal data-url="<?= e(url('api/admin.php?action=pickup_form&id=0')) ?>"><?= icon('plus', 'h-3.5 w-3.5') ?> Tambah titik</button>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="table-app min-w-[42rem]">
-                <thead><tr><th>Nama</th><th>Alamat</th><th>Jam</th><th>Status</th><th class="text-right">Aksi</th></tr></thead>
-                <tbody>
-                <?php if (!$pickupPoints): ?><tr><td colspan="5" class="py-10 text-center text-sm text-muted">Belum ada titik pengambilan.</td></tr><?php endif; ?>
-                <?php foreach ($pickupPoints as $point): ?>
-                    <tr>
-                        <td><p class="font-extrabold text-forest-900"><?= e($point['name']) ?></p><p class="text-[0.62rem] text-muted">Urutan <?= (int) $point['sort_order'] ?></p></td>
-                        <td class="max-w-[20rem] text-xs text-forest-700"><?= e($point['address']) ?></td>
-                        <td class="text-xs text-muted"><?= e($point['hours'] ?: '—') ?></td>
-                        <td><span class="badge <?= (int) $point['is_active'] ? 'badge-success' : 'badge-neutral' ?>"><?= (int) $point['is_active'] ? 'Aktif' : 'Nonaktif' ?></span></td>
-                        <td>
-                            <div class="flex justify-end gap-1">
-                                <?php if (!empty($point['maps_url'])): ?><a href="<?= e($point['maps_url']) ?>" target="_blank" rel="noopener" class="icon-btn h-8 w-8" aria-label="Buka maps"><?= icon('map-pin', 'h-3.5 w-3.5') ?></a><?php endif; ?>
-                                <button type="button" class="icon-btn h-8 w-8" data-admin-modal data-url="<?= e(url('api/admin.php?action=pickup_form&id=' . $point['id'])) ?>" aria-label="Edit titik"><?= icon('edit', 'h-3.5 w-3.5') ?></button>
-                                <button type="button" class="icon-btn h-8 w-8 text-danger" data-admin-delete="pickup" data-id="<?= (int) $point['id'] ?>" data-name="<?= e($point['name']) ?>" aria-label="Hapus titik"><?= icon('trash', 'h-3.5 w-3.5') ?></button>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+    <section class="admin-card p-4 sm:p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-muted">Jaringan cabang</p>
+                <h3 class="mt-1 text-base font-extrabold text-forest-900">Titik pengambilan dikelola per toko</h3>
+                <p class="mt-0.5 max-w-2xl text-[0.68rem] leading-relaxed text-muted">Setiap toko cabang otomatis memiliki titik pickup yang sinkron dengan alamat, jam operasional, dan koordinat Leaflet. Tambah atau ubah cabang di halaman Toko Cabang.</p>
+            </div>
+            <a href="<?= e(url('admin/toko.php')) ?>" class="btn btn-primary btn-sm"><?= icon('map-pin', 'h-3.5 w-3.5') ?> Kelola toko cabang</a>
         </div>
     </section>
 </div>

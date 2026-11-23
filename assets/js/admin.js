@@ -71,6 +71,18 @@
     categorySelect?.addEventListener('change', syncGroups);
     syncGroups();
 
+    const roleSelect = form.querySelector('[data-user-role]');
+    const storeWrap = form.querySelector('[data-user-store-wrap]');
+    const storeSelect = form.querySelector('[data-user-store]');
+    function syncRole() {
+      if (!roleSelect || !storeWrap) return;
+      const isAdmin = roleSelect.value === 'admin';
+      storeWrap.classList.toggle('hidden', !isAdmin);
+      if (storeSelect) storeSelect.required = isAdmin;
+    }
+    roleSelect?.addEventListener('change', syncRole);
+    syncRole();
+
     const variantList = form.querySelector('[data-variant-list]');
     form.querySelector('[data-add-variant]')?.addEventListener('click', () => {
       if (!variantList) return;
@@ -119,6 +131,7 @@
       if (!modal) return;
       const form = modal.querySelector('form');
       if (form) enhanceForm(form);
+      document.dispatchEvent(new CustomEvent('admin:modal-open', { detail: { modal, form } }));
     } catch (error) {
       api.toast(error.message || 'Gagal membuka form.', 'error');
     }
@@ -128,7 +141,7 @@
     const open = event.target.closest('[data-admin-modal]');
     if (open) {
       event.preventDefault();
-      openAdminModal(open.dataset.url, open.textContent.trim());
+      openAdminModal(open.dataset.url, open.dataset.adminModalTitle || open.textContent.trim());
       return;
     }
 
@@ -282,6 +295,27 @@
         { title: 'Tolak pembayaran', maxWidth: '28rem' }
       );
       if (modal) enhanceForm(modal.querySelector('form'));
+    });
+  });
+
+  /* ---------- Toko cabang ---------- */
+  document.querySelectorAll('[data-store-toggle]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const active = Number(button.dataset.active) === 1;
+      const confirmed = await api.confirmDialog(
+        active ? 'Nonaktifkan toko ini? Toko tidak muncul di checkout dan halaman cabang.' : 'Aktifkan kembali toko ini?',
+        { title: active ? 'Nonaktifkan toko' : 'Aktifkan toko', confirmText: active ? 'Ya, nonaktifkan' : 'Ya, aktifkan', danger: active }
+      );
+      if (!confirmed) return;
+      api.setLoading(button, true, '');
+      try {
+        const payload = await api.request('admin.php', { method: 'POST', body: { action: 'store_toggle', id: button.dataset.id } });
+        api.toast(payload.message || 'Status toko diperbarui.', 'success');
+        window.setTimeout(() => { window.location.reload(); }, 600);
+      } catch (error) {
+        api.toast(error.message || 'Gagal memperbarui toko.', 'error');
+        api.setLoading(button, false);
+      }
     });
   });
 

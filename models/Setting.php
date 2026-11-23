@@ -24,19 +24,29 @@ class Setting extends Model
         }
     }
 
-    public static function pickupPoints(): array
+    public static function pickupPoints(?int $storeId = null): array
     {
-        return self::fetchAll('SELECT * FROM pickup_points WHERE is_active = 1 ORDER BY sort_order ASC, id ASC');
+        $where = 'WHERE p.is_active = 1' . ($storeId !== null ? ' AND p.store_id = ' . (int) $storeId : '');
+        return self::fetchAll(
+            "SELECT p.*, s.name AS store_name FROM pickup_points p
+             LEFT JOIN stores s ON s.id = p.store_id
+             $where ORDER BY p.sort_order ASC, p.id ASC"
+        );
     }
 
     public static function allPickupPoints(): array
     {
-        return self::fetchAll('SELECT * FROM pickup_points ORDER BY sort_order ASC, id ASC');
+        return self::fetchAll(
+            'SELECT p.*, s.name AS store_name FROM pickup_points p
+             LEFT JOIN stores s ON s.id = p.store_id
+             ORDER BY p.sort_order ASC, p.id ASC'
+        );
     }
 
     public static function savePickupPoint(?int $id, array $data): void
     {
         $values = [
+            $data['store_id'] ?? null,
             $data['name'], $data['address'], $data['hours'] ?: null, $data['maps_url'] ?: null,
             $data['latitude'] !== '' ? (float) $data['latitude'] : null,
             $data['longitude'] !== '' ? (float) $data['longitude'] : null,
@@ -44,14 +54,14 @@ class Setting extends Model
         ];
         if ($id) {
             self::pdo()->prepare(
-                'UPDATE pickup_points SET name = ?, address = ?, hours = ?, maps_url = ?, latitude = ?, longitude = ?,
+                'UPDATE pickup_points SET store_id = ?, name = ?, address = ?, hours = ?, maps_url = ?, latitude = ?, longitude = ?,
                     is_active = ?, sort_order = ? WHERE id = ?'
             )->execute([...$values, $id]);
             return;
         }
         self::pdo()->prepare(
-            'INSERT INTO pickup_points (name, address, hours, maps_url, latitude, longitude, is_active, sort_order, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())'
+            'INSERT INTO pickup_points (store_id, name, address, hours, maps_url, latitude, longitude, is_active, sort_order, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
         )->execute($values);
     }
 }

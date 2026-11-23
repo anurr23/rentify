@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/config.php';
 
-require_admin();
+require_superadmin();
 $q = trim((string) ($_GET['q'] ?? ''));
 $categoryId = (int) ($_GET['category'] ?? 0);
 $statusFilter = (string) ($_GET['status'] ?? 'semua');
@@ -100,14 +100,14 @@ require ROOT_PATH . '/includes/admin_header.php';
                                 <div class="h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-cream-100"><img src="<?= e(upload_url($item['primary_image'])) ?>" alt="" class="h-full w-full object-cover"></div>
                                 <div class="min-w-0">
                                     <p class="max-w-[16rem] truncate font-extrabold text-forest-900"><?= e($item['name']) ?></p>
-                                    <p class="text-[0.62rem] text-muted"><?= e($item['brand'] ?: 'No brand') ?><?= (int) $item['variant_count'] ? ' · ' . (int) $item['variant_count'] . ' varian' : '' ?><?= !empty($item['is_featured']) ? ' · Pilihan' : '' ?></p>
+                                    <p class="text-[0.62rem] text-muted"><?= e($item['brand'] ?: 'No brand') ?><?= (int) $item['variant_count'] ? ' Â· ' . (int) $item['variant_count'] . ' varian' : '' ?><?= !empty($item['is_featured']) ? ' Â· Pilihan' : '' ?></p>
                                 </div>
                             </div>
                         </td>
                         <td class="text-xs text-forest-700"><?= e($item['category_name']) ?></td>
                         <td class="font-bold"><?= e(format_rupiah($item['price_per_day'])) ?></td>
                         <td><span class="<?= (int) $item['stock_total'] <= 3 ? 'text-danger' : '' ?> font-bold"><?= (int) $item['stock_total'] ?></span></td>
-                        <td><span class="inline-flex items-center gap-1 text-xs font-bold"><?= icon('star-filled', 'h-3.5 w-3.5 text-star') ?> <?= (float) $item['rating_avg'] > 0 ? number_format((float) $item['rating_avg'], 1, ',', '.') : '—' ?></span></td>
+                        <td><span class="inline-flex items-center gap-1 text-xs font-bold"><?= icon('star-filled', 'h-3.5 w-3.5 text-star') ?> <?= (float) $item['rating_avg'] > 0 ? number_format((float) $item['rating_avg'], 1, ',', '.') : 'â€”' ?></span></td>
                         <td><span class="badge <?= (int) $item['is_active'] ? 'badge-success' : 'badge-neutral' ?>"><?= (int) $item['is_active'] ? 'Aktif' : 'Nonaktif' ?></span></td>
                         <td>
                             <div class="flex items-center justify-end gap-1">

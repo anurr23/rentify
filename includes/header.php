@@ -45,6 +45,9 @@ $homeLink = $isAdminArea ? 'admin/dashboard.php' : ($currentUser ? 'beranda.php'
     <link rel="icon" type="image/svg+xml" href="<?= e(url('assets/img/favicon.svg')) ?>">
     <link rel="preload" href="<?= e(url('assets/fonts/plus-jakarta-sans.woff2')) ?>" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('css/tailwind.css')) ?>">
+    <?php foreach (($pageStyles ?? []) as $style): ?>
+        <link rel="stylesheet" href="<?= e(asset($style)) ?>">
+    <?php endforeach; ?>
 </head>
 <body class="bg-cream-50 text-ink antialiased <?= e($bodyClass) ?>" data-page="<?= e($bodyDataPage ?? '') ?>">
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[120] focus:rounded-full focus:bg-forest-900 focus:px-5 focus:py-3 focus:text-sm focus:font-bold focus:text-white">Lewati ke konten utama</a>
@@ -62,6 +65,7 @@ window.RENTIFY = <?= json_encode([
     'userId' => $currentUser ? (int) $currentUser['id'] : 0,
     'userName' => $currentUser['name'] ?? null,
     'role' => $currentUser['role'] ?? null,
+    'storeId' => $currentUser['store_id'] ?? null,
     'cartCount' => $cartCount,
     'wishlistCount' => $wishlistCount,
     'today' => today(),

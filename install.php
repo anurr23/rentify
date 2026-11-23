@@ -31,11 +31,14 @@ $state = [
     'database' => false,
     'schema' => false,
     'seeded' => false,
+    'stores' => false,
     'error' => null,
     'message' => null,
     'users' => 0,
     'items' => 0,
+    'store_count' => 0,
 ];
+require_once __DIR__ . '/database/migrate.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_name('rentify_install');
@@ -116,13 +119,32 @@ try {
             $seedCount = install_run_file($pdo, $root . '/database/seed.sql');
             $state['seeded'] = true;
         }
-        $state['message'] = 'Database berhasil disiapkan. ' . $schemaCount . ' pernyataan schema dan ' . $seedCount . ' blok seed dijalankan.';
+        $migration = rentify_migrate($pdo);
+        $state['message'] = 'Database berhasil disiapkan. ' . $schemaCount . ' pernyataan schema, ' . $seedCount . ' blok seed, dan migrasi multi-cabang dijalankan.';
         $state['users'] = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
         $state['seeded'] = $state['users'] > 0;
         $itemsTable = $pdo->query("SHOW TABLES LIKE 'items'")->fetchAll();
         if ($itemsTable) {
             $state['items'] = (int) $pdo->query('SELECT COUNT(*) FROM items')->fetchColumn();
         }
+        $storesTable = $pdo->query("SHOW TABLES LIKE 'stores'")->fetchAll();
+        if ($storesTable) {
+            $state['stores'] = true;
+            $state['store_count'] = (int) $pdo->query('SELECT COUNT(*) FROM stores')->fetchColumn();
+        }
+        $dbReady = true;
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'migrate') {
+        if (!hash_equals($_SESSION['install_token'], (string) ($_POST['_token'] ?? ''))) {
+            throw new RuntimeException('Token keamanan tidak valid. Muat ulang halaman.');
+        }
+        $pdo = install_pdo($config, true);
+        $state['database'] = true;
+        $migration = rentify_migrate($pdo);
+        $state['schema'] = true;
+        $state['seeded'] = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn() > 0;
+        $state['stores'] = true;
+        $state['store_count'] = (int) $pdo->query('SELECT COUNT(*) FROM stores')->fetchColumn();
+        $state['message'] = 'Migrasi multi-cabang selesai. ' . implode(' ', $migration['messages']);
         $dbReady = true;
     } else {
         $pdo = install_pdo($config, true);
@@ -135,6 +157,11 @@ try {
             if ($items) {
                 $state['items'] = (int) $pdo->query('SELECT COUNT(*) FROM items')->fetchColumn();
             }
+            $stores = $pdo->query("SHOW TABLES LIKE 'stores'")->fetchAll();
+            $state['stores'] = (bool) $stores;
+            if ($stores) {
+                $state['store_count'] = (int) $pdo->query('SELECT COUNT(*) FROM stores')->fetchColumn();
+            }
             $state['seeded'] = $state['users'] > 0;
             $dbReady = true;
         }
@@ -144,6 +171,8 @@ try {
 } finally {
     $state['server'] = $state['server'] || $state['database'];
 }
+
+$state['stores'] = $state['stores'] && $state['store_count'] > 0;
 
 $checks = [
     ['PHP >= 8.1', version_compare(PHP_VERSION, '8.1.0', '>='), 'Versi saat ini ' . PHP_VERSION],
@@ -156,6 +185,7 @@ $checks = [
     ['Koneksi MySQL', $state['server'], $config['user'] . '@' . $config['host']],
     ['Database ' . $config['name'], $state['database'], $state['database'] ? 'Terhubung' : 'Belum dibuat'],
     ['Tabel utama', $state['schema'], $state['schema'] ? 'users, items, bookings, dll.' : 'Import schema diperlukan'],
+    ['Multi-cabang', $state['stores'], $state['stores'] ? $state['store_count'] . ' toko cabang · role superadmin' : 'Jalankan migrasi cabang'],
     ['Data demo', $state['seeded'], $state['seeded'] ? $state['users'] . ' users · ' . $state['items'] . ' items' : 'Seed belum dijalankan'],
 ];
 $allPassed = !in_array(false, array_column($checks, 1), true);
@@ -235,9 +265,15 @@ $hasCss = is_file($root . '/assets/css/tailwind.css');
                 </ul>
 
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <?php if ($dbReady && $state['seeded']): ?>
+                    <?php if ($dbReady && $state['seeded'] && $state['stores']): ?>
                         <a href="index.php" class="btn btn-primary">Buka landing page</a>
                         <a href="login.php" class="btn btn-outline">Masuk admin</a>
+                    <?php elseif ($dbReady && $state['schema']): ?>
+                        <form method="post">
+                            <input type="hidden" name="action" value="migrate">
+                            <input type="hidden" name="_token" value="<?= h($_SESSION['install_token']) ?>">
+                            <button type="submit" class="btn btn-primary"><?= icon('zap', 'h-4 w-4') ?> Jalankan migrasi multi-cabang</button>
+                        </form>
                     <?php else: ?>
                         <form method="post">
                             <input type="hidden" name="action" value="install">
@@ -254,8 +290,13 @@ $hasCss = is_file($root . '/assets/css/tailwind.css');
                     <h2 class="text-sm font-extrabold text-forest-900">Akun demo</h2>
                     <div class="mt-3 space-y-2 text-xs">
                         <div class="rounded-xl bg-cream-50 p-3">
-                            <p class="font-extrabold text-forest-900">Admin / Owner</p>
+                            <p class="font-extrabold text-forest-900">Superadmin</p>
                             <p class="mt-0.5 text-muted">admin@rentify.id</p>
+                            <p class="text-muted">password</p>
+                        </div>
+                        <div class="rounded-xl bg-cream-50 p-3">
+                            <p class="font-extrabold text-forest-900">Admin Cabang Karawang</p>
+                            <p class="mt-0.5 text-muted">asep@rentify.id</p>
                             <p class="text-muted">password</p>
                         </div>
                         <div class="rounded-xl bg-cream-50 p-3">

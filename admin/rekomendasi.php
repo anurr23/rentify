@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/config.php';
 
-require_admin();
+require_superadmin();
 $aiConfig = require ROOT_PATH . '/config/ai.php';
 $sessionId = (int) ($_GET['id'] ?? 0);
 $session = null;
@@ -72,9 +72,9 @@ require ROOT_PATH . '/includes/admin_header.php';
                 <section class="admin-card p-4 sm:p-5">
                     <div class="flex flex-wrap items-start justify-between gap-2">
                         <div>
-                            <a href="<?= e(url('admin/rekomendasi.php')) ?>" class="text-[0.62rem] font-bold text-forest-600">← Semua sesi</a>
-                            <h3 class="mt-1 text-lg font-extrabold text-forest-900">Sesi #<?= (int) $session['id'] ?> · <?= e($session['activity_name'] ?: 'Aktivitas') ?></h3>
-                            <p class="mt-0.5 text-xs text-muted"><?= e($session['destination_text'] ?: '-') ?> · <?= (int) $session['duration_days'] ?> hari · <?= (int) $session['participants'] ?> orang · <?= e(format_datetime_id($session['created_at'])) ?></p>
+                            <a href="<?= e(url('admin/rekomendasi.php')) ?>" class="text-[0.62rem] font-bold text-forest-600">â† Semua sesi</a>
+                            <h3 class="mt-1 text-lg font-extrabold text-forest-900">Sesi #<?= (int) $session['id'] ?> Â· <?= e($session['activity_name'] ?: 'Aktivitas') ?></h3>
+                            <p class="mt-0.5 text-xs text-muted"><?= e($session['destination_text'] ?: '-') ?> Â· <?= (int) $session['duration_days'] ?> hari Â· <?= (int) $session['participants'] ?> orang Â· <?= e(format_datetime_id($session['created_at'])) ?></p>
                         </div>
                         <span class="badge <?= $session['status'] === 'success' ? 'badge-success' : ($session['status'] === 'failed' ? 'badge-danger' : 'badge-warning') ?>"><?= e(['success' => 'AI berhasil', 'fallback' => 'Fallback', 'failed' => 'Gagal'][$session['status']] ?? $session['status']) ?></span>
                     </div>
@@ -82,14 +82,14 @@ require ROOT_PATH . '/includes/admin_header.php';
                     <?php $tips = safe_json_decode($session['tips'], []); ?>
                     <?php if ($tips): ?>
                         <ul class="mt-3 space-y-1.5 text-xs text-muted">
-                            <?php foreach ($tips as $tip): ?><li class="flex gap-2"><span class="text-forest-500">•</span><?= e($tip) ?></li><?php endforeach; ?>
+                            <?php foreach ($tips as $tip): ?><li class="flex gap-2"><span class="text-forest-500">â€¢</span><?= e($tip) ?></li><?php endforeach; ?>
                         </ul>
                     <?php endif; ?>
                     <div class="mt-4 space-y-2">
                         <?php foreach ($sessionItems as $item): ?>
                             <div class="flex items-center gap-3 rounded-xl border border-line p-2.5">
                                 <div class="h-11 w-11 overflow-hidden rounded-lg bg-cream-100"><img src="<?= e(upload_url($item['primary_image'])) ?>" alt="" class="h-full w-full object-cover"></div>
-                                <div class="min-w-0 flex-1"><a href="<?= e(url('detail.php?slug=' . $item['slug'])) ?>" target="_blank" rel="noopener" class="block truncate text-xs font-extrabold text-forest-900"><?= e($item['item_name']) ?></a><p class="text-[0.62rem] text-muted"><?= e($item['category_name']) ?> · <?= (int) $item['qty'] ?> unit</p></div>
+                                <div class="min-w-0 flex-1"><a href="<?= e(url('detail.php?slug=' . $item['slug'])) ?>" target="_blank" rel="noopener" class="block truncate text-xs font-extrabold text-forest-900"><?= e($item['item_name']) ?></a><p class="text-[0.62rem] text-muted"><?= e($item['category_name']) ?> Â· <?= (int) $item['qty'] ?> unit</p></div>
                                 <span class="badge <?= $item['priority'] === 'wajib' ? 'badge-mint' : 'badge-neutral' ?>"><?= e(priority_label($item['priority'])) ?></span>
                             </div>
                         <?php endforeach; ?>
@@ -114,10 +114,10 @@ require ROOT_PATH . '/includes/admin_header.php';
                             <tr>
                                 <td><p class="text-xs font-bold"><?= e(time_ago($row['created_at'])) ?></p><p class="text-[0.6rem] text-muted"><?= e(format_datetime_id($row['created_at'])) ?></p></td>
                                 <td class="text-xs"><?= e($row['user_name'] ?: 'Tamu') ?></td>
-                                <td><p class="text-xs font-bold text-forest-900"><?= e($row['activity_name'] ?: '—') ?></p><p class="text-[0.62rem] text-muted"><?= e($row['destination_text'] ?: '—') ?> · <?= (int) $row['duration_days'] ?>h</p></td>
+                                <td><p class="text-xs font-bold text-forest-900"><?= e($row['activity_name'] ?: 'â€”') ?></p><p class="text-[0.62rem] text-muted"><?= e($row['destination_text'] ?: 'â€”') ?> Â· <?= (int) $row['duration_days'] ?>h</p></td>
                                 <td><span class="badge <?= $row['status'] === 'success' ? 'badge-success' : ($row['status'] === 'failed' ? 'badge-danger' : 'badge-warning') ?>"><?= e($row['status']) ?></span><p class="mt-0.5 text-[0.6rem] text-muted"><?= (int) $row['item_count'] ?> gear</p></td>
-                                <td class="text-[0.62rem] text-muted"><?= e($row['model'] ?: '—') ?></td>
-                                <td class="text-xs"><?= $row['latency_ms'] ? number_format(((int) $row['latency_ms']) / 1000, 1, ',', '.') . 's' : '—' ?></td>
+                                <td class="text-[0.62rem] text-muted"><?= e($row['model'] ?: 'â€”') ?></td>
+                                <td class="text-xs"><?= $row['latency_ms'] ? number_format(((int) $row['latency_ms']) / 1000, 1, ',', '.') . 's' : 'â€”' ?></td>
                                 <td><div class="flex justify-end"><a href="<?= e(url('admin/rekomendasi.php?id=' . $row['id'])) ?>" class="btn btn-outline btn-sm">Detail</a></div></td>
                             </tr>
                         <?php endforeach; ?>

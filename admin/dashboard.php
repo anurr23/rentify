@@ -4,14 +4,16 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 
 require_admin();
-$summary = Report::summary();
-$monthly = Report::monthlyRevenue(8);
-$statusRows = Report::bookingsByStatus();
-$recent = Report::recentBookings(7);
-$pendingPayments = Payment::pending(4);
-$lowStock = Item::lowStock(4, 5);
-$dueSoon = Booking::dueSoon();
 $currentUser = auth_user();
+$storeScope = admin_store_id();
+$adminStore = admin_current_store();
+$summary = Report::summary($storeScope);
+$monthly = Report::monthlyRevenue(8, $storeScope);
+$statusRows = Report::bookingsByStatus($storeScope);
+$recent = Report::recentBookings(7, $storeScope);
+$pendingPayments = Payment::pending(4, $storeScope);
+$lowStock = is_superadmin() ? Item::lowStock(4, 5) : [];
+$dueSoon = Booking::dueSoon($storeScope);
 
 $statusLabels = [];
 $statusValues = [];
@@ -81,9 +83,17 @@ require ROOT_PATH . '/includes/admin_header.php';
         <div>
             <p class="text-xs font-semibold text-muted">Selamat datang kembali, <?= e(explode(' ', $currentUser['name'] ?? 'Admin')[0]) ?>.</p>
             <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-forest-900">Ringkasan bisnis hari ini</h2>
+            <?php if ($adminStore): ?>
+                <p class="mt-1 flex items-center gap-1.5 text-xs font-bold text-forest-600"><?= icon('map-pin', 'h-3.5 w-3.5') ?> <?= e($adminStore['name']) ?> · <?= e($adminStore['city']) ?></p>
+            <?php elseif (is_superadmin()): ?>
+                <p class="mt-1 flex items-center gap-1.5 text-xs font-bold text-forest-600"><?= icon('shield', 'h-3.5 w-3.5') ?> Superadmin · semua cabang</p>
+            <?php endif; ?>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="<?= e(url('admin/barang.php?new=1')) ?>" class="btn btn-primary btn-sm"><?= icon('plus', 'h-3.5 w-3.5') ?> Tambah gear</a>
+            <?php if (is_superadmin()): ?>
+                <a href="<?= e(url('admin/toko.php?new=1')) ?>" class="btn btn-outline btn-sm"><?= icon('map-pin', 'h-3.5 w-3.5') ?> Tambah toko</a>
+                <a href="<?= e(url('admin/barang.php?new=1')) ?>" class="btn btn-primary btn-sm"><?= icon('plus', 'h-3.5 w-3.5') ?> Tambah gear</a>
+            <?php endif; ?>
             <a href="<?= e(url('admin/pesanan.php')) ?>" class="btn btn-outline btn-sm"><?= icon('clipboard', 'h-3.5 w-3.5') ?> Pesanan</a>
         </div>
     </div>
@@ -186,19 +196,27 @@ require ROOT_PATH . '/includes/admin_header.php';
     <div class="grid gap-4 xl:grid-cols-3">
         <section class="admin-card p-4 sm:p-5">
             <div class="flex items-center justify-between">
-                <h3 class="text-sm font-extrabold text-forest-900">Stok menipis</h3>
-                <a href="<?= e(url('admin/barang.php')) ?>" class="text-[0.68rem] font-bold text-forest-600">Kelola</a>
+                <h3 class="text-sm font-extrabold text-forest-900"><?= $adminStore ? 'Informasi cabang' : 'Stok menipis' ?></h3>
+                <a href="<?= e(url($adminStore ? 'toko.php?store=' . rawurlencode($adminStore['slug']) : 'admin/barang.php')) ?>" class="text-[0.68rem] font-bold text-forest-600"><?= $adminStore ? 'Lihat toko' : 'Kelola' ?></a>
             </div>
-            <div class="mt-3 space-y-2">
-                <?php if (!$lowStock): ?><p class="py-4 text-center text-xs text-muted">Semua stok aman.</p><?php endif; ?>
-                <?php foreach ($lowStock as $item): ?>
-                    <div class="flex items-center gap-2.5 rounded-xl bg-cream-50 p-2">
-                        <div class="h-9 w-9 overflow-hidden rounded-lg bg-cream-100"><img src="<?= e(upload_url($item['primary_image'])) ?>" alt="" class="h-full w-full object-cover"></div>
-                        <div class="min-w-0 flex-1"><p class="truncate text-[0.7rem] font-bold text-forest-900"><?= e($item['name']) ?></p><p class="text-[0.6rem] text-muted"><?= e($item['category_name']) ?></p></div>
-                        <span class="badge badge-warning"><?= (int) $item['stock_total'] ?></span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+            <?php if ($adminStore): ?>
+                <div class="mt-3 space-y-2 text-[0.68rem]">
+                    <p class="flex items-start gap-2 rounded-xl bg-cream-50 p-2.5"><span class="mt-0.5 text-forest-500"><?= icon('map-pin', 'h-3.5 w-3.5') ?></span><span class="leading-relaxed text-forest-700"><?= e($adminStore['address']) ?></span></p>
+                    <p class="flex items-center gap-2 rounded-xl bg-cream-50 p-2.5"><span class="text-forest-500"><?= icon('clock', 'h-3.5 w-3.5') ?></span><span class="text-forest-700"><?= e($adminStore['opening_hours']) ?></span></p>
+                    <p class="flex items-center gap-2 rounded-xl bg-cream-50 p-2.5"><span class="text-forest-500"><?= icon('phone', 'h-3.5 w-3.5') ?></span><span class="text-forest-700"><?= e($adminStore['phone']) ?></span></p>
+                </div>
+            <?php else: ?>
+                <div class="mt-3 space-y-2">
+                    <?php if (!$lowStock): ?><p class="py-4 text-center text-xs text-muted">Semua stok aman.</p><?php endif; ?>
+                    <?php foreach ($lowStock as $item): ?>
+                        <div class="flex items-center gap-2.5 rounded-xl bg-cream-50 p-2">
+                            <div class="h-9 w-9 overflow-hidden rounded-lg bg-cream-100"><img src="<?= e(upload_url($item['primary_image'])) ?>" alt="" class="h-full w-full object-cover"></div>
+                            <div class="min-w-0 flex-1"><p class="truncate text-[0.7rem] font-bold text-forest-900"><?= e($item['name']) ?></p><p class="text-[0.6rem] text-muted"><?= e($item['category_name']) ?></p></div>
+                            <span class="badge badge-warning"><?= (int) $item['stock_total'] ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </section>
 
         <section class="admin-card p-4 sm:p-5">
@@ -221,12 +239,18 @@ require ROOT_PATH . '/includes/admin_header.php';
         <section class="admin-card p-4 sm:p-5">
             <h3 class="text-sm font-extrabold text-forest-900">Akses cepat</h3>
             <div class="mt-3 grid grid-cols-2 gap-2">
-                <?php foreach ([
+                <?php $quickActions = is_superadmin() ? [
                     ['package', 'Tambah gear', 'admin/barang.php?new=1'],
-                    ['grid', 'Kategori', 'admin/kategori.php'],
+                    ['map-pin', 'Toko cabang', 'admin/toko.php'],
                     ['chart-line', 'Laporan', 'admin/laporan.php'],
                     ['sparkles', 'AI Planner', 'admin/rekomendasi.php'],
-                ] as $action): ?>
+                ] : [
+                    ['clipboard', 'Pesanan', 'admin/pesanan.php'],
+                    ['rotate', 'Pengembalian', 'admin/pengembalian.php'],
+                    ['chart-line', 'Laporan', 'admin/laporan.php'],
+                    ['users', 'Pelanggan', 'admin/pelanggan.php'],
+                ];
+                foreach ($quickActions as $action): ?>
                     <a href="<?= e(url($action[2])) ?>" class="rounded-xl border border-line p-3 transition hover:border-mint-300 hover:bg-mint-100/30">
                         <span class="flex h-8 w-8 items-center justify-center rounded-full bg-cream-100 text-forest-700"><?= icon($action[0], 'h-4 w-4') ?></span>
                         <p class="mt-2 text-[0.68rem] font-extrabold text-forest-900"><?= e($action[1]) ?></p>

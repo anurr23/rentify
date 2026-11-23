@@ -4,11 +4,16 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 
 require_admin();
+$storeScope = admin_store_id();
 $bookingId = (int) ($_GET['id'] ?? 0);
 $booking = $bookingId ? Booking::find($bookingId) : null;
 
 if ($bookingId && !$booking) {
     flash('error', 'Pesanan tidak ditemukan.');
+    redirect('admin/pesanan.php');
+}
+if ($booking && $storeScope !== null && (int) ($booking['store_id'] ?? 0) !== $storeScope) {
+    flash('error', 'Pesanan ini bukan milik cabang Anda.');
     redirect('admin/pesanan.php');
 }
 
@@ -55,6 +60,7 @@ if ($booking) {
                             ['phone', 'WhatsApp', $booking['user_phone']],
                             ['mail', 'Email', $booking['user_email']],
                             ['calendar', 'Dibuat', format_datetime_id($booking['created_at'])],
+                            ['map-pin', 'Toko cabang', ($booking['store_name'] ?? '-') . ' · ' . ($booking['store_city'] ?? '')],
                         ] as $info): ?>
                             <div class="rounded-xl bg-cream-50 p-3">
                                 <p class="flex items-center gap-1 text-[0.58rem] font-bold uppercase tracking-wide text-muted"><?= icon($info[0], 'h-3 w-3') ?> <?= e($info[1]) ?></p>
@@ -207,11 +213,23 @@ $filters = [
     'from' => (string) ($_GET['from'] ?? ''),
     'to' => (string) ($_GET['to'] ?? ''),
 ];
+if ($storeScope !== null) {
+    $filters['store_id'] = $storeScope;
+} elseif (input_int('store_id') > 0) {
+    $filters['store_id'] = input_int('store_id');
+}
 $page = page_number();
 $result = Booking::search($filters, $page, 12);
 $bookings = $result['items'];
 $pagination = $result['pagination'];
-$pendingCount = (int) Database::conn()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
+if ($storeScope === null) {
+    $pendingCount = (int) Database::conn()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
+} else {
+    $stmt = Database::conn()->prepare("SELECT COUNT(*) FROM payments p JOIN bookings b ON b.id = p.booking_id WHERE p.status = 'pending' AND b.store_id = ?");
+    $stmt->execute([$storeScope]);
+    $pendingCount = (int) $stmt->fetchColumn();
+}
+$storeOptions = is_superadmin() ? Store::all() : [];
 
 $adminTitle = 'Pesanan';
 $adminPage = 'pesanan';
@@ -228,11 +246,19 @@ require ROOT_PATH . '/includes/admin_header.php';
         </div>
     </div>
 
-    <form class="admin-card grid gap-2 p-3.5 sm:grid-cols-2 xl:grid-cols-[1.3fr_auto_auto_auto_auto_auto]" method="get">
+    <form class="admin-card grid gap-2 p-3.5 sm:grid-cols-2 xl:grid-cols-[1.3fr_auto_auto_auto_auto_auto_auto]" method="get">
         <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted"><?= icon('search', 'h-4 w-4') ?></span>
             <input class="input input-icon !py-2.5 text-sm" type="search" name="q" value="<?= e($filters['q']) ?>" placeholder="Cari kode, nama, email, atau telepon...">
         </div>
+        <?php if ($storeOptions): ?>
+            <select class="select input !py-2.5 text-sm" name="store_id">
+                <option value="0">Semua cabang</option>
+                <?php foreach ($storeOptions as $storeOption): ?>
+                    <option value="<?= (int) $storeOption['id'] ?>" <?= (int) ($filters['store_id'] ?? 0) === (int) $storeOption['id'] ? 'selected' : '' ?>><?= e($storeOption['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        <?php endif; ?>
         <select class="select input !py-2.5 text-sm" name="status">
             <option value="semua">Semua status</option>
             <?php foreach (['pending', 'confirmed', 'preparing', 'ready', 'ongoing', 'returned', 'completed', 'cancelled'] as $status): ?>
@@ -253,10 +279,10 @@ require ROOT_PATH . '/includes/admin_header.php';
     <div class="admin-card overflow-hidden">
         <div class="overflow-x-auto">
             <table class="table-app min-w-[56rem]">
-                <thead><tr><th>Kode</th><th>Pelanggan</th><th>Jadwal</th><th>Item</th><th>Total</th><th>Status</th><th>Pembayaran</th><th class="text-right">Aksi</th></tr></thead>
+                <thead><tr><th>Kode</th><th>Pelanggan</th><th>Toko</th><th>Jadwal</th><th>Item</th><th>Total</th><th>Status</th><th>Pembayaran</th><th class="text-right">Aksi</th></tr></thead>
                 <tbody>
                 <?php if (!$bookings): ?>
-                    <tr><td colspan="8" class="py-12 text-center text-sm text-muted">Tidak ada pesanan pada filter ini.</td></tr>
+                    <tr><td colspan="9" class="py-12 text-center text-sm text-muted">Tidak ada pesanan pada filter ini.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($bookings as $row): ?>
                     <tr>
@@ -265,6 +291,7 @@ require ROOT_PATH . '/includes/admin_header.php';
                             <p class="text-[0.62rem] text-muted"><?= e(time_ago($row['created_at'])) ?></p>
                         </td>
                         <td><p class="font-bold"><?= e($row['user_name']) ?></p><p class="text-[0.62rem] text-muted"><?= e($row['user_phone']) ?></p></td>
+                        <td><p class="text-xs font-semibold"><?= e($row['store_name'] ?: '-') ?></p><p class="text-[0.62rem] text-muted"><?= e($row['store_city'] ?: '') ?></p></td>
                         <td><p class="text-xs font-semibold"><?= e(format_date_id($row['start_date'])) ?></p><p class="text-[0.62rem] text-muted">s/d <?= e(format_date_id($row['end_date'])) ?> · <?= (int) $row['duration_days'] ?>h</p></td>
                         <td class="font-bold"><?= (int) $row['item_count'] ?></td>
                         <td class="font-extrabold"><?= e(format_rupiah($row['total'])) ?></td>

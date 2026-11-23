@@ -126,10 +126,21 @@ require ROOT_PATH . '/includes/customer_nav.php';
                             </div>
                         <?php endif; ?>
                     </div>
+                    <?php if (!empty($booking['store_name'])): ?>
+                        <div class="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-forest-900 p-3 text-white">
+                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mint-300 text-forest-900"><?= icon('map-pin', 'h-4 w-4') ?></span>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-[0.58rem] font-bold uppercase tracking-wide text-mint-300">Toko cabang</p>
+                                <p class="mt-0.5 text-xs font-extrabold"><?= e($booking['store_name']) ?> · <?= e($booking['store_city']) ?></p>
+                                <p class="mt-0.5 text-[0.62rem] text-white/55"><?= e($booking['store_address']) ?></p>
+                            </div>
+                            <a href="<?= e(store_wa_link(['whatsapp' => $booking['store_whatsapp'] ?? '', 'phone' => $booking['store_phone'] ?? ''])) ?>" target="_blank" rel="noopener" class="btn btn-accent btn-sm"><?= icon('whatsapp', 'h-3.5 w-3.5') ?> Chat</a>
+                        </div>
+                    <?php endif; ?>
                     <div class="mt-4 grid gap-2 sm:grid-cols-2">
                         <div class="rounded-xl bg-cream-50 p-3">
                             <p class="text-[0.6rem] font-bold uppercase tracking-wide text-muted">Metode</p>
-                            <p class="mt-0.5 text-xs font-extrabold text-forest-900"><?= $booking['pickup_method'] === 'delivery' ? 'Diantar ke lokasi' : 'Ambil di basecamp' ?></p>
+                            <p class="mt-0.5 text-xs font-extrabold text-forest-900"><?= $booking['pickup_method'] === 'delivery' ? 'Diantar ke lokasi' : 'Ambil di toko' ?></p>
                         </div>
                         <div class="rounded-xl bg-cream-50 p-3">
                             <p class="text-[0.6rem] font-bold uppercase tracking-wide text-muted"><?= $booking['pickup_method'] === 'delivery' ? 'Alamat' : 'Titik ambil' ?></p>

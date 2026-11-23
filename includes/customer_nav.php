@@ -5,6 +5,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 $navItems = [
     ['label' => 'Beranda', 'url' => 'beranda.php', 'key' => 'beranda'],
     ['label' => 'Katalog', 'url' => 'katalog.php', 'key' => 'katalog'],
+    ['label' => 'Toko', 'url' => 'toko.php', 'key' => 'toko'],
     ['label' => 'AI Planner', 'url' => 'rekomendasi.php', 'key' => 'ai'],
     ['label' => 'Pesanan', 'url' => 'pesanan.php', 'key' => 'pesanan'],
 ];
@@ -55,7 +56,7 @@ $navItems = [
                         </div>
                         <a href="<?= e(url('profil.php')) ?>" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-forest-700 hover:bg-cream-100"><?= icon('user', 'h-4 w-4') ?> Profil saya</a>
                         <a href="<?= e(url('pesanan.php')) ?>" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-forest-700 hover:bg-cream-100"><?= icon('clipboard', 'h-4 w-4') ?> Pesanan saya</a>
-                        <?php if ($currentUser['role'] === 'admin'): ?>
+                        <?php if (is_staff()): ?>
                             <a href="<?= e(url('admin/dashboard.php')) ?>" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-forest-700 hover:bg-cream-100"><?= icon('chart', 'h-4 w-4') ?> Dashboard admin</a>
                         <?php endif; ?>
                         <a href="<?= e(url('logout.php')) ?>" class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-danger hover:bg-red-50"><?= icon('logout', 'h-4 w-4') ?> Keluar</a>

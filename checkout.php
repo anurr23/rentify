@@ -13,8 +13,20 @@ if (!$validation['valid']) {
     redirect('keranjang.php');
 }
 
-$pickupPoints = Setting::pickupPoints();
-$deliveryFee = (float) setting('delivery_fee', '15000');
+$stores = Store::active();
+$selectedStore = current_store($currentUser);
+if (!$selectedStore || empty($selectedStore['is_active'])) {
+    $selectedStore = $stores[0] ?? null;
+}
+$selectedStoreId = $selectedStore ? (int) $selectedStore['id'] : 0;
+$nearestStore = null;
+if ($currentUser && $currentUser['last_latitude'] !== null && $currentUser['last_longitude'] !== null) {
+    $nearestList = Store::nearest((float) $currentUser['last_latitude'], (float) $currentUser['last_longitude'], 1);
+    $nearestStore = $nearestList[0] ?? null;
+}
+$storePickupPoints = $selectedStore ? Store::pickupPoints($selectedStoreId) : [];
+$primaryPoint = $storePickupPoints[0] ?? null;
+$deliveryFee = $selectedStore ? (float) $selectedStore['delivery_fee'] : (float) setting('delivery_fee', '15000');
 $holdHours = (int) setting('hold_hours', '24');
 $subtotal = (float) $cart['subtotal'];
 $deposit = (float) $cart['deposit'];
@@ -25,7 +37,7 @@ $pageTitle = 'Checkout — Rentify Outdoor Karawang';
 $metaDescription = 'Lengkapi data pengambilan dan buat pesanan sewa gear outdoor.';
 $activeNav = 'katalog';
 $bodyClass = 'pb-16 lg:pb-0';
-$pageScripts = ['booking.js'];
+$pageScripts = ['location.js', 'booking.js'];
 require ROOT_PATH . '/includes/header.php';
 require ROOT_PATH . '/includes/customer_nav.php';
 ?>
@@ -77,6 +89,51 @@ require ROOT_PATH . '/includes/customer_nav.php';
                     </div>
                 </section>
 
+                <section class="card p-4 sm:p-5" data-checkout-store-card>
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p class="section-kicker">Toko cabang</p>
+                            <h2 class="mt-1 text-base font-extrabold text-forest-900">Pilih cabang terdekat</h2>
+                        </div>
+                        <button type="button" class="btn btn-outline btn-sm" data-use-location data-location-target="#checkout-store"><?= icon('map-pin', 'h-3.5 w-3.5') ?> Gunakan lokasi saya</button>
+                    </div>
+                    <p class="mt-1 text-[0.68rem] leading-relaxed text-muted">Aktifkan lokasi agar Rentify merekomendasikan cabang terdekat. Gear disiapkan dari cabang yang kamu pilih.</p>
+                    <div class="mt-3">
+                        <label class="field-label" for="checkout-store">Cabang penyiapan gear</label>
+                        <select id="checkout-store" class="select input" name="store_id" data-store-select>
+                            <?php foreach ($stores as $store): ?>
+                                <option value="<?= (int) $store['id'] ?>"
+                                    data-name="<?= e($store['name']) ?>"
+                                    data-address="<?= e($store['address']) ?>"
+                                    data-hours="<?= e($store['opening_hours']) ?>"
+                                    data-city="<?= e($store['city']) ?>"
+                                    data-fee="<?= (float) $store['delivery_fee'] ?>"
+                                    data-pickup-id="<?= (int) (Store::pickupPoint((int) $store['id'])['id'] ?? 0) ?>"
+                                    data-maps="<?= e(store_maps_link($store)) ?>"
+                                    <?= (int) $store['id'] === $selectedStoreId ? 'selected' : '' ?>>
+                                    <?= e($store['name']) ?> — <?= e($store['city']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <p class="mt-2 flex items-center gap-1.5 text-[0.65rem] font-semibold text-forest-700" data-location-status <?= $nearestStore ? '' : 'data-location-auto' ?>>
+                        <?= icon('map-pin', 'h-3.5 w-3.5') ?>
+                        <?= $nearestStore ? 'Lokasi tersimpan · terdekat: ' . e($nearestStore['name']) . ' (' . e($nearestStore['distance_label']) . ')' : 'Aktifkan lokasi untuk rekomendasi cabang terdekat.' ?>
+                    </p>
+                    <div class="mt-3 rounded-2xl border border-line bg-cream-50 p-3.5">
+                        <div class="flex items-start gap-3">
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mint-100 text-forest-700"><?= icon('map-pin', 'h-4 w-4') ?></span>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-extrabold text-forest-900" data-store-name><?= e($selectedStore['name'] ?? 'Pilih cabang') ?></p>
+                                <p class="mt-0.5 text-[0.68rem] leading-relaxed text-muted" data-store-address><?= e($selectedStore['address'] ?? '') ?></p>
+                                <p class="mt-1 flex items-center gap-1 text-[0.62rem] text-muted"><?= icon('clock', 'h-3 w-3') ?><span data-store-hours><?= e($selectedStore['opening_hours'] ?? '') ?></span></p>
+                            </div>
+                            <a href="<?= e(store_maps_link($selectedStore)) ?>" target="_blank" rel="noopener" class="text-[0.65rem] font-extrabold text-forest-700" data-store-maps>Peta</a>
+                        </div>
+                    </div>
+                    <input type="hidden" name="pickup_point_id" value="<?= (int) ($primaryPoint['id'] ?? 0) ?>" data-store-pickup>
+                </section>
+
                 <section class="card p-4 sm:p-5">
                     <p class="section-kicker">Metode pengambilan</p>
                     <h2 class="mt-1 text-base font-extrabold text-forest-900">Mau ambil sendiri atau diantar?</h2>
@@ -86,8 +143,8 @@ require ROOT_PATH . '/includes/customer_nav.php';
                             <span class="flex h-full items-start gap-3 rounded-2xl border border-line bg-white p-3.5 transition peer-checked:border-forest-700 peer-checked:bg-mint-100/50 hover:border-sage-300">
                                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cream-100 text-forest-700"><?= icon('map-pin', 'h-4 w-4') ?></span>
                                 <span>
-                                    <span class="block text-sm font-extrabold text-forest-900">Ambil di basecamp</span>
-                                    <span class="mt-0.5 block text-[0.65rem] leading-relaxed text-muted">Gratis, cek gear bersama admin.</span>
+                                    <span class="block text-sm font-extrabold text-forest-900">Ambil di toko</span>
+                                    <span class="mt-0.5 block text-[0.65rem] leading-relaxed text-muted">Gratis, cek gear bersama admin cabang.</span>
                                 </span>
                             </span>
                         </label>
@@ -97,30 +154,25 @@ require ROOT_PATH . '/includes/customer_nav.php';
                                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cream-100 text-forest-700"><?= icon('truck', 'h-4 w-4') ?></span>
                                 <span>
                                     <span class="block text-sm font-extrabold text-forest-900">Antar ke lokasi</span>
-                                    <span class="mt-0.5 block text-[0.65rem] leading-relaxed text-muted">Area Karawang, +<?= e(format_rupiah($deliveryFee)) ?>.</span>
+                                    <span class="mt-0.5 block text-[0.65rem] leading-relaxed text-muted">Area <span data-store-city-label><?= e($selectedStore['city'] ?? 'Karawang') ?></span>, +<span data-delivery-fee-label><?= e(format_rupiah($deliveryFee)) ?></span>.</span>
                                 </span>
                             </span>
                         </label>
                     </div>
 
                     <div class="mt-4" data-pickup-fields>
-                        <label class="field-label" for="pickup-point">Pilih titik pengambilan</label>
-                        <select id="pickup-point" class="select input" name="pickup_point_id">
-                            <?php foreach ($pickupPoints as $point): ?>
-                                <option value="<?= (int) $point['id'] ?>"><?= e($point['name']) ?> — <?= e($point['address']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="mt-2 space-y-1.5">
-                            <?php foreach ($pickupPoints as $point): ?>
-                                <p class="flex items-start gap-1.5 text-[0.62rem] text-muted"><span class="mt-0.5 text-forest-500"><?= icon('clock', 'h-3.5 w-3.5') ?></span><?= e($point['name']) ?>: <?= e($point['hours']) ?></p>
-                            <?php endforeach; ?>
+                        <div class="rounded-2xl border border-line bg-cream-50 p-3.5">
+                            <p class="text-[0.62rem] font-extrabold uppercase tracking-[0.12em] text-muted">Titik pengambilan</p>
+                            <p class="mt-1 text-sm font-extrabold text-forest-900" data-store-pickup-name><?= e($primaryPoint['name'] ?? $selectedStore['name'] ?? '') ?></p>
+                            <p class="mt-0.5 text-[0.68rem] leading-relaxed text-muted" data-store-pickup-address><?= e($primaryPoint['address'] ?? $selectedStore['address'] ?? '') ?></p>
+                            <p class="mt-1 flex items-center gap-1 text-[0.62rem] text-muted"><?= icon('clock', 'h-3 w-3') ?><span data-store-pickup-hours><?= e($primaryPoint['hours'] ?? $selectedStore['opening_hours'] ?? '') ?></span></p>
                         </div>
                     </div>
 
                     <div class="mt-4 hidden" data-delivery-fields>
                         <label class="field-label" for="delivery-address">Alamat pengantaran</label>
                         <textarea id="delivery-address" class="input min-h-[5rem]" name="delivery_address" rows="2" placeholder="Tulis alamat lengkap, patokan, dan nama penerima."><?= e($currentUser['address'] ?? '') ?></textarea>
-                        <p class="helper mt-1.5">Pengantaran hanya area Karawang. Admin akan konfirmasi jadwal via WhatsApp.</p>
+                        <p class="helper mt-1.5">Pengantaran area <span data-store-city-label><?= e($selectedStore['city'] ?? 'Karawang') ?></span>. Admin cabang akan konfirmasi jadwal via WhatsApp.</p>
                     </div>
                 </section>
 

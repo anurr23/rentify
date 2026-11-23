@@ -9,7 +9,10 @@ $user = api_require_login();
 if ($method === 'GET') {
     $bookingId = input_int('id');
     $booking = Booking::find($bookingId);
-    if (!$booking || ((int) $booking['user_id'] !== (int) $user['id'] && $user['role'] !== 'admin')) {
+    $canAccess = $booking && ((int) $booking['user_id'] === (int) $user['id']
+        || $user['role'] === 'superadmin'
+        || ($user['role'] === 'admin' && (int) $booking['store_id'] === (int) ($user['store_id'] ?? 0)));
+    if (!$canAccess) {
         json_error('Pesanan tidak ditemukan.', 404);
     }
     json_success([
@@ -29,7 +32,14 @@ if ($action === 'quote') {
     }
     $cart = $validation['cart'];
     $pickupMethod = (string) input('pickup_method', 'pickup') === 'delivery' ? 'delivery' : 'pickup';
-    $deliveryFee = $pickupMethod === 'delivery' ? (float) setting('delivery_fee', '15000') : 0.0;
+    $storeId = input_int('store_id');
+    $store = $storeId > 0 ? Store::find($storeId) : Store::defaultStore();
+    if (!$store || (int) $store['is_active'] !== 1) {
+        json_error('Toko cabang tidak tersedia.', 422);
+    }
+    $deliveryFee = $pickupMethod === 'delivery'
+        ? (float) ($store['delivery_fee'] ?? setting('delivery_fee', '15000'))
+        : 0.0;
     $subtotal = (float) $cart['subtotal'];
     $deposit = (float) $cart['deposit'];
     json_success([
@@ -55,6 +65,7 @@ if ($action === 'create') {
         'start_date' => $start,
         'end_date' => $end,
         'pickup_method' => (string) input('pickup_method', 'pickup'),
+        'store_id' => input_int('store_id'),
         'pickup_point_id' => input_int('pickup_point_id'),
         'delivery_address' => (string) input('delivery_address', ''),
         'notes' => (string) input('notes', ''),
@@ -80,7 +91,10 @@ if ($action === 'cancel') {
     if (!$booking) {
         json_error('Pesanan tidak ditemukan.', 404);
     }
-    if ((int) $booking['user_id'] !== (int) $user['id'] && $user['role'] !== 'admin') {
+    $canCancel = (int) $booking['user_id'] === (int) $user['id']
+        || $user['role'] === 'superadmin'
+        || ($user['role'] === 'admin' && (int) $booking['store_id'] === (int) ($user['store_id'] ?? 0));
+    if (!$canCancel) {
         json_error('Anda tidak berhak membatalkan pesanan ini.', 403);
     }
     $result = Booking::cancelByCustomer($bookingId, (int) $user['id'], $reason);

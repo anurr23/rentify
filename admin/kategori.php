@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config/config.php';
 
-require_admin();
+require_superadmin();
 $categories = Category::all();
 $filterCounts = [];
 foreach (Database::conn()->query('SELECT category_id, COUNT(*) AS total FROM category_filters GROUP BY category_id')->fetchAll() as $row) {
@@ -19,7 +19,7 @@ require ROOT_PATH . '/includes/admin_header.php';
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <p class="text-xs font-semibold text-muted">Struktur katalog</p>
-            <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-forest-900"><?= count($categories) ?> kategori · <?= $totalItems ?> gear</h2>
+            <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-forest-900"><?= count($categories) ?> kategori Â· <?= $totalItems ?> gear</h2>
         </div>
         <button type="button" class="btn btn-primary btn-sm" data-admin-modal data-url="<?= e(url('api/admin.php?action=category_form&id=0')) ?>"><?= icon('plus', 'h-3.5 w-3.5') ?> Tambah kategori</button>
     </div>
@@ -46,7 +46,7 @@ require ROOT_PATH . '/includes/admin_header.php';
                         <div class="flex items-center gap-2 text-[0.62rem] text-muted">
                             <span class="inline-flex h-6 w-6 items-center justify-center rounded-full" style="background:<?= e($category['accent_color'] ?: '#CBE8CE') ?>"><?= icon($category['icon'] ?: 'package', 'h-3.5 w-3.5 text-forest-900') ?></span>
                             <span><?= (int) ($filterCounts[(int) $category['id']] ?? 0) ?> filter</span>
-                            <span>·</span>
+                            <span>Â·</span>
                             <span>Urutan <?= (int) $category['sort_order'] ?></span>
                         </div>
                         <div class="flex items-center gap-1">

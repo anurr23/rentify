@@ -6,6 +6,209 @@ require_once ROOT_PATH . '/includes/icons.php';
 
 $admin = api_require_admin();
 
+function admin_require_super(): void
+{
+    if (!is_superadmin()) {
+        json_error('Aksi ini hanya untuk superadmin.', 403);
+    }
+}
+
+function admin_store_form_html(?array $store): string
+{
+    $isEdit = $store !== null;
+    $stores = Store::all();
+    ob_start();
+    ?>
+    <form data-admin-form="store" enctype="multipart/form-data" class="space-y-5" data-store-form>
+        <input type="hidden" name="action" value="store_save">
+        <input type="hidden" name="id" value="<?= (int) ($store['id'] ?? 0) ?>">
+        <input type="hidden" name="image_existing" value="<?= e($store['image'] ?? '') ?>">
+
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <label class="field-label" for="store-name">Nama toko <span class="text-danger">*</span></label>
+                <input id="store-name" class="input" name="name" required maxlength="140" value="<?= e($store['name'] ?? '') ?>" placeholder="Rentify Karawang Kota">
+            </div>
+            <div>
+                <label class="field-label" for="store-code">Kode cabang <span class="text-danger">*</span></label>
+                <input id="store-code" class="input font-mono text-xs uppercase" name="code" required maxlength="24" value="<?= e($store['code'] ?? '') ?>" placeholder="RNT-KRW-01">
+            </div>
+            <div>
+                <label class="field-label" for="store-slug">Slug <span class="font-semibold text-muted">(opsional)</span></label>
+                <input id="store-slug" class="input font-mono text-xs" name="slug" maxlength="160" value="<?= e($store['slug'] ?? '') ?>" placeholder="rentify-karawang-kota">
+            </div>
+            <div>
+                <label class="field-label" for="store-city">Kota <span class="text-danger">*</span></label>
+                <input id="store-city" class="input" name="city" required maxlength="100" value="<?= e($store['city'] ?? '') ?>" placeholder="Karawang">
+            </div>
+            <div>
+                <label class="field-label" for="store-province">Provinsi <span class="text-danger">*</span></label>
+                <input id="store-province" class="input" name="province" required maxlength="100" value="<?= e($store['province'] ?? 'Jawa Barat') ?>">
+            </div>
+            <div>
+                <label class="field-label" for="store-district">Kecamatan</label>
+                <input id="store-district" class="input" name="district" maxlength="100" value="<?= e($store['district'] ?? '') ?>">
+            </div>
+            <div>
+                <label class="field-label" for="store-postal">Kode pos</label>
+                <input id="store-postal" class="input" name="postal_code" maxlength="10" value="<?= e($store['postal_code'] ?? '') ?>">
+            </div>
+            <div class="sm:col-span-2">
+                <label class="field-label" for="store-address">Alamat lengkap <span class="text-danger">*</span></label>
+                <textarea id="store-address" class="input min-h-[4.5rem]" name="address" rows="2" required placeholder="Jl. ..."><?= e($store['address'] ?? '') ?></textarea>
+            </div>
+
+            <div>
+                <label class="field-label" for="store-phone">Telepon</label>
+                <input id="store-phone" class="input" name="phone" maxlength="30" value="<?= e($store['phone'] ?? '') ?>" placeholder="0812...">
+            </div>
+            <div>
+                <label class="field-label" for="store-whatsapp">WhatsApp</label>
+                <input id="store-whatsapp" class="input" name="whatsapp" maxlength="30" value="<?= e($store['whatsapp'] ?? '') ?>" placeholder="62812...">
+            </div>
+            <div>
+                <label class="field-label" for="store-email">Email</label>
+                <input id="store-email" class="input" type="email" name="email" maxlength="190" value="<?= e($store['email'] ?? '') ?>">
+            </div>
+            <div>
+                <label class="field-label" for="store-hours">Jam operasional</label>
+                <input id="store-hours" class="input" name="opening_hours" maxlength="160" value="<?= e($store['opening_hours'] ?? '') ?>" placeholder="Setiap hari, 08.00-21.00 WIB">
+            </div>
+            <div>
+                <label class="field-label" for="store-fee">Biaya antar (Rp)</label>
+                <input id="store-fee" class="input" type="number" min="0" step="1000" name="delivery_fee" value="<?= e($store['delivery_fee'] ?? 0) ?>">
+            </div>
+            <div>
+                <label class="field-label" for="store-sort">Urutan tampil</label>
+                <input id="store-sort" class="input" type="number" min="0" name="sort_order" value="<?= e($store['sort_order'] ?? 0) ?>">
+            </div>
+            <div class="sm:col-span-2">
+                <label class="field-label" for="store-description">Deskripsi singkat</label>
+                <textarea id="store-description" class="input min-h-[4rem]" name="description" rows="2" placeholder="Keunggulan cabang ini..."><?= e($store['description'] ?? '') ?></textarea>
+            </div>
+            <div class="sm:col-span-2">
+                <label class="field-label" for="store-image">Foto toko</label>
+                <div class="flex items-center gap-3">
+                    <div class="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-line bg-cream-100" data-image-preview>
+                        <?php if (!empty($store['image'])): ?>
+                            <img src="<?= e(upload_url($store['image'])) ?>" alt="" class="h-full w-full object-cover">
+                        <?php else: ?>
+                            <span class="flex h-full w-full items-center justify-center text-muted"><?= icon('image', 'h-6 w-6') ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <input id="store-image" class="input text-xs" type="file" name="image" accept="image/jpeg,image/png,image/webp" data-preview-input="[data-image-preview]">
+                        <p class="helper mt-1.5">JPG/PNG/WebP, maks 5 MB. Kosongkan untuk mempertahankan foto lama.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <section class="rounded-2xl border border-line p-4" data-store-map-section>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <p class="field-label !mb-0">Titik lokasi toko</p>
+                    <p class="helper mt-1">Klik peta atau geser marker untuk memilih lokasi. Leaflet + OpenStreetMap.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <input id="store-map-search" class="input !w-auto min-w-[12rem] !py-2 text-xs" type="search" placeholder="Cari alamat..." data-store-map-search>
+                    <button type="button" class="btn btn-outline btn-sm" data-store-map-geocode><?= icon('search', 'h-3.5 w-3.5') ?> Cari</button>
+                    <button type="button" class="btn btn-outline btn-sm" data-store-map-locate><?= icon('compass', 'h-3.5 w-3.5') ?> Lokasi saya</button>
+                </div>
+            </div>
+            <div id="store-map-picker" class="mt-3 h-72 w-full rounded-2xl border border-line" data-store-map-picker></div>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label class="field-label" for="store-lat">Latitude <span class="text-danger">*</span></label>
+                    <input id="store-lat" class="input font-mono text-xs" name="latitude" required inputmode="decimal" value="<?= e($store['latitude'] ?? '') ?>" placeholder="-6.3010000" data-store-lat>
+                </div>
+                <div>
+                    <label class="field-label" for="store-lng">Longitude <span class="text-danger">*</span></label>
+                    <input id="store-lng" class="input font-mono text-xs" name="longitude" required inputmode="decimal" value="<?= e($store['longitude'] ?? '') ?>" placeholder="107.3050000" data-store-lng>
+                </div>
+            </div>
+            <p class="helper mt-2" data-store-map-status><?= $isEdit ? 'Titik saat ini: ' . e($store['latitude'] ?? '-') . ', ' . e($store['longitude'] ?? '-') : 'Belum ada titik lokasi.' ?></p>
+        </section>
+
+        <div class="grid gap-3 sm:grid-cols-3">
+            <label class="flex items-center gap-2 rounded-xl bg-cream-50 px-3 py-3 text-sm font-bold text-forest-800"><input type="checkbox" name="is_active" value="1" class="h-4 w-4" <?= !$isEdit || !empty($store['is_active']) ? 'checked' : '' ?>> Toko aktif</label>
+            <label class="flex items-center gap-2 rounded-xl bg-cream-50 px-3 py-3 text-sm font-bold text-forest-800"><input type="checkbox" name="is_default" value="1" class="h-4 w-4" <?= !empty($store['is_default']) ? 'checked' : '' ?>> Cabang default</label>
+            <div class="rounded-xl bg-cream-50 px-3 py-2 text-[0.62rem] leading-relaxed text-muted">
+                <?= count($stores) ?> cabang terdaftar. Default dipakai jika customer belum membagikan lokasi.
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-2 border-t border-line pt-4">
+            <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan toko</button>
+        </div>
+    </form>
+    <?php
+    return (string) ob_get_clean();
+}
+
+function admin_user_form_html(?array $user, array $stores): string
+{
+    $isEdit = $user !== null;
+    $role = $user['role'] ?? 'customer';
+    $selectedStore = (int) ($user['store_id'] ?? 0);
+    ob_start();
+    ?>
+    <form data-admin-form="user" class="space-y-4">
+        <input type="hidden" name="action" value="user_save">
+        <input type="hidden" name="id" value="<?= (int) ($user['id'] ?? 0) ?>">
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2">
+                <label class="field-label" for="admin-user-name">Nama lengkap</label>
+                <input id="admin-user-name" class="input" name="name" required minlength="3" maxlength="120" value="<?= e($user['name'] ?? '') ?>">
+            </div>
+            <div>
+                <label class="field-label" for="admin-user-email">Email</label>
+                <input id="admin-user-email" class="input" type="email" name="email" required value="<?= e($user['email'] ?? '') ?>">
+            </div>
+            <div>
+                <label class="field-label" for="admin-user-phone">WhatsApp</label>
+                <input id="admin-user-phone" class="input" name="phone" required inputmode="tel" value="<?= e($user['phone'] ?? '') ?>">
+            </div>
+            <div>
+                <label class="field-label" for="admin-user-role">Role</label>
+                <select id="admin-user-role" class="select input" name="role" data-user-role>
+                    <option value="customer" <?= $role === 'customer' ? 'selected' : '' ?>>Customer</option>
+                    <option value="admin" <?= $role === 'admin' ? 'selected' : '' ?>>Admin Cabang</option>
+                    <option value="superadmin" <?= $role === 'superadmin' ? 'selected' : '' ?>>Superadmin</option>
+                </select>
+            </div>
+            <div data-user-store-wrap class="<?= $role === 'admin' ? '' : 'hidden' ?>">
+                <label class="field-label" for="admin-user-store">Toko cabang</label>
+                <select id="admin-user-store" class="select input" name="store_id" data-user-store>
+                    <option value="0">Pilih cabang...</option>
+                    <?php foreach ($stores as $store): ?>
+                        <option value="<?= (int) $store['id'] ?>" <?= (int) $store['id'] === $selectedStore ? 'selected' : '' ?>><?= e($store['name']) ?> — <?= e($store['city']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="helper mt-1">Admin cabang hanya melihat pesanan cabang ini.</p>
+            </div>
+            <div>
+                <label class="field-label" for="admin-user-password"><?= $isEdit ? 'Kata sandi baru (opsional)' : 'Kata sandi awal' ?></label>
+                <input id="admin-user-password" class="input" type="password" name="password" minlength="8" <?= $isEdit ? '' : 'required' ?> autocomplete="new-password">
+                <p class="helper mt-1"><?= $isEdit ? 'Kosongkan jika tidak ingin mengubah.' : 'Minimal 8 karakter.' ?></p>
+            </div>
+            <div class="flex items-end pb-2">
+                <label class="flex items-center gap-2 text-sm font-bold text-forest-800"><input type="checkbox" name="is_active" value="1" class="h-4 w-4" <?= !$isEdit || !empty($user['is_active']) ? 'checked' : '' ?>> Akun aktif</label>
+            </div>
+        </div>
+        <div class="rounded-xl bg-cream-50 px-3 py-2.5 text-[0.65rem] leading-relaxed text-muted">
+            Superadmin mengelola seluruh cabang, katalog, pengguna, dan pengaturan. Admin cabang mengelola pesanan dan pengembalian cabangnya.
+        </div>
+        <div class="flex justify-end gap-2 border-t border-line pt-4">
+            <button type="button" class="btn btn-outline" data-close-modal>Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan pengguna</button>
+        </div>
+    </form>
+    <?php
+    return (string) ob_get_clean();
+}
+
 /**
  * Form item lengkap (dipakai modal admin via AJAX).
  */
@@ -296,7 +499,34 @@ $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 
 if ($method === 'GET') {
     $action = (string) input('action', '');
+    if ($action === 'store_form') {
+        admin_require_super();
+        $id = input_int('id');
+        $store = $id ? Store::find($id) : null;
+        if ($id && !$store) {
+            json_error('Toko tidak ditemukan.', 404);
+        }
+        json_success([
+            'title' => $store ? 'Edit ' . $store['name'] : 'Tambah toko cabang',
+            'html' => admin_store_form_html($store),
+            'id' => $id,
+        ]);
+    }
+    if ($action === 'user_form') {
+        admin_require_super();
+        $id = input_int('id');
+        $editUser = $id ? User::find($id) : null;
+        if ($id && !$editUser) {
+            json_error('Pengguna tidak ditemukan.', 404);
+        }
+        json_success([
+            'title' => $editUser ? 'Edit ' . $editUser['name'] : 'Tambah pengguna',
+            'html' => admin_user_form_html($editUser, Store::all()),
+            'id' => $id,
+        ]);
+    }
     if ($action === 'item_form') {
+        admin_require_super();
         $id = input_int('id');
         $item = $id ? Item::find($id) : null;
         if ($id && !$item) {
@@ -310,6 +540,7 @@ if ($method === 'GET') {
         ]);
     }
     if ($action === 'category_form') {
+        admin_require_super();
         $id = input_int('id');
         $category = $id ? Category::find($id) : null;
         if ($id && !$category) {
@@ -321,6 +552,7 @@ if ($method === 'GET') {
         ]);
     }
     if ($action === 'pickup_form') {
+        admin_require_super();
         $id = input_int('id');
         $point = null;
         if ($id) {
@@ -337,6 +569,7 @@ if ($method === 'GET') {
         ]);
     }
     if ($action === 'user_detail') {
+        admin_require_super();
         $id = input_int('id');
         $customer = User::find($id);
         if (!$customer) {
@@ -354,7 +587,224 @@ if ($method === 'GET') {
 
 $action = (string) input('action', '');
 
+if ($action === 'store_save') {
+    admin_require_super();
+    $id = input_int('id');
+    $existing = $id ? Store::find($id) : null;
+    if ($id && !$existing) {
+        json_error('Toko tidak ditemukan.', 404);
+    }
+    $name = trim((string) input('name', ''));
+    $code = strtoupper(trim((string) input('code', '')));
+    $city = trim((string) input('city', ''));
+    $province = trim((string) input('province', ''));
+    $address = trim((string) input('address', ''));
+    $latitude = trim((string) input('latitude', ''));
+    $longitude = trim((string) input('longitude', ''));
+    $email = strtolower(trim((string) input('email', '')));
+
+    if (mb_strlen($name) < 3) {
+        json_error('Nama toko minimal 3 karakter.', 422, ['name' => 'Nama terlalu pendek.']);
+    }
+    if (!preg_match('/^[A-Z0-9-]{3,24}$/', $code)) {
+        json_error('Kode cabang hanya boleh huruf, angka, dan tanda hubung (3-24 karakter).', 422, ['code' => 'Kode tidak valid.']);
+    }
+    if ($city === '' || $province === '' || $address === '') {
+        json_error('Kota, provinsi, dan alamat wajib diisi.', 422);
+    }
+    if (!is_numeric($latitude) || !is_numeric($longitude)) {
+        json_error('Pilih titik lokasi toko di peta.', 422, ['latitude' => 'Koordinat wajib diisi.']);
+    }
+    $lat = (float) $latitude;
+    $lng = (float) $longitude;
+    if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+        json_error('Koordinat lokasi tidak valid.', 422);
+    }
+    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        json_error('Format email toko tidak valid.', 422, ['email' => 'Email tidak valid.']);
+    }
+    $isActive = input_bool('is_active');
+    $isDefault = input_bool('is_default');
+    if (!$isActive) {
+        $check = Database::conn()->prepare('SELECT COUNT(*) FROM stores WHERE is_active = 1 AND id <> ?');
+        $check->execute([$id ?: 0]);
+        $activeOthers = (int) $check->fetchColumn();
+        if ($activeOthers === 0) {
+            json_error('Minimal satu toko cabang harus aktif.', 422);
+        }
+        if ($isDefault) {
+            json_error('Cabang default harus dalam status aktif.', 422);
+        }
+    }
+
+    $stmt = Database::conn()->prepare('SELECT id FROM stores WHERE code = ? AND id <> ? LIMIT 1');
+    $stmt->execute([$code, $id ?: 0]);
+    if ($stmt->fetchColumn()) {
+        json_error('Kode cabang sudah dipakai.', 422, ['code' => 'Kode sudah dipakai.']);
+    }
+
+    $slug = slugify(trim((string) input('slug', '')) ?: $name);
+    if ($slug === '') {
+        $slug = strtolower($code);
+    }
+    $slugBase = $slug;
+    $suffix = 2;
+    while (true) {
+        $stmt = Database::conn()->prepare('SELECT id FROM stores WHERE slug = ? AND id <> ? LIMIT 1');
+        $stmt->execute([$slug, $id ?: 0]);
+        if (!$stmt->fetchColumn()) {
+            break;
+        }
+        $slug = $slugBase . '-' . $suffix++;
+    }
+
+    $image = trim((string) input('image_existing', ''));
+    if (!empty($_FILES['image']['name'])) {
+        try {
+            $image = upload_image($_FILES['image'], 'stores', 5242880);
+        } catch (Throwable $exception) {
+            json_error($exception->getMessage(), 422, ['image' => $exception->getMessage()]);
+        }
+    }
+
+    $result = Store::save($id ?: null, [
+        'code' => $code,
+        'name' => $name,
+        'slug' => $slug,
+        'address' => $address,
+        'district' => trim((string) input('district', '')),
+        'city' => $city,
+        'province' => $province,
+        'postal_code' => trim((string) input('postal_code', '')),
+        'phone' => trim((string) input('phone', '')),
+        'whatsapp' => trim((string) input('whatsapp', '')),
+        'email' => $email,
+        'latitude' => $lat,
+        'longitude' => $lng,
+        'maps_url' => trim((string) input('maps_url', '')),
+        'opening_hours' => trim((string) input('opening_hours', '')),
+        'description' => trim((string) input('description', '')),
+        'image' => $image,
+        'delivery_fee' => (float) input('delivery_fee', 0),
+        'is_active' => $isActive,
+        'is_default' => $isDefault,
+        'sort_order' => input_int('sort_order'),
+    ]);
+    if (!$result['success']) {
+        json_error($result['message']);
+    }
+    log_audit($id ? 'store.update' : 'store.create', 'store', (int) $result['id'], ['name' => $name, 'code' => $code]);
+    json_success([
+        'message' => $result['message'] . ' Titik pickup dan lokasi ikut diperbarui.',
+        'id' => (int) $result['id'],
+        'reload' => true,
+    ]);
+}
+
+if ($action === 'store_delete') {
+    admin_require_super();
+    $id = input_int('id');
+    $result = Store::delete($id);
+    if (!$result['success']) {
+        json_error($result['message']);
+    }
+    log_audit('store.delete', 'store', $id);
+    json_success(['message' => $result['message'], 'reload' => true]);
+}
+
+if ($action === 'store_toggle') {
+    admin_require_super();
+    $id = input_int('id');
+    $store = Store::find($id);
+    if (!$store) {
+        json_error('Toko tidak ditemukan.', 404);
+    }
+    $new = (int) $store['is_active'] === 1 ? 0 : 1;
+    if ($new === 0) {
+        $active = (int) Database::conn()->query('SELECT COUNT(*) FROM stores WHERE is_active = 1')->fetchColumn();
+        if ($active <= 1) {
+            json_error('Minimal satu toko harus aktif.');
+        }
+    }
+    Database::conn()->prepare('UPDATE stores SET is_active = ? WHERE id = ?')->execute([$new, $id]);
+    if ($new === 1) {
+        Database::conn()->prepare('UPDATE pickup_points SET is_active = 1 WHERE store_id = ?')->execute([$id]);
+    } else {
+        Database::conn()->prepare('UPDATE pickup_points SET is_active = 0 WHERE store_id = ?')->execute([$id]);
+        if ((int) $store['is_default'] === 1) {
+            $next = (int) Database::conn()->query('SELECT id FROM stores WHERE is_active = 1 ORDER BY sort_order ASC, id ASC LIMIT 1')->fetchColumn();
+            if ($next) {
+                Database::conn()->prepare('UPDATE stores SET is_default = 1 WHERE id = ?')->execute([$next]);
+            }
+        }
+    }
+    log_audit('store.toggle', 'store', $id, ['is_active' => $new]);
+    json_success(['message' => $new ? 'Toko diaktifkan.' : 'Toko dinonaktifkan.', 'is_active' => $new]);
+}
+
+if ($action === 'user_save') {
+    admin_require_super();
+    $id = input_int('id');
+    $existing = $id ? User::find($id) : null;
+    if ($id && !$existing) {
+        json_error('Pengguna tidak ditemukan.', 404);
+    }
+    $name = trim((string) input('name', ''));
+    $email = strtolower(trim((string) input('email', '')));
+    $phone = trim((string) input('phone', ''));
+    $role = (string) input('role', 'customer');
+    $storeId = input_int('store_id');
+    $password = (string) input('password', '');
+    $isActive = input_bool('is_active', true);
+
+    if (mb_strlen($name) < 3) {
+        json_error('Nama minimal 3 karakter.', 422, ['name' => 'Nama terlalu pendek.']);
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        json_error('Email tidak valid.', 422, ['email' => 'Email tidak valid.']);
+    }
+    if (!preg_match('/^[0-9+\-\s]{9,20}$/', $phone)) {
+        json_error('Nomor WhatsApp tidak valid.', 422, ['phone' => 'Nomor tidak valid.']);
+    }
+    if (!in_array($role, ['superadmin', 'admin', 'customer'], true)) {
+        json_error('Role tidak valid.', 422);
+    }
+    if ($role === 'admin' && $storeId <= 0) {
+        json_error('Pilih toko untuk admin cabang.', 422, ['store_id' => 'Toko wajib dipilih.']);
+    }
+    if ($password !== '' && strlen($password) < 8) {
+        json_error('Kata sandi minimal 8 karakter.', 422, ['password' => 'Terlalu pendek.']);
+    }
+    if ($id && $id === (int) $admin['id']) {
+        if ($role !== 'superadmin' || !$isActive) {
+            json_error('Anda tidak dapat menurunkan atau menonaktifkan akun sendiri.');
+        }
+    }
+    if ($existing && $existing['role'] === 'superadmin' && ($role !== 'superadmin' || !$isActive)) {
+        $activeSupers = (int) Database::conn()->query("SELECT COUNT(*) FROM users WHERE role = 'superadmin' AND is_active = 1")->fetchColumn();
+        if ($activeSupers <= 1) {
+            json_error('Minimal satu superadmin aktif harus tersedia.');
+        }
+    }
+
+    $result = User::saveAdmin($id ?: null, [
+        'name' => $name,
+        'email' => $email,
+        'phone' => $phone,
+        'role' => $role,
+        'store_id' => $role === 'admin' ? $storeId : null,
+        'password' => $password,
+        'is_active' => $isActive ? 1 : 0,
+    ]);
+    if (!$result['success']) {
+        json_error($result['message']);
+    }
+    log_audit($id ? 'user.update' : 'user.create', 'user', (int) $result['id'], ['role' => $role, 'store_id' => $role === 'admin' ? $storeId : null]);
+    json_success(['message' => $result['message'], 'id' => (int) $result['id'], 'reload' => true]);
+}
+
 if ($action === 'item_save') {
+    admin_require_super();
     $id = input_int('id');
     $existingItem = $id ? Item::find($id) : null;
     $name = trim((string) input('name', ''));
@@ -445,6 +895,7 @@ if ($action === 'item_save') {
 }
 
 if ($action === 'item_delete') {
+    admin_require_super();
     $id = input_int('id');
     $item = Item::find($id);
     if (!$item) {
@@ -459,6 +910,7 @@ if ($action === 'item_delete') {
 }
 
 if ($action === 'category_save') {
+    admin_require_super();
     $id = input_int('id');
     $existingCategory = $id ? Category::find($id) : null;
     $name = trim((string) input('name', ''));
@@ -479,6 +931,7 @@ if ($action === 'category_save') {
 }
 
 if ($action === 'category_delete') {
+    admin_require_super();
     $id = input_int('id');
     $result = Category::delete($id);
     if (!$result['success']) {
@@ -492,6 +945,14 @@ if ($action === 'booking_status') {
     $bookingId = input_int('booking_id');
     $status = (string) input('status', '');
     $note = trim((string) input('note', ''));
+    $targetBooking = Booking::find($bookingId);
+    if (!$targetBooking) {
+        json_error('Pesanan tidak ditemukan.', 404);
+    }
+    $scope = admin_store_id();
+    if ($scope !== null && (int) ($targetBooking['store_id'] ?? 0) !== $scope) {
+        json_error('Pesanan ini bukan milik cabang Anda.', 403);
+    }
     $result = Booking::updateStatus($bookingId, $status, $note ?: null, (int) $admin['id']);
     if (!$result['success']) {
         json_error($result['message']);
@@ -509,6 +970,14 @@ if ($action === 'payment_verify') {
     $paymentId = input_int('payment_id');
     $approve = input_bool('approve');
     $note = trim((string) input('note', ''));
+    $targetPayment = Payment::find($paymentId);
+    if (!$targetPayment) {
+        json_error('Pembayaran tidak ditemukan.', 404);
+    }
+    $scope = admin_store_id();
+    if ($scope !== null && (int) ($targetPayment['store_id'] ?? 0) !== $scope) {
+        json_error('Pembayaran ini bukan milik cabang Anda.', 403);
+    }
     $result = Payment::verify($paymentId, (int) $admin['id'], $approve, $note);
     if (!$result['success']) {
         json_error($result['message']);
@@ -517,7 +986,11 @@ if ($action === 'payment_verify') {
 }
 
 if ($action === 'user_toggle') {
+    admin_require_super();
     $id = input_int('id');
+    if ($id === (int) $admin['id']) {
+        json_error('Anda tidak dapat menonaktifkan akun sendiri.', 422);
+    }
     $result = User::toggleActive($id);
     if (!$result['success']) {
         json_error($result['message']);
@@ -527,10 +1000,18 @@ if ($action === 'user_toggle') {
 }
 
 if ($action === 'user_create') {
+    admin_require_super();
     $name = trim((string) input('name', ''));
     $email = strtolower(trim((string) input('email', '')));
     $phone = trim((string) input('phone', ''));
-    $role = (string) input('role', 'customer') === 'admin' ? 'admin' : 'customer';
+    $role = (string) input('role', 'customer');
+    if (!in_array($role, ['superadmin', 'admin', 'customer'], true)) {
+        $role = 'customer';
+    }
+    $storeId = input_int('store_id');
+    if ($role === 'admin' && ($storeId <= 0 || !Store::find($storeId))) {
+        json_error('Pilih toko untuk admin cabang.');
+    }
     $password = (string) input('password', '');
     if (mb_strlen($name) < 3 || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) {
         json_error('Lengkapi nama, email valid, dan kata sandi minimal 8 karakter.');
@@ -543,12 +1024,13 @@ if ($action === 'user_create') {
     if ($stmt->fetchColumn()) {
         json_error('Email atau nomor WhatsApp sudah terdaftar.');
     }
-    $id = User::create(['name' => $name, 'email' => $email, 'phone' => $phone, 'password' => $password, 'role' => $role]);
-    log_audit('user.create', 'user', $id, ['role' => $role]);
+    $id = User::create(['name' => $name, 'email' => $email, 'phone' => $phone, 'password' => $password, 'role' => $role, 'store_id' => $role === 'admin' ? $storeId : null]);
+    log_audit('user.create', 'user', $id, ['role' => $role, 'store_id' => $role === 'admin' ? $storeId : null]);
     json_success(['message' => 'Pengguna berhasil ditambahkan.', 'id' => $id, 'reload' => true]);
 }
 
 if ($action === 'user_reset_password') {
+    admin_require_super();
     $id = input_int('id');
     $newPassword = (string) input('password', '');
     if (strlen($newPassword) < 8) {
@@ -565,6 +1047,7 @@ if ($action === 'user_reset_password') {
 }
 
 if ($action === 'settings_save') {
+    admin_require_super();
     $raw = input('settings', []);
     if (!is_array($raw)) {
         json_error('Data pengaturan tidak valid.');
@@ -600,6 +1083,7 @@ if ($action === 'settings_save') {
 }
 
 if ($action === 'pickup_save') {
+    admin_require_super();
     $id = input_int('id');
     $name = trim((string) input('name', ''));
     $address = trim((string) input('address', ''));
@@ -607,6 +1091,7 @@ if ($action === 'pickup_save') {
         json_error('Nama dan alamat titik ambil wajib diisi.');
     }
     Setting::savePickupPoint($id ?: null, [
+        'store_id' => input_int('store_id') ?: null,
         'name' => $name,
         'address' => $address,
         'hours' => trim((string) input('hours', '')),
@@ -621,6 +1106,7 @@ if ($action === 'pickup_save') {
 }
 
 if ($action === 'pickup_delete') {
+    admin_require_super();
     $id = input_int('id');
     Database::conn()->prepare('DELETE FROM pickup_points WHERE id = ?')->execute([$id]);
     log_audit('pickup.delete', 'pickup_point', $id);
@@ -628,6 +1114,7 @@ if ($action === 'pickup_delete') {
 }
 
 if ($action === 'review_toggle') {
+    admin_require_super();
     $id = input_int('id');
     $stmt = Database::conn()->prepare('SELECT * FROM reviews WHERE id = ? LIMIT 1');
     $stmt->execute([$id]);

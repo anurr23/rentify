@@ -3,6 +3,38 @@
 SET NAMES utf8mb4;
 SET time_zone = '+07:00';
 
+CREATE TABLE IF NOT EXISTS stores (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  code VARCHAR(24) NOT NULL,
+  name VARCHAR(140) NOT NULL,
+  slug VARCHAR(160) NOT NULL,
+  address TEXT NOT NULL,
+  district VARCHAR(100) DEFAULT NULL,
+  city VARCHAR(100) NOT NULL,
+  province VARCHAR(100) NOT NULL,
+  postal_code VARCHAR(10) DEFAULT NULL,
+  phone VARCHAR(30) DEFAULT NULL,
+  whatsapp VARCHAR(30) DEFAULT NULL,
+  email VARCHAR(190) DEFAULT NULL,
+  latitude DECIMAL(10,7) DEFAULT NULL,
+  longitude DECIMAL(10,7) DEFAULT NULL,
+  maps_url VARCHAR(500) DEFAULT NULL,
+  opening_hours VARCHAR(160) DEFAULT NULL,
+  description TEXT DEFAULT NULL,
+  image VARCHAR(255) DEFAULT NULL,
+  delivery_fee DECIMAL(12,2) NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  is_default TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_stores_code (code),
+  UNIQUE KEY uq_stores_slug (slug),
+  KEY idx_stores_active (is_active, sort_order),
+  KEY idx_stores_city (city)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   member_code VARCHAR(24) DEFAULT NULL,
@@ -10,9 +42,14 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(190) NOT NULL,
   phone VARCHAR(30) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role ENUM('admin','customer') NOT NULL DEFAULT 'customer',
+  role ENUM('superadmin','admin','customer') NOT NULL DEFAULT 'customer',
+  store_id BIGINT UNSIGNED DEFAULT NULL,
+  preferred_store_id BIGINT UNSIGNED DEFAULT NULL,
   avatar VARCHAR(255) DEFAULT NULL,
   address TEXT DEFAULT NULL,
+  last_latitude DECIMAL(10,7) DEFAULT NULL,
+  last_longitude DECIMAL(10,7) DEFAULT NULL,
+  last_location_at DATETIME DEFAULT NULL,
   identity_number VARCHAR(50) DEFAULT NULL,
   identity_photo VARCHAR(255) DEFAULT NULL,
   is_verified TINYINT(1) NOT NULL DEFAULT 0,
@@ -24,7 +61,11 @@ CREATE TABLE IF NOT EXISTS users (
   UNIQUE KEY uq_users_email (email),
   UNIQUE KEY uq_users_phone (phone),
   UNIQUE KEY uq_users_member_code (member_code),
-  KEY idx_users_role (role)
+  KEY idx_users_role (role),
+  KEY idx_users_store (store_id),
+  KEY idx_users_preferred_store (preferred_store_id),
+  CONSTRAINT fk_users_store FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE SET NULL,
+  CONSTRAINT fk_users_preferred_store FOREIGN KEY (preferred_store_id) REFERENCES stores (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS remember_tokens (
@@ -218,6 +259,7 @@ CREATE TABLE IF NOT EXISTS activity_gear_rules (
 
 CREATE TABLE IF NOT EXISTS pickup_points (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  store_id BIGINT UNSIGNED DEFAULT NULL,
   name VARCHAR(140) NOT NULL,
   address TEXT NOT NULL,
   hours VARCHAR(120) DEFAULT NULL,
@@ -227,13 +269,16 @@ CREATE TABLE IF NOT EXISTS pickup_points (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  KEY idx_pickup_store (store_id, is_active),
+  CONSTRAINT fk_pickup_store FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS bookings (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   code VARCHAR(24) NOT NULL,
   user_id BIGINT UNSIGNED NOT NULL,
+  store_id BIGINT UNSIGNED DEFAULT NULL,
   pickup_point_id BIGINT UNSIGNED DEFAULT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
@@ -262,7 +307,9 @@ CREATE TABLE IF NOT EXISTS bookings (
   KEY idx_bookings_user (user_id, created_at),
   KEY idx_bookings_status (status, created_at),
   KEY idx_bookings_dates (start_date, end_date),
+  KEY idx_bookings_store (store_id, created_at),
   CONSTRAINT fk_bookings_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_bookings_store FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE SET NULL,
   CONSTRAINT fk_bookings_pickup FOREIGN KEY (pickup_point_id) REFERENCES pickup_points (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

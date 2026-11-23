@@ -40,6 +40,7 @@ require ROOT_PATH . '/includes/header.php';
             </a>
             <nav class="hidden items-center gap-1 text-sm font-semibold text-white/70 md:flex">
                 <a href="<?= e(url('katalog.php')) ?>" class="rounded-full px-3.5 py-2 transition hover:bg-white/10 hover:text-white">Katalog</a>
+                <a href="<?= e(url('toko.php')) ?>" class="rounded-full px-3.5 py-2 transition hover:bg-white/10 hover:text-white">Toko</a>
                 <a href="<?= e(url('rekomendasi.php')) ?>" class="rounded-full px-3.5 py-2 transition hover:bg-white/10 hover:text-white">AI Planner</a>
                 <a href="#cara-sewa" class="rounded-full px-3.5 py-2 transition hover:bg-white/10 hover:text-white">Cara sewa</a>
                 <a href="#cerita" class="rounded-full px-3.5 py-2 transition hover:bg-white/10 hover:text-white">Cerita</a>

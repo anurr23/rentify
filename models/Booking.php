@@ -17,14 +17,12 @@ class Booking extends Model
         $start = !empty($data['start_date']) ? (string) $data['start_date'] : $dates['start'];
         $end = !empty($data['end_date']) ? (string) $data['end_date'] : $dates['end'];
         $pickupMethod = ($data['pickup_method'] ?? 'pickup') === 'delivery' ? 'delivery' : 'pickup';
+        $storeId = (int) ($data['store_id'] ?? 0);
         $pickupPointId = !empty($data['pickup_point_id']) ? (int) $data['pickup_point_id'] : null;
         $deliveryAddress = $pickupMethod === 'delivery' ? trim((string) ($data['delivery_address'] ?? '')) : null;
 
         if ($pickupMethod === 'delivery' && !$deliveryAddress) {
             return ['success' => false, 'message' => 'Alamat pengantaran wajib diisi.'];
-        }
-        if ($pickupMethod === 'pickup' && !$pickupPointId) {
-            return ['success' => false, 'message' => 'Pilih titik pengambilan terlebih dahulu.'];
         }
         if (!$start || !$end || $end < $start) {
             return ['success' => false, 'message' => 'Tanggal sewa tidak valid.'];
@@ -36,14 +34,28 @@ class Booking extends Model
         $db = self::pdo();
         $db->beginTransaction();
         try {
+            if ($storeId <= 0) {
+                $defaultStore = Store::defaultStore();
+                $storeId = $defaultStore ? (int) $defaultStore['id'] : 0;
+            }
+            $store = $storeId > 0 ? Store::find($storeId) : null;
+            if (!$store || (int) $store['is_active'] !== 1) {
+                throw new RuntimeException('Toko cabang tidak tersedia. Pilih cabang lain.');
+            }
+
             $pickupPoint = null;
             if ($pickupMethod === 'pickup') {
-                $stmt = $db->prepare('SELECT * FROM pickup_points WHERE id = ? AND is_active = 1');
-                $stmt->execute([$pickupPointId]);
-                $pickupPoint = $stmt->fetch();
-                if (!$pickupPoint) {
-                    throw new RuntimeException('Titik pengambilan tidak tersedia.');
+                if ($pickupPointId) {
+                    $stmt = $db->prepare('SELECT * FROM pickup_points WHERE id = ? AND is_active = 1');
+                    $stmt->execute([$pickupPointId]);
+                    $pickupPoint = $stmt->fetch();
+                } else {
+                    $pickupPoint = Store::pickupPoint($storeId);
                 }
+                if (!$pickupPoint || (int) $pickupPoint['store_id'] !== $storeId) {
+                    throw new RuntimeException('Titik pengambilan tidak sesuai dengan toko cabang yang dipilih.');
+                }
+                $pickupPointId = (int) $pickupPoint['id'];
             }
 
             $recheck = [];
@@ -73,7 +85,8 @@ class Booking extends Model
                 $subtotal += (float) $line['price_per_day'] * (int) $line['qty'] * $duration;
                 $deposit += (float) $line['deposit'];
             }
-            $deliveryFee = $pickupMethod === 'delivery' ? (float) setting('delivery_fee', '15000') : 0.0;
+            $storeDeliveryFee = $store['delivery_fee'] !== null ? (float) $store['delivery_fee'] : (float) setting('delivery_fee', '15000');
+            $deliveryFee = $pickupMethod === 'delivery' ? $storeDeliveryFee : 0.0;
             $discount = max(0, (float) ($data['discount'] ?? 0));
             $total = max(0, $subtotal + $deposit + $deliveryFee - $discount);
             $holdHours = max(1, (int) setting('hold_hours', '24'));
@@ -89,13 +102,13 @@ class Booking extends Model
             }
 
             $stmt = $db->prepare(
-                "INSERT INTO bookings (code, user_id, pickup_point_id, start_date, end_date, duration_days,
+                "INSERT INTO bookings (code, user_id, store_id, pickup_point_id, start_date, end_date, duration_days,
                     pickup_method, delivery_address, subtotal, deposit_total, delivery_fee, discount, total,
                     status, payment_status, notes, hold_expires_at, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid', ?, DATE_ADD(NOW(), INTERVAL ? HOUR), NOW())"
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid', ?, DATE_ADD(NOW(), INTERVAL ? HOUR), NOW())"
             );
             $stmt->execute([
-                $code, $userId, $pickupPointId, $start, $end, $duration,
+                $code, $userId, $storeId, $pickupPointId, $start, $end, $duration,
                 $pickupMethod, $deliveryAddress, $subtotal, $deposit, $deliveryFee, $discount, $total,
                 trim((string) ($data['notes'] ?? '')) ?: null, $holdHours,
             ]);
@@ -129,9 +142,12 @@ class Booking extends Model
                 'Selesaikan pembayaran sebelum ' . format_datetime_id(date('Y-m-d H:i:s', time() + $holdHours * 3600)) . '.',
                 'pesanan_detail.php?id=' . $bookingId
             );
-            $adminIds = self::pdo()->query("SELECT id FROM users WHERE role = 'admin' AND is_active = 1")->fetchAll();
+            $adminIds = self::fetchAll(
+                "SELECT id FROM users WHERE is_active = 1 AND (role = 'superadmin' OR (role = 'admin' AND store_id = ?))",
+                [$storeId]
+            );
             foreach ($adminIds as $admin) {
-                notify((int) $admin['id'], 'admin', 'Pesanan baru ' . $code, 'Pesanan baru menunggu pembayaran.', 'admin/pesanan.php?id=' . $bookingId);
+                notify((int) $admin['id'], 'admin', 'Pesanan baru ' . $code, 'Pesanan baru di ' . $store['name'] . ' menunggu pembayaran.', 'admin/pesanan.php?id=' . $bookingId);
             }
             log_audit('booking.create', 'booking', $bookingId, ['code' => $code, 'total' => $total]);
 
@@ -154,10 +170,14 @@ class Booking extends Model
     {
         $booking = self::fetchOne(
             'SELECT b.*, u.name AS user_name, u.email AS user_email, u.phone AS user_phone,
-                pp.name AS pickup_name, pp.address AS pickup_address, pp.hours AS pickup_hours
+                pp.name AS pickup_name, pp.address AS pickup_address, pp.hours AS pickup_hours,
+                s.name AS store_name, s.code AS store_code, s.city AS store_city, s.address AS store_address,
+                s.phone AS store_phone, s.whatsapp AS store_whatsapp, s.opening_hours AS store_hours,
+                s.latitude AS store_latitude, s.longitude AS store_longitude
              FROM bookings b
              JOIN users u ON u.id = b.user_id
              LEFT JOIN pickup_points pp ON pp.id = b.pickup_point_id
+             LEFT JOIN stores s ON s.id = b.store_id
              WHERE b.id = ? LIMIT 1',
             [$id]
         );
@@ -203,10 +223,14 @@ class Booking extends Model
         );
     }
 
-    public static function forUser(int $userId, string $status = '', int $page = 1, int $perPage = 10): array
+    public static function forUser(int $userId, string $status = '', int $page = 1, int $perPage = 10, ?int $storeId = null): array
     {
         $where = ['b.user_id = ?'];
         $params = [$userId];
+        if ($storeId !== null) {
+            $where[] = 'b.store_id = ?';
+            $params[] = $storeId;
+        }
         if ($status !== '' && $status !== 'semua') {
             if ($status === 'aktif') {
                 $where[] = "b.status IN ('confirmed','preparing','ready','ongoing')";
@@ -223,11 +247,12 @@ class Booking extends Model
         $total = (int) self::fetchValue("SELECT COUNT(*) FROM bookings b WHERE $whereSql", $params);
         $pagination = paginate($total, $perPage, $page);
         $rows = self::fetchAll(
-            "SELECT b.*, pp.name AS pickup_name,
+            "SELECT b.*, pp.name AS pickup_name, s.name AS store_name, s.city AS store_city,
                 (SELECT COUNT(*) FROM booking_items bi WHERE bi.booking_id = b.id) AS item_count,
                 (SELECT bi.primary_image FROM booking_items bi2 JOIN items bi ON bi.id = bi2.item_id
                     WHERE bi2.booking_id = b.id ORDER BY bi2.id ASC LIMIT 1) AS cover_image
              FROM bookings b LEFT JOIN pickup_points pp ON pp.id = b.pickup_point_id
+             LEFT JOIN stores s ON s.id = b.store_id
              WHERE $whereSql
              ORDER BY b.created_at DESC
              LIMIT {$pagination['per_page']} OFFSET {$pagination['offset']}",
@@ -266,6 +291,10 @@ class Booking extends Model
             $where[] = 'b.created_at <= ?';
             $params[] = $to . ' 23:59:59';
         }
+        if (array_key_exists('store_id', $filters) && $filters['store_id'] !== null) {
+            $where[] = 'b.store_id = ?';
+            $params[] = (int) $filters['store_id'];
+        }
         $whereSql = implode(' AND ', $where);
         $total = (int) self::fetchValue(
             "SELECT COUNT(*) FROM bookings b JOIN users u ON u.id = b.user_id WHERE $whereSql",
@@ -274,8 +303,10 @@ class Booking extends Model
         $pagination = paginate($total, $perPage, $page);
         $rows = self::fetchAll(
             "SELECT b.*, u.name AS user_name, u.email AS user_email, u.phone AS user_phone,
+                s.name AS store_name, s.city AS store_city,
                 (SELECT COUNT(*) FROM booking_items bi WHERE bi.booking_id = b.id) AS item_count
              FROM bookings b JOIN users u ON u.id = b.user_id
+             LEFT JOIN stores s ON s.id = b.store_id
              WHERE $whereSql ORDER BY b.created_at DESC
              LIMIT {$pagination['per_page']} OFFSET {$pagination['offset']}",
             $params
@@ -371,7 +402,10 @@ class Booking extends Model
             error_log('Payment create failed: ' . $exception->getMessage());
             return ['success' => false, 'message' => 'Gagal menyimpan pembayaran.'];
         }
-        $adminIds = self::pdo()->query("SELECT id FROM users WHERE role = 'admin' AND is_active = 1")->fetchAll();
+        $adminIds = self::fetchAll(
+            "SELECT id FROM users WHERE is_active = 1 AND (role = 'superadmin' OR (role = 'admin' AND store_id = ?))",
+            [(int) ($booking['store_id'] ?? 0)]
+        );
         foreach ($adminIds as $admin) {
             notify((int) $admin['id'], 'admin', 'Pembayaran baru ' . $booking['code'], 'Bukti pembayaran menunggu verifikasi.', 'admin/pesanan.php?id=' . $bookingId);
         }
@@ -379,9 +413,13 @@ class Booking extends Model
         return ['success' => true, 'message' => 'Bukti pembayaran berhasil dikirim. Menunggu verifikasi admin.'];
     }
 
-    public static function statusCounts(): array
+    public static function statusCounts(?int $storeId = null): array
     {
-        $rows = self::fetchAll('SELECT status, COUNT(*) AS total FROM bookings GROUP BY status');
+        $where = $storeId !== null ? 'WHERE store_id = ?' : '';
+        $rows = self::fetchAll(
+            "SELECT status, COUNT(*) AS total FROM bookings $where GROUP BY status",
+            $storeId !== null ? [$storeId] : []
+        );
         $out = [];
         foreach ($rows as $row) {
             $out[$row['status']] = (int) $row['total'];
@@ -389,32 +427,50 @@ class Booking extends Model
         return $out;
     }
 
-    public static function activeRentals(int $limit = 5): array
+    public static function activeRentals(int $limit = 5, ?int $storeId = null): array
     {
+        $where = "b.status IN ('ready','ongoing','preparing','confirmed')";
+        $params = [];
+        if ($storeId !== null) {
+            $where .= ' AND b.store_id = ?';
+            $params[] = $storeId;
+        }
+        $params[] = $limit;
         return self::fetchAll(
-            "SELECT b.*, u.name AS user_name, u.phone AS user_phone
+            "SELECT b.*, u.name AS user_name, u.phone AS user_phone, s.name AS store_name
              FROM bookings b JOIN users u ON u.id = b.user_id
-             WHERE b.status IN ('ready','ongoing','preparing','confirmed')
+             LEFT JOIN stores s ON s.id = b.store_id
+             WHERE $where
              ORDER BY b.start_date ASC LIMIT ?",
-            [$limit]
+            $params
         );
     }
 
-    public static function dueSoon(): array
+    public static function dueSoon(?int $storeId = null): array
     {
+        $where = "b.status IN ('ongoing','ready') AND b.end_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY)";
+        $params = [];
+        if ($storeId !== null) {
+            $where .= ' AND b.store_id = ?';
+            $params[] = $storeId;
+        }
         return self::fetchAll(
-            "SELECT b.*, u.name AS user_name, u.phone AS user_phone,
+            "SELECT b.*, u.name AS user_name, u.phone AS user_phone, s.name AS store_name,
                 DATEDIFF(b.end_date, CURDATE()) AS days_left
              FROM bookings b JOIN users u ON u.id = b.user_id
-             WHERE b.status IN ('ongoing','ready') AND b.end_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY)
-             ORDER BY b.end_date ASC"
+             LEFT JOIN stores s ON s.id = b.store_id
+             WHERE $where
+             ORDER BY b.end_date ASC",
+            $params
         );
     }
 
     public static function upcomingForUser(int $userId, int $limit = 3): array
     {
         return self::fetchAll(
-            "SELECT b.* FROM bookings b WHERE b.user_id = ?
+            "SELECT b.*, s.name AS store_name, s.city AS store_city
+             FROM bookings b LEFT JOIN stores s ON s.id = b.store_id
+             WHERE b.user_id = ?
                 AND b.status IN ('pending','confirmed','preparing','ready')
                 ORDER BY b.start_date ASC LIMIT ?",
             [$userId, $limit]

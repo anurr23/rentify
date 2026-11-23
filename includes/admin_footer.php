@@ -12,6 +12,9 @@ declare(strict_types=1);
 <div id="modal-root"></div>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 <script src="<?= e(asset('js/admin.js')) ?>" defer></script>
+<?php foreach (($pageVendorScripts ?? []) as $script): ?>
+    <script src="<?= e(asset('vendor/' . $script)) ?>" defer></script>
+<?php endforeach; ?>
 <?php foreach (($pageScripts ?? []) as $script): ?>
     <script src="<?= e(asset('js/' . $script)) ?>" defer></script>
 <?php endforeach; ?>

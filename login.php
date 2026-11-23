@@ -25,7 +25,7 @@ require ROOT_PATH . '/includes/header.php';
                 <p class="mt-4 max-w-md text-sm leading-relaxed text-white/55">Masuk untuk memantau pesanan, menyelesaikan pembayaran, dan menyimpan gear favorit untuk trip berikutnya.</p>
 
                 <div class="mt-8 grid gap-3 sm:grid-cols-2">
-                    <?php foreach ([['sparkles', 'AI Gear Planner', 'Rekomendasi sesuai destinasi'], ['clipboard', 'Pesanan terpantau', 'Status & pembayaran real-time'], ['shield', 'Gear terverifikasi', 'Dicek dan dicuci bersih'], ['truck', 'Antar Karawang', 'Pickup point atau delivery']] as $feature): ?>
+                    <?php foreach ([['sparkles', 'AI Gear Planner', 'Rekomendasi sesuai destinasi'], ['clipboard', 'Pesanan terpantau', 'Status & pembayaran real-time'], ['shield', 'Gear terverifikasi', 'Dicek dan dicuci bersih'], ['truck', 'Antar lokal', 'Pickup point atau delivery']] as $feature): ?>
                         <div class="rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur">
                             <span class="flex h-8 w-8 items-center justify-center rounded-full bg-mint-300 text-forest-900"><?= icon($feature[0], 'h-4 w-4') ?></span>
                             <p class="mt-2 text-xs font-extrabold text-white"><?= e($feature[1]) ?></p>
@@ -93,9 +93,10 @@ require ROOT_PATH . '/includes/header.php';
 
             <div class="mt-5 rounded-xl bg-cream-50 p-3">
                 <p class="text-[0.62rem] font-extrabold uppercase tracking-[0.12em] text-muted">Akun demo</p>
-                <div class="mt-2 flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-outline btn-sm flex-1" data-demo-login data-email="galih@petualang.id" data-password="password">Customer</button>
-                    <button type="button" class="btn btn-outline btn-sm flex-1" data-demo-login data-email="admin@rentify.id" data-password="password">Admin</button>
+                <div class="mt-2 grid grid-cols-3 gap-2">
+                    <button type="button" class="btn btn-outline btn-sm" data-demo-login data-email="admin@rentify.id" data-password="password">Superadmin</button>
+                    <button type="button" class="btn btn-outline btn-sm" data-demo-login data-email="asep@rentify.id" data-password="password">Admin Cabang</button>
+                    <button type="button" class="btn btn-outline btn-sm" data-demo-login data-email="galih@petualang.id" data-password="password">Customer</button>
                 </div>
             </div>
 

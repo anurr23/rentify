@@ -4,14 +4,24 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 
 require_admin();
-$rows = Database::conn()->query(
-    "SELECT b.*, u.name AS user_name, u.phone AS user_phone,
+$storeScope = admin_store_id();
+$where = "b.status IN ('confirmed','preparing','ready','ongoing')";
+$params = [];
+if ($storeScope !== null) {
+    $where .= ' AND b.store_id = ?';
+    $params[] = $storeScope;
+}
+$stmt = Database::conn()->prepare(
+    "SELECT b.*, u.name AS user_name, u.phone AS user_phone, s.name AS store_name,
         DATEDIFF(b.end_date, CURDATE()) AS days_left,
         (SELECT COALESCE(SUM(bi.qty), 0) FROM booking_items bi WHERE bi.booking_id = b.id) AS qty_total
      FROM bookings b JOIN users u ON u.id = b.user_id
-     WHERE b.status IN ('confirmed','preparing','ready','ongoing')
+     LEFT JOIN stores s ON s.id = b.store_id
+     WHERE $where
      ORDER BY b.end_date ASC, b.id ASC"
-)->fetchAll();
+);
+$stmt->execute($params);
+$rows = $stmt->fetchAll();
 $overdue = array_values(array_filter($rows, static fn ($row) => (int) $row['days_left'] < 0));
 $todayDue = array_values(array_filter($rows, static fn ($row) => (int) $row['days_left'] === 0));
 $upcoming = array_values(array_filter($rows, static fn ($row) => (int) $row['days_left'] > 0));

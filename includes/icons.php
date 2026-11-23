@@ -28,6 +28,7 @@ function icon_paths(): array
         'heart' => '<path d="M20.5 8.5c0 5.5-8.5 11-8.5 11s-8.5-5.5-8.5-11a5 5 0 0 1 8.5-3.5 5 5 0 0 1 8.5 3.5Z"/>',
         'star' => '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
         'map-pin' => '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+        'external' => '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
         'arrow-right' => '<path d="M4 12h16"/><path d="m14 6 6 6-6 6"/>',
         'arrow-left' => '<path d="M20 12H4"/><path d="m10 6-6 6 6 6"/>',
         'arrow-up-right' => '<path d="M7 17 17 7"/><path d="M8 7h9v9"/>',

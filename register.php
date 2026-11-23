@@ -21,7 +21,7 @@ require ROOT_PATH . '/includes/header.php';
             <div class="mt-12 max-w-lg">
                 <p class="section-kicker text-mint-300">Bergabung gratis</p>
                 <h1 class="mt-3 text-4xl font-extrabold leading-[1.1] tracking-tight">Petualangan lebih ringan,<br>gear lebih siap.</h1>
-                <p class="mt-4 max-w-md text-sm leading-relaxed text-white/55">Satu akun untuk menyewa tenda, carrier, sleeping bag, dan perlengkapan outdoor lain di Karawang.</p>
+                <p class="mt-4 max-w-md text-sm leading-relaxed text-white/55">Satu akun untuk menyewa tenda, carrier, sleeping bag, dan perlengkapan outdoor lain di Karawang dan kota lainnya.</p>
 
                 <div class="mt-8 space-y-3">
                     <?php foreach ([['sparkles', 'Rekomendasi gear personal', 'AI Planner menyusun daftar wajib & opsional sesuai trip.'], ['shield', 'Deposit aman', 'Deposit dikembalikan setelah gear dicek lengkap.'], ['whatsapp', 'Support lokal', 'Admin Karawang siap bantu lewat WhatsApp.']] as $benefit): ?>

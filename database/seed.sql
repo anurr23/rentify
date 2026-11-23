@@ -2,10 +2,23 @@
 SET NAMES utf8mb4;
 SET time_zone = '+07:00';
 
-INSERT IGNORE INTO users (id, member_code, name, email, phone, password_hash, role, address, is_verified, is_active, created_at) VALUES
-(1, 'RNT-ADMIN', 'Owner Rentify', 'admin@rentify.id', '081200000001', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 'Basecamp Rentify, Karawang', 1, 1, NOW()),
-(2, 'RNT-2026-0001', 'Galih Pratama', 'galih@petualang.id', '081234567890', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'customer', 'Karawang Barat, Jawa Barat', 1, 1, NOW()),
-(3, 'RNT-2026-0002', 'William Saputra', 'william@petualang.id', '081234567891', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'customer', 'Karawang Selatan, Jawa Barat', 0, 1, NOW());
+INSERT IGNORE INTO stores (id, code, name, slug, address, district, city, province, postal_code, phone, whatsapp, email, latitude, longitude, maps_url, opening_hours, description, image, delivery_fee, is_active, is_default, sort_order) VALUES
+(1, 'RNT-KRW-01', 'Rentify Karawang Kota', 'rentify-karawang-kota', 'Jl. Galuh Mas Raya No. 8, Karawang Barat, Jawa Barat', 'Karawang Barat', 'Karawang', 'Jawa Barat', '41361', '081200000011', '6281200000011', 'karawang@rentify.id', -6.3010000, 107.3050000, 'https://maps.google.com/?q=-6.301,107.305', 'Setiap hari, 08.00-21.00 WIB', 'Basecamp utama Rentify di jantung Karawang. Stok gear terlengkap, area cek gear, dan parkir luas.', 'uploads/stores/karawang-kota.jpg', 15000, 1, 1, 1),
+(2, 'RNT-KRW-02', 'Rentify Karawang Selatan', 'rentify-karawang-selatan', 'Jl. Raya Sanggabuana No. 21, Karawang Selatan, Jawa Barat', 'Karawang Selatan', 'Karawang', 'Jawa Barat', '41371', '081200000012', '6281200000012', 'sanggabuana@rentify.id', -6.3920000, 107.3010000, 'https://maps.google.com/?q=-6.392,107.301', 'Setiap hari, 07.00-20.00 WIB', 'Pos terdepan menuju Gunung Sanggabuana. Cocok untuk pendaki yang ingin berangkat pagi buta.', 'uploads/stores/karawang-selatan.jpg', 15000, 1, 0, 2),
+(3, 'RNT-KRW-03', 'Rentify Cikampek', 'rentify-cikampek', 'Jl. Raya Cikampek No. 45, Cikampek, Karawang, Jawa Barat', 'Cikampek', 'Karawang', 'Jawa Barat', '41373', '081200000013', '6281200000013', 'cikampek@rentify.id', -6.4020000, 107.4560000, 'https://maps.google.com/?q=-6.402,107.456', 'Setiap hari, 08.00-20.00 WIB', 'Cabang timur Karawang, dekat gerbang tol Cikampek. Praktis untuk trip ke Purwakarta dan Bandung.', 'uploads/stores/cikampek.jpg', 18000, 1, 0, 3),
+(4, 'RNT-BDG-01', 'Rentify Bandung', 'rentify-bandung', 'Jl. Ir. H. Juanda No. 112, Dago, Bandung, Jawa Barat', 'Coblong', 'Bandung', 'Jawa Barat', '40135', '081200000014', '6281200000014', 'bandung@rentify.id', -6.9175000, 107.6191000, 'https://maps.google.com/?q=-6.9175,107.6191', 'Setiap hari, 08.00-21.00 WIB', 'Basecamp Bandung untuk akses cepat ke Gunung Puntang, Papandayan, dan Ranca Upas.', 'uploads/stores/bandung.jpg', 25000, 1, 0, 4),
+(5, 'RNT-JKT-01', 'Rentify Jakarta', 'rentify-jakarta', 'Jl. Jend. Sudirman Kav. 52-53, Jakarta Selatan', 'Kebayoran Baru', 'Jakarta', 'DKI Jakarta', '12190', '081200000015', '6281200000015', 'jakarta@rentify.id', -6.2088000, 106.8456000, 'https://maps.google.com/?q=-6.2088,106.8456', 'Setiap hari, 08.00-21.00 WIB', 'Cabang Jakarta dengan layanan antar-jemput area Jabodetabek untuk trip akhir pekan.', 'uploads/stores/jakarta.jpg', 30000, 1, 0, 5),
+(6, 'RNT-BGR-01', 'Rentify Bogor', 'rentify-bogor', 'Jl. Pajajaran No. 88, Bogor Tengah, Jawa Barat', 'Bogor Tengah', 'Bogor', 'Jawa Barat', '16143', '081200000016', '6281200000016', 'bogor@rentify.id', -6.5950000, 106.8166000, 'https://maps.google.com/?q=-6.595,106.8166', 'Setiap hari, 07.00-21.00 WIB', 'Gerbang menuju Gunung Salak, Gede, dan Pangrango. Gear dingin selalu siap.', 'uploads/stores/bogor.jpg', 25000, 1, 0, 6),
+(7, 'RNT-SBY-01', 'Rentify Surabaya', 'rentify-surabaya', 'Jl. Basuki Rahmat No. 101, Surabaya, Jawa Timur', 'Genteng', 'Surabaya', 'Jawa Timur', '60271', '081200000017', '6281200000017', 'surabaya@rentify.id', -7.2575000, 112.7521000, 'https://maps.google.com/?q=-7.2575,112.7521', 'Setiap hari, 08.00-21.00 WIB', 'Cabang Jawa Timur untuk pendakian Semeru, Bromo, dan trip outdoor lainnya.', 'uploads/stores/surabaya.jpg', 35000, 1, 0, 7);
+
+INSERT IGNORE INTO users (id, member_code, name, email, phone, password_hash, role, store_id, address, is_verified, is_active, created_at) VALUES
+(1, 'RNT-ADMIN', 'Owner Rentify', 'admin@rentify.id', '081200000001', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'superadmin', NULL, 'Basecamp Rentify, Karawang', 1, 1, NOW()),
+(2, 'RNT-2026-0001', 'Galih Pratama', 'galih@petualang.id', '081234567890', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'customer', NULL, 'Karawang Barat, Jawa Barat', 1, 1, NOW()),
+(3, 'RNT-2026-0002', 'William Saputra', 'william@petualang.id', '081234567891', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'customer', NULL, 'Karawang Selatan, Jawa Barat', 0, 1, NOW()),
+(4, 'RNT-STAFF-01', 'Asep Nugraha', 'asep@rentify.id', '081200000021', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 1, 'Karawang Barat, Jawa Barat', 1, 1, NOW()),
+(5, 'RNT-STAFF-02', 'Dewi Lestari', 'dewi@rentify.id', '081200000022', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 2, 'Karawang Selatan, Jawa Barat', 1, 1, NOW()),
+(6, 'RNT-STAFF-03', 'Rizky Pratama', 'rizky@rentify.id', '081200000023', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 3, 'Cikampek, Karawang', 1, 1, NOW()),
+(7, 'RNT-STAFF-04', 'Dimas Anggara', 'dimas@rentify.id', '081200000024', '$2y$12$Cw9xMCCa3dJTeEWxXRY5N.m3Z19JFEeFUTpLmlnoZEMjt3KUn0AzO', 'admin', 4, 'Bandung, Jawa Barat', 1, 1, NOW());
 
 INSERT IGNORE INTO categories (id, name, slug, description, icon, hero_image, accent_color, sort_order, is_active) VALUES
 (1, 'Tenda & Shelter', 'tenda-shelter', 'Dome, family, dan glamping tent untuk tidur nyaman di alam terbuka.', 'tent', 'uploads/categories/tent-shelter.jpg', '#CBE8CE', 1, 1),
@@ -223,10 +236,14 @@ INSERT IGNORE INTO activity_gear_rules (activity_id, category_id, priority, qty_
 (4,10,'wajib',1,1,'Sanitasi dan botol minum.'),
 (4,11,'wajib',1,1,'Powerbank dan solar charger.');
 
-INSERT IGNORE INTO pickup_points (id, name, address, hours, maps_url, latitude, longitude, is_active, sort_order) VALUES
-(1, 'Basecamp Karawang Kota', 'Jl. Galuh Mas Raya No. 8, Karawang Barat, Jawa Barat', 'Setiap hari, 08.00–21.00 WIB', 'https://maps.google.com/?q=Karawang', -6.301, 107.305, 1, 1),
-(2, 'Karawang Selatan (Pos Sanggabuana)', 'Jl. Raya Sanggabuana, Karawang Selatan, Jawa Barat', 'Setiap hari, 07.00–20.00 WIB', 'https://maps.google.com/?q=Sanggabuana', -6.392, 107.301, 1, 2),
-(3, 'Antar ke Lokasi (Karawang)', 'Pengantaran ke rumah/ titik meeting area Karawang dengan biaya tambahan.', 'Sesuai jadwal, konfirmasi via WhatsApp', NULL, NULL, NULL, 1, 3);
+INSERT IGNORE INTO pickup_points (id, store_id, name, address, hours, maps_url, latitude, longitude, is_active, sort_order) VALUES
+(1, 1, 'Rentify Karawang Kota', 'Jl. Galuh Mas Raya No. 8, Karawang Barat, Jawa Barat', 'Setiap hari, 08.00-21.00 WIB', 'https://maps.google.com/?q=-6.301,107.305', -6.3010000, 107.3050000, 1, 1),
+(2, 2, 'Rentify Karawang Selatan', 'Jl. Raya Sanggabuana No. 21, Karawang Selatan, Jawa Barat', 'Setiap hari, 07.00-20.00 WIB', 'https://maps.google.com/?q=-6.392,107.301', -6.3920000, 107.3010000, 1, 2),
+(3, 3, 'Rentify Cikampek', 'Jl. Raya Cikampek No. 45, Cikampek, Karawang, Jawa Barat', 'Setiap hari, 08.00-20.00 WIB', 'https://maps.google.com/?q=-6.402,107.456', -6.4020000, 107.4560000, 1, 3),
+(4, 4, 'Rentify Bandung', 'Jl. Ir. H. Juanda No. 112, Dago, Bandung, Jawa Barat', 'Setiap hari, 08.00-21.00 WIB', 'https://maps.google.com/?q=-6.9175,107.6191', -6.9175000, 107.6191000, 1, 4),
+(5, 5, 'Rentify Jakarta', 'Jl. Jend. Sudirman Kav. 52-53, Jakarta Selatan', 'Setiap hari, 08.00-21.00 WIB', 'https://maps.google.com/?q=-6.2088,106.8456', -6.2088000, 106.8456000, 1, 5),
+(6, 6, 'Rentify Bogor', 'Jl. Pajajaran No. 88, Bogor Tengah, Jawa Barat', 'Setiap hari, 07.00-21.00 WIB', 'https://maps.google.com/?q=-6.595,106.8166', -6.5950000, 106.8166000, 1, 6),
+(7, 7, 'Rentify Surabaya', 'Jl. Basuki Rahmat No. 101, Surabaya, Jawa Timur', 'Setiap hari, 08.00-21.00 WIB', 'https://maps.google.com/?q=-7.2575,112.7521', -7.2575000, 112.7521000, 1, 7);
 
 INSERT IGNORE INTO settings (setting_key, setting_value, setting_group, setting_type) VALUES
 ('app_name', 'Rentify Outdoor Karawang', 'umum', 'text'),
@@ -242,12 +259,12 @@ INSERT IGNORE INTO settings (setting_key, setting_value, setting_group, setting_
 ('hold_hours', '24', 'sistem', 'number'),
 ('ai_enabled', '1', 'sistem', 'boolean');
 
-INSERT IGNORE INTO bookings (id, code, user_id, pickup_point_id, start_date, end_date, duration_days, pickup_method, delivery_address, subtotal, deposit_total, delivery_fee, discount, late_fee, total, status, payment_status, notes, admin_notes, pickup_code, hold_expires_at, returned_at, completed_at, created_at) VALUES
-(1, 'RNT-20261101-0001', 2, 1, DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_SUB(CURDATE(), INTERVAL 19 DAY), 2, 'pickup', NULL, 108000, 0, 0, 0, 0, 108000, 'completed', 'paid', 'Camping di Loji, terima kasih.', 'Peralatan kembali lengkap dan bersih.', 'A1B2C3', NULL, DATE_SUB(NOW(), INTERVAL 19 DAY), DATE_SUB(NOW(), INTERVAL 19 DAY), DATE_SUB(NOW(), INTERVAL 22 DAY)),
-(2, 'RNT-20261105-0002', 3, 2, DATE_SUB(CURDATE(), INTERVAL 15 DAY), DATE_SUB(CURDATE(), INTERVAL 14 DAY), 2, 'pickup', NULL, 170000, 0, 0, 0, 0, 170000, 'completed', 'paid', 'Camping keluarga kecil.', 'Sudah dicek, aman.', 'D4E5F6', NULL, DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 17 DAY)),
-(3, 'RNT-20261121-0003', 2, 2, DATE_SUB(CURDATE(), INTERVAL 1 DAY), DATE_ADD(CURDATE(), INTERVAL 1 DAY), 3, 'pickup', NULL, 201000, 0, 0, 0, 0, 201000, 'ongoing', 'paid', 'Trekking Sanggabuana 2 malam.', 'Sudah diambil customer.', 'G7H8I9', NULL, NULL, NULL, DATE_SUB(NOW(), INTERVAL 3 DAY)),
-(4, 'RNT-20261125-0004', 3, 1, DATE_ADD(CURDATE(), INTERVAL 5 DAY), DATE_ADD(CURDATE(), INTERVAL 6 DAY), 2, 'pickup', NULL, 190000, 75000, 0, 0, 0, 265000, 'pending', 'unpaid', 'Mohon tenda dipastikan bersih.', NULL, NULL, DATE_ADD(NOW(), INTERVAL 20 HOUR), NULL, NULL, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
-(5, 'RNT-20261110-0005', 2, 1, DATE_SUB(CURDATE(), INTERVAL 9 DAY), DATE_SUB(CURDATE(), INTERVAL 8 DAY), 2, 'pickup', NULL, 80000, 0, 0, 0, 0, 80000, 'completed', 'paid', 'Sewa hammock dan lampu tenda.', 'Lengkap.', 'J1K2L3', NULL, DATE_SUB(NOW(), INTERVAL 8 DAY), DATE_SUB(NOW(), INTERVAL 8 DAY), DATE_SUB(NOW(), INTERVAL 11 DAY));
+INSERT IGNORE INTO bookings (id, code, user_id, store_id, pickup_point_id, start_date, end_date, duration_days, pickup_method, delivery_address, subtotal, deposit_total, delivery_fee, discount, late_fee, total, status, payment_status, notes, admin_notes, pickup_code, hold_expires_at, returned_at, completed_at, created_at) VALUES
+(1, 'RNT-20261101-0001', 2, 1, 1, DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_SUB(CURDATE(), INTERVAL 19 DAY), 2, 'pickup', NULL, 108000, 0, 0, 0, 0, 108000, 'completed', 'paid', 'Camping di Loji, terima kasih.', 'Peralatan kembali lengkap dan bersih.', 'A1B2C3', NULL, DATE_SUB(NOW(), INTERVAL 19 DAY), DATE_SUB(NOW(), INTERVAL 19 DAY), DATE_SUB(NOW(), INTERVAL 22 DAY)),
+(2, 'RNT-20261105-0002', 3, 2, 2, DATE_SUB(CURDATE(), INTERVAL 15 DAY), DATE_SUB(CURDATE(), INTERVAL 14 DAY), 2, 'pickup', NULL, 170000, 0, 0, 0, 0, 170000, 'completed', 'paid', 'Camping keluarga kecil.', 'Sudah dicek, aman.', 'D4E5F6', NULL, DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 17 DAY)),
+(3, 'RNT-20261121-0003', 2, 2, 2, DATE_SUB(CURDATE(), INTERVAL 1 DAY), DATE_ADD(CURDATE(), INTERVAL 1 DAY), 3, 'pickup', NULL, 201000, 0, 0, 0, 0, 201000, 'ongoing', 'paid', 'Trekking Sanggabuana 2 malam.', 'Sudah diambil customer.', 'G7H8I9', NULL, NULL, NULL, DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(4, 'RNT-20261125-0004', 3, 1, 1, DATE_ADD(CURDATE(), INTERVAL 5 DAY), DATE_ADD(CURDATE(), INTERVAL 6 DAY), 2, 'pickup', NULL, 190000, 75000, 0, 0, 0, 265000, 'pending', 'unpaid', 'Mohon tenda dipastikan bersih.', NULL, NULL, DATE_ADD(NOW(), INTERVAL 20 HOUR), NULL, NULL, DATE_SUB(NOW(), INTERVAL 4 HOUR)),
+(5, 'RNT-20261110-0005', 2, 1, 1, DATE_SUB(CURDATE(), INTERVAL 9 DAY), DATE_SUB(CURDATE(), INTERVAL 8 DAY), 2, 'pickup', NULL, 80000, 0, 0, 0, 0, 80000, 'completed', 'paid', 'Sewa hammock dan lampu tenda.', 'Lengkap.', 'J1K2L3', NULL, DATE_SUB(NOW(), INTERVAL 8 DAY), DATE_SUB(NOW(), INTERVAL 8 DAY), DATE_SUB(NOW(), INTERVAL 11 DAY));
 
 INSERT IGNORE INTO booking_items (id, booking_id, item_id, variant_id, item_name, variant_label, qty, price_per_day, duration_days, subtotal, deposit, start_date, end_date) VALUES
 (1, 1, 13, NULL, 'Sleeping Bag Ultralight -2°C', NULL, 1, 32000, 2, 64000, 0, DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_SUB(CURDATE(), INTERVAL 19 DAY)),

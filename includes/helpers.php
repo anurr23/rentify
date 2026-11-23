@@ -586,6 +586,54 @@ function item_availability_text(int $available): string
     return $available . ' unit tersedia';
 }
 
+function role_label(string $role): string
+{
+    return match ($role) {
+        'superadmin' => 'Superadmin',
+        'admin' => 'Admin Cabang',
+        default => 'Customer',
+    };
+}
+
+function role_badge_class(string $role): string
+{
+    return match ($role) {
+        'superadmin' => 'badge-dark',
+        'admin' => 'badge-mint',
+        default => 'badge-neutral',
+    };
+}
+
+function store_city_line(?array $store): string
+{
+    if (!$store) {
+        return 'Karawang, Jawa Barat';
+    }
+    return trim(($store['city'] ?? '') . ', ' . ($store['province'] ?? ''), ', ');
+}
+
+function store_wa_link(?array $store, string $message = ''): string
+{
+    $phone = trim((string) ($store['whatsapp'] ?? ''))
+        ?: trim((string) ($store['phone'] ?? ''))
+        ?: setting('whatsapp', '6281234567890');
+    return phone_wa_link($phone, $message);
+}
+
+function store_maps_link(?array $store): string
+{
+    if (!$store) {
+        return 'https://maps.google.com/?q=Karawang';
+    }
+    if (!empty($store['maps_url'])) {
+        return (string) $store['maps_url'];
+    }
+    if ($store['latitude'] !== null && $store['longitude'] !== null) {
+        return 'https://maps.google.com/?q=' . $store['latitude'] . ',' . $store['longitude'];
+    }
+    return 'https://maps.google.com/?q=' . rawurlencode(($store['address'] ?? '') . ' ' . ($store['city'] ?? ''));
+}
+
 function build_meta(string $title, string $description = ''): array
 {
     return [

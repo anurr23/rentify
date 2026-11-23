@@ -4,6 +4,8 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 
 require_admin();
+$storeScope = admin_store_id();
+$adminStore = admin_current_store();
 $from = (string) ($_GET['from'] ?? date('Y-m-01'));
 $to = (string) ($_GET['to'] ?? today());
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) {
@@ -17,39 +19,41 @@ if ($to < $from) {
 }
 
 if (($_GET['export'] ?? '') === 'csv') {
-    $rows = Report::exportRows($from, $to);
+    $rows = Report::exportRows($from, $to, $storeScope);
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="rentify-laporan-' . $from . '-sampai-' . $to . '.csv"');
     echo "\xEF\xBB\xBF";
     $out = fopen('php://output', 'w');
-    fputcsv($out, ['Kode', 'Dibuat', 'Pelanggan', 'Telepon', 'Mulai', 'Kembali', 'Durasi', 'Subtotal', 'Deposit', 'Antar', 'Diskon', 'Total', 'Status', 'Pembayaran'], ';', '"', '');
+    fputcsv($out, ['Kode', 'Dibuat', 'Toko', 'Pelanggan', 'Telepon', 'Mulai', 'Kembali', 'Durasi', 'Subtotal', 'Deposit', 'Antar', 'Diskon', 'Total', 'Status', 'Pembayaran'], ';', '"', '');
     foreach ($rows as $row) {
         fputcsv($out, [
-            $row['code'], $row['created_at'], $row['customer'], $row['phone'], $row['start_date'], $row['end_date'],
+            $row['code'], $row['created_at'], $row['store_name'], $row['customer'], $row['phone'], $row['start_date'], $row['end_date'],
             $row['duration_days'], $row['subtotal'], $row['deposit_total'], $row['delivery_fee'], $row['discount'],
             $row['total'], status_label($row['status']), payment_status_label($row['payment_status']),
         ], ';', '"', '');
     }
     fclose($out);
-    log_audit('report.export', 'booking', null, ['from' => $from, 'to' => $to]);
+    log_audit('report.export', 'booking', null, ['from' => $from, 'to' => $to, 'store_id' => $storeScope]);
     exit;
 }
 
-$summary = Report::summary();
+$summary = Report::summary($storeScope);
+$storeWhere = $storeScope !== null ? ' AND b.store_id = ' . (int) $storeScope : '';
 $stmt = Database::conn()->prepare(
-    "SELECT COALESCE(SUM(amount), 0) AS revenue,
-        (SELECT COUNT(*) FROM bookings WHERE DATE(created_at) BETWEEN ? AND ?) AS bookings,
-        (SELECT COUNT(DISTINCT user_id) FROM bookings WHERE DATE(created_at) BETWEEN ? AND ?) AS customers
-     FROM payments WHERE status = 'verified' AND DATE(paid_at) BETWEEN ? AND ?"
+    "SELECT COALESCE(SUM(p.amount), 0) AS revenue,
+        (SELECT COUNT(*) FROM bookings b WHERE DATE(b.created_at) BETWEEN ? AND ?$storeWhere) AS bookings,
+        (SELECT COUNT(DISTINCT b.user_id) FROM bookings b WHERE DATE(b.created_at) BETWEEN ? AND ?$storeWhere) AS customers
+     FROM payments p JOIN bookings b ON b.id = p.booking_id
+     WHERE p.status = 'verified' AND DATE(p.paid_at) BETWEEN ? AND ?$storeWhere"
 );
 $stmt->execute([$from, $to, $from, $to, $from, $to]);
 $rangeStats = $stmt->fetch() ?: ['revenue' => 0, 'bookings' => 0, 'customers' => 0];
 $rangeRevenue = (float) $rangeStats['revenue'];
-$monthly = Report::monthlyRevenue(8);
-$statusRows = Report::bookingsByStatus();
-$topItems = Report::topItems(7);
-$topCategories = Report::topCategories();
-$rangeBookings = Report::exportRows($from, $to);
+$monthly = Report::monthlyRevenue(8, $storeScope);
+$statusRows = Report::bookingsByStatus($storeScope);
+$topItems = Report::topItems(7, $storeScope);
+$topCategories = Report::topCategories($storeScope);
+$rangeBookings = Report::exportRows($from, $to, $storeScope);
 $statusColors = [
     'pending' => '#E5A440', 'confirmed' => '#53A8CF', 'preparing' => '#8B7CC8', 'ready' => '#B2D8C8',
     'ongoing' => '#53CF6C', 'returned' => '#8FA79A', 'completed' => '#1B3B2B', 'cancelled' => '#D9534F',
@@ -99,6 +103,7 @@ require ROOT_PATH . '/includes/admin_header.php';
         <div>
             <p class="text-xs font-semibold text-muted">Analitik & ekspor</p>
             <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-forest-900">Laporan bisnis</h2>
+            <p class="mt-1 flex items-center gap-1.5 text-xs font-bold text-forest-600"><?= icon('map-pin', 'h-3.5 w-3.5') ?> <?= $adminStore ? e($adminStore['name']) : 'Semua cabang' ?></p>
         </div>
         <div class="flex flex-wrap gap-2">
             <button type="button" class="btn btn-outline btn-sm" onclick="window.print()"><?= icon('printer', 'h-3.5 w-3.5') ?> Cetak</button>

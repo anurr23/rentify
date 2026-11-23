@@ -114,7 +114,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                                     <span class="text-line">•</span>
                                     <span><?= (int) $booking['duration_days'] ?> hari</span>
                                     <span class="text-line">•</span>
-                                    <span class="inline-flex items-center gap-1"><?= icon($booking['pickup_method'] === 'delivery' ? 'truck' : 'map-pin', 'h-3.5 w-3.5') ?> <?= $booking['pickup_method'] === 'delivery' ? 'Diantar' : e($booking['pickup_name'] ?: 'Ambil di basecamp') ?></span>
+                                    <span class="inline-flex items-center gap-1"><?= icon($booking['pickup_method'] === 'delivery' ? 'truck' : 'map-pin', 'h-3.5 w-3.5') ?> <?= $booking['pickup_method'] === 'delivery' ? 'Diantar' : e($booking['store_name'] ?: ($booking['pickup_name'] ?: 'Ambil di toko')) ?></span>
                                 </div>
                                 <div class="mt-2 flex flex-wrap items-center gap-3">
                                     <p class="text-base font-extrabold text-forest-900"><?= e(format_rupiah($booking['total'])) ?></p>
