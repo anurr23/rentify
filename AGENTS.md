@@ -183,6 +183,7 @@ Uji juga endpoint yang berubah, termasuk request non-GET dengan CSRF.
 - `location.js` menangani GPS, `data-use-location`, `data-location-target`, dan event `rentify:location`.
 - `map-stores.js` hanya untuk `toko.php`; `admin-stores.js` hanya untuk modal toko.
 - Muat Leaflet CSS lewat `$pageStyles = ['vendor/leaflet/leaflet.css']` dan JS lewat `$pageVendorScripts = ['leaflet/leaflet.js']`.
+- `catalog.js` melakukan pencarian live (debounce 280 ms), filter/sortir, dan “muat lebih banyak” tanpa reload. **Jangan** menambahkan `scrollIntoView` otomatis setelah update katalog; posisi scroll user harus dipertahankan.
 
 ### Tailwind & desain
 

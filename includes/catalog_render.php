@@ -52,12 +52,17 @@ function render_catalog_results(array $result, ?array $category = null, string $
     </div>
 
     <?php if ((int) ($pagination['pages'] ?? 1) > 1): ?>
-        <nav class="mt-7 flex items-center justify-center gap-1.5" data-catalog-pagination aria-label="Navigasi halaman">
-            <button type="button" class="icon-btn h-9 w-9" data-page="<?= max(1, (int) $pagination['page'] - 1) ?>" <?= empty($pagination['has_prev']) ? 'disabled' : '' ?> aria-label="Halaman sebelumnya"><?= icon('chevron-left', 'h-4 w-4') ?></button>
-            <?php for ($i = 1; $i <= (int) $pagination['pages']; $i++): ?>
-                <button type="button" class="flex h-9 min-w-9 items-center justify-center rounded-full px-2 text-xs font-extrabold transition <?= $i === (int) $pagination['page'] ? 'bg-forest-900 text-white' : 'border border-line bg-white text-forest-700 hover:bg-cream-100' ?>" data-page="<?= $i ?>"><?= $i ?></button>
-            <?php endfor; ?>
-            <button type="button" class="icon-btn h-9 w-9" data-page="<?= (int) $pagination['page'] + 1 ?>" <?= empty($pagination['has_next']) ? 'disabled' : '' ?> aria-label="Halaman berikutnya"><?= icon('chevron-right', 'h-4 w-4') ?></button>
+        <nav class="mt-7 flex flex-col items-center gap-2.5" data-catalog-pagination aria-label="Muat katalog">
+            <p class="text-[0.68rem] font-semibold text-muted">
+                Menampilkan <span data-catalog-shown><?= count($items) ?></span> dari <?= $total ?> gear
+            </p>
+            <?php if (!empty($pagination['has_next'])): ?>
+                <button type="button" class="btn btn-outline btn-sm" data-load-more data-next-page="<?= (int) $pagination['page'] + 1 ?>">
+                    <?= icon('chevron-down', 'h-3.5 w-3.5') ?> Muat lebih banyak
+                </button>
+            <?php else: ?>
+                <p class="text-[0.68rem] font-semibold text-muted">Semua gear sudah ditampilkan.</p>
+            <?php endif; ?>
         </nav>
     <?php endif; ?>
     <?php

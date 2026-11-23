@@ -107,8 +107,12 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
                 <?php if ($category): ?><input type="hidden" name="category" value="<?= e($category['slug']) ?>"><?php endif; ?>
                 <span class="text-white/55"><?= icon('search', 'h-[1.15rem] w-[1.15rem]') ?></span>
                 <input type="search" name="q" value="<?= e($q) ?>" placeholder="<?= $category ? 'Cari di ' . e(explode(' ', $category['name'])[0]) . '...' : 'Cari tenda, kompor, carrier ultralight...' ?>" aria-label="Cari gear" data-catalog-search autocomplete="off">
-                <button type="submit" class="search-submit" aria-label="Cari"><?= icon('sliders', 'h-[1.1rem] w-[1.1rem]') ?></button>
+                <button type="button" class="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white <?= $q === '' ? 'hidden' : '' ?>" data-catalog-search-clear aria-label="Hapus pencarian"><?= icon('x', 'h-4 w-4') ?></button>
+                <button type="submit" class="search-submit" aria-label="Cari sekarang"><?= icon('search', 'h-[1.1rem] w-[1.1rem]') ?></button>
             </form>
+            <p class="mx-auto mt-2 max-w-2xl text-center text-[0.65rem] font-semibold text-white/45" data-catalog-search-hint aria-live="polite">
+                <?= $q !== '' ? 'Hasil pencarian untuk &ldquo;' . e($q) . '&rdquo;' : 'Ketik untuk mencari secara langsung' ?>
+            </p>
 
             <a href="<?= e(url('rekomendasi.php' . ($category ? '?' . http_build_query(['category' => $category['slug']]) : ''))) ?>" class="mx-auto mt-3 flex max-w-2xl items-center gap-3 rounded-[1.15rem] border border-white/15 bg-white/10 p-3 backdrop-blur transition hover:bg-white/15">
                 <span class="ai-orb !h-10 !w-10"><?= icon('sparkles', 'h-4 w-4') ?></span>

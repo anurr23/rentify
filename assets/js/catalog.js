@@ -1,4 +1,4 @@
-/* Katalog AJAX: filter, pencarian, urutan, tampilan, dan pagination. */
+/* Katalog AJAX: pencarian live, filter, urutan, tampilan, dan muat lebih banyak. */
 (() => {
   'use strict';
 
@@ -7,10 +7,13 @@
 
   const api = window.RENTIFY;
   const results = root.querySelector('[data-catalog-results]');
-  const searchForms = document.querySelectorAll('[data-catalog-search-form]');
   const filterCard = document.querySelector('[data-filter-card]');
   const category = root.dataset.category || '';
   const initial = new URLSearchParams(window.location.search);
+  const hint = document.querySelector('[data-catalog-search-hint]');
+  const searchInput = document.querySelector('[data-catalog-search]');
+  const clearButtons = document.querySelectorAll('[data-catalog-search-clear]');
+  const searchForms = document.querySelectorAll('[data-catalog-search-form]');
 
   const state = {
     q: initial.get('q') || '',
@@ -26,15 +29,16 @@
   });
 
   let controller = null;
-  let scrollAfterLoad = false;
+  let loadingMore = false;
+  let searchTimer = null;
 
-  function buildQuery(page = state.page) {
+  function buildQuery(page = 1, includePage = true) {
     const params = new URLSearchParams();
     if (category) params.set('category', category);
     if (state.q) params.set('q', state.q);
     if (state.sort !== 'popular') params.set('sort', state.sort);
     if (state.view === 'list') params.set('view', 'list');
-    if (page > 1) params.set('page', String(page));
+    if (includePage && page > 1) params.set('page', String(page));
     Object.entries(state.filters).forEach(([key, value]) => {
       if (value) params.set(`f[${key}]`, value);
     });
@@ -42,9 +46,42 @@
   }
 
   function syncUrl() {
-    const params = buildQuery();
-    const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}${window.location.hash}`;
+    const params = buildQuery(1, false);
+    const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
     window.history.replaceState({}, '', next);
+  }
+
+  function updateClearButtons() {
+    const hasValue = Boolean((searchInput?.value || state.q || '').trim());
+    clearButtons.forEach((button) => {
+      button.classList.toggle('hidden', !hasValue);
+    });
+  }
+
+  function updateHint(total = null, loading = false) {
+    if (!hint) return;
+    if (loading) {
+      hint.textContent = state.q ? `Mencari “${state.q}”...` : 'Memuat katalog...';
+      return;
+    }
+    if (state.q) {
+      hint.textContent = total === null
+        ? `Hasil pencarian untuk “${state.q}”`
+        : `${total} hasil untuk “${state.q}”`;
+      return;
+    }
+    hint.textContent = total === null
+      ? 'Ketik untuk mencari secara langsung'
+      : `Menampilkan ${total} gear`;
+  }
+
+  function setBusy(busy) {
+    if (!results) return;
+    results.style.opacity = busy ? '0.55' : '';
+    results.style.pointerEvents = busy ? 'none' : '';
+    results.setAttribute('aria-busy', busy ? 'true' : 'false');
+    const total = results.querySelector('[data-catalog-total]');
+    if (total) total.classList.toggle('animate-pulse', busy);
   }
 
   function setActiveChips() {
@@ -65,8 +102,6 @@
   function setSortValue() {
     const sort = document.querySelector('[data-catalog-sort]');
     if (sort) sort.value = state.sort;
-    const pageTitle = document.querySelector('[data-catalog-total]');
-    if (pageTitle) pageTitle.classList.remove('animate-pulse');
   }
 
   function emptyState() {
@@ -74,14 +109,33 @@
     results.innerHTML = '<div class="rounded-[1.35rem] border border-dashed border-line bg-white px-6 py-14 text-center"><p class="text-sm font-bold text-forest-900">Gagal memuat katalog.</p><p class="mt-1 text-xs text-muted">Periksa koneksi lalu coba lagi.</p></div>';
   }
 
-  async function load({ page = 1, scroll = false } = {}) {
+  function updateTotal(payload) {
+    const total = results?.querySelector('[data-catalog-total]');
+    if (total && payload.total !== undefined) total.textContent = String(payload.total);
+    const shown = results?.querySelector('[data-catalog-shown]');
+    if (shown) {
+      shown.textContent = String(results.querySelectorAll('[data-catalog-grid] [data-item-card]').length);
+    }
+  }
+
+  async function load({ page = 1, append = false } = {}) {
     if (!results) return;
-    state.page = page;
-    scrollAfterLoad = scroll;
+    if (loadingMore && append) return;
     if (controller) controller.abort();
     controller = new AbortController();
-    results.style.opacity = '0.45';
-    results.style.pointerEvents = 'none';
+    if (append) {
+      loadingMore = true;
+      const button = results.querySelector('[data-load-more]');
+      if (button) {
+        button.disabled = true;
+        button.dataset.originalHtml = button.innerHTML;
+        button.innerHTML = 'Memuat...';
+      }
+    } else {
+      state.page = page;
+      setBusy(true);
+      updateHint(null, true);
+    }
 
     try {
       const params = buildQuery(page);
@@ -92,24 +146,65 @@
       });
       const payload = await response.json();
       if (!response.ok || !payload.success) throw new Error(payload.message || 'Gagal memuat katalog.');
-      results.innerHTML = payload.html;
+
       state.view = payload.view || state.view;
       state.sort = payload.sort || state.sort;
       setSortValue();
-      syncUrl();
-      if (scrollAfterLoad) {
-        const anchor = document.getElementById('katalog-lengkap') || root;
-        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      if (append) {
+        const template = document.createElement('div');
+        template.innerHTML = payload.html;
+        const freshGrid = template.querySelector('[data-catalog-grid]');
+        const currentGrid = results.querySelector('[data-catalog-grid]');
+        if (freshGrid && currentGrid) {
+          Array.from(freshGrid.children).forEach((child) => {
+            if (child.matches('[data-item-card]')) currentGrid.appendChild(child);
+          });
+        }
+        const freshPagination = template.querySelector('[data-catalog-pagination]');
+        const currentPagination = results.querySelector('[data-catalog-pagination]');
+        if (freshPagination && currentPagination) currentPagination.replaceWith(freshPagination);
+        else if (!freshPagination) currentPagination?.remove();
+        state.page = Number(payload.page) || state.page;
+        updateTotal(payload);
+        syncUrl();
+        updateHint(payload.total, false);
+      } else {
+        results.innerHTML = payload.html;
+        state.page = page;
+        setActiveChips();
+        updateTotal(payload);
+        syncUrl();
+        updateHint(payload.total, false);
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
         api.toast(error.message || 'Katalog gagal dimuat.', 'error');
-        emptyState();
+        if (!append) emptyState();
       }
     } finally {
-      results.style.opacity = '';
-      results.style.pointerEvents = '';
+      if (append) {
+        loadingMore = false;
+        const button = results.querySelector('[data-load-more]');
+        if (button && button.dataset.originalHtml) {
+          button.disabled = false;
+          button.innerHTML = button.dataset.originalHtml;
+        }
+      } else {
+        setBusy(false);
+      }
     }
+  }
+
+  function runSearch(value) {
+    const next = value.trim();
+    if (next === state.q) {
+      updateHint(Number(document.querySelector('[data-catalog-total]')?.textContent || 0), false);
+      return;
+    }
+    state.q = next;
+    updateClearButtons();
+    load({ page: 1 });
   }
 
   searchForms.forEach((form) => {
@@ -117,18 +212,27 @@
     if (!input) return;
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      state.q = input.value.trim();
-      load({ page: 1, scroll: true });
+      window.clearTimeout(searchTimer);
+      runSearch(input.value);
     });
-    let timer = null;
     input.addEventListener('input', () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        const next = input.value.trim();
-        if (next === state.q) return;
-        state.q = next;
-        load({ page: 1 });
-      }, 460);
+      updateClearButtons();
+      updateHint(null, true);
+      window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(() => runSearch(input.value), 280);
+    });
+  });
+
+  clearButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      window.clearTimeout(searchTimer);
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+      }
+      state.q = '';
+      updateClearButtons();
+      load({ page: 1 });
     });
   });
 
@@ -161,10 +265,12 @@
       state.q = '';
       state.sort = 'popular';
       state.page = 1;
+      window.clearTimeout(searchTimer);
       document.querySelectorAll('[data-catalog-search]').forEach((input) => { input.value = ''; });
+      updateClearButtons();
       setActiveChips();
       setSortValue();
-      load({ page: 1, scroll: true });
+      load({ page: 1 });
       return;
     }
 
@@ -173,14 +279,14 @@
       event.preventDefault();
       state.view = viewButton.dataset.catalogView === 'list' ? 'list' : 'grid';
       window.localStorage.setItem('rentify-catalog-view', state.view);
-      load({ page: state.page });
+      load({ page: 1 });
       return;
     }
 
-    const pageButton = event.target.closest('[data-page]');
-    if (pageButton && !pageButton.disabled) {
+    const loadMore = event.target.closest('[data-load-more]');
+    if (loadMore && results.contains(loadMore)) {
       event.preventDefault();
-      load({ page: Number(pageButton.dataset.page) || 1, scroll: true });
+      load({ page: Number(loadMore.dataset.nextPage) || state.page + 1, append: true });
     }
   });
 
@@ -193,4 +299,6 @@
 
   setActiveChips();
   setSortValue();
+  updateClearButtons();
+  updateHint(Number(document.querySelector('[data-catalog-total]')?.textContent || 0), false);
 })();

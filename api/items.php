@@ -51,8 +51,10 @@ $result = Item::search([
 json_success([
     'html' => render_catalog_results($result, $category, $view),
     'total' => (int) $result['total'],
+    'shown' => count($result['items']),
     'page' => (int) $result['pagination']['page'],
     'pages' => (int) $result['pagination']['pages'],
+    'has_next' => !empty($result['pagination']['has_next']),
     'filters' => $activeFilters,
     'sort' => $sort,
     'view' => $view,

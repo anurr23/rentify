@@ -33,7 +33,7 @@ Platform rental perlengkapan outdoor untuk pendaki dan camper di Karawang dan ko
 |---|---|
 | 🤖 **AI yang benar-benar berguna** | AI menyusun daftar gear dari aktivitas, destinasi, durasi, dan jumlah peserta — bukan chatbot. Harga dan stok tetap divalidasi server. |
 | 🗺️ **Multi-cabang dari awal** | Superadmin mengelola toko dan titik lokasinya lewat peta Leaflet; admin terikat ke cabang; customer melihat basecamp terdekat dari GPS. |
-| 🏕️ **Katalog yang terasa hidup** | Filter dinamis, pencarian instan, stok per tanggal, varian, galeri, ulasan, dan estimasi biaya tanpa reload. |
+| 🏕️ **Katalog yang terasa hidup** | Pencarian live saat mengetik, filter dinamis, sortir, dan “muat lebih banyak” tanpa reload atau lompat posisi. Stok, varian, galeri, ulasan, dan estimasi biaya semua real-time. |
 | 🧾 **Alur sewa yang jelas** | Keranjang → checkout → pembayaran → verifikasi → pengambilan → pengembalian → review. Semua status terlihat. |
 | 📊 **Admin yang siap kerja** | Dashboard metrik, CRUD gear, verifikasi pembayaran, pengembalian, laporan, export CSV, dan monitoring AI. |
 
