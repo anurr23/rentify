@@ -154,7 +154,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
         </section>
     <?php endif; ?>
 
-    <section class="container-app mt-4" <?= $nearestStore ? '' : 'data-location-auto' ?>>
+    <section class="container-app mt-4" <?= (!$nearestStore && empty($currentUser['preferred_store_id'])) ? 'data-location-auto' : '' ?>>
         <div class="relative overflow-hidden rounded-[1.35rem] border border-line bg-white p-4 shadow-soft sm:p-5">
             <div class="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-mint-100/70 blur-xl"></div>
             <div class="relative flex flex-wrap items-center gap-3.5">

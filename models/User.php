@@ -78,6 +78,9 @@ class User extends Model
                 }
                 $params[] = $id;
                 $db->prepare('UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($params);
+                if ($role !== 'customer') {
+                    $db->prepare('UPDATE users SET is_verified = 1 WHERE id = ?')->execute([$id]);
+                }
                 return ['success' => true, 'id' => $id, 'message' => 'Pengguna diperbarui.'];
             }
             if ($password === '') {
@@ -91,6 +94,9 @@ class User extends Model
                 'role' => $role,
                 'store_id' => $storeId,
             ]);
+            if ($role !== 'customer') {
+                $db->prepare('UPDATE users SET is_verified = 1 WHERE id = ?')->execute([$newId]);
+            }
             if ((int) ($data['is_active'] ?? 1) !== 1) {
                 $db->prepare('UPDATE users SET is_active = 0 WHERE id = ?')->execute([$newId]);
             }

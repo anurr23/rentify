@@ -116,7 +116,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <p class="mt-2 flex items-center gap-1.5 text-[0.65rem] font-semibold text-forest-700" data-location-status <?= $nearestStore ? '' : 'data-location-auto' ?>>
+                    <p class="mt-2 flex items-center gap-1.5 text-[0.65rem] font-semibold text-forest-700" data-location-status <?= (!$nearestStore && empty($currentUser['preferred_store_id'])) ? 'data-location-auto' : '' ?>>
                         <?= icon('map-pin', 'h-3.5 w-3.5') ?>
                         <?= $nearestStore ? 'Lokasi tersimpan · terdekat: ' . e($nearestStore['name']) . ' (' . e($nearestStore['distance_label']) . ')' : 'Aktifkan lokasi untuk rekomendasi cabang terdekat.' ?>
                     </p>

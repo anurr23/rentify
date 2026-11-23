@@ -65,7 +65,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                     <button type="button" class="btn btn-accent" data-use-location><?= icon('compass', 'h-4 w-4') ?> Gunakan lokasi saya</button>
                     <a href="<?= e(url('katalog.php')) ?>" class="btn btn-ghost">Jelajahi gear <?= icon('arrow-right', 'h-4 w-4') ?></a>
                 </div>
-                <p class="mt-3 flex items-center gap-1.5 text-[0.68rem] font-semibold text-white/60" data-location-status <?= $nearest ? '' : 'data-location-auto' ?>>
+                <p class="mt-3 flex items-center gap-1.5 text-[0.68rem] font-semibold text-white/60" data-location-status <?= (!$nearest && !$preferredStoreId) ? 'data-location-auto' : '' ?>>
                     <?= icon('map-pin', 'h-3.5 w-3.5') ?> <?= $nearest ? 'Lokasi aktif · cabang terdekat: ' . e($nearest['name']) . ' (' . e($nearest['distance_label']) . ')' : 'Aktifkan lokasi untuk melihat jarak ke setiap cabang.' ?>
                 </p>
             </div>
