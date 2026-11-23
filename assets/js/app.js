@@ -47,7 +47,7 @@
     el.querySelector('span').textContent = message;
     const remove = () => {
       el.style.opacity = '0';
-      el.style.transform = 'translateY(6px)';
+      el.style.transform = 'translateY(-6px)';
       el.style.transition = 'all 180ms ease';
       window.setTimeout(() => el.remove(), 200);
     };
