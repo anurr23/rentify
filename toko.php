@@ -79,7 +79,10 @@ require ROOT_PATH . '/includes/customer_nav.php';
         </div>
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-[0.65rem] text-muted">
             <p class="flex items-center gap-1.5"><?= icon('map', 'h-3.5 w-3.5') ?> Klik marker untuk melihat detail cabang.</p>
-            <p data-nearest-store-distance><?= $nearest ? e(Store::distanceLabel((float) $nearest['distance_km'])) . ' dari lokasimu' : 'Izinkan lokasi untuk menghitung jarak.' ?></p>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p data-nearest-store-distance><?= $nearest ? e(Store::distanceLabel((float) $nearest['distance_km'])) . ' dari lokasimu' : 'Izinkan lokasi untuk menghitung jarak.' ?></p>
+                <p class="text-[0.6rem] text-muted/80">Peta: Esri World Topographic · © OpenStreetMap</p>
+            </div>
         </div>
 
         <section class="mt-8">

@@ -157,7 +157,7 @@ Superadmin mengelola **gear & varian, kategori, toko cabang, pengguna, pengatura
 | Database | MySQL 8 / MariaDB 10.4+, 26 tabel, prepared statements |
 | Frontend | Tailwind CSS v4 (build lokal), JavaScript modular vanilla, Fetch API |
 | 3D | Three.js (vendor lokal) untuk landing page |
-| Peta | Leaflet 1.9 + OpenStreetMap (vendor lokal) untuk cabang & pemilih lokasi |
+| Peta | Leaflet 1.9 + basemap topografi Esri World Topographic + data © OpenStreetMap |
 | Grafik | Chart.js (vendor lokal) untuk dashboard & laporan |
 | AI | 9router OpenAI-compatible API, model `ag/gemini-3.8-flash-medium` |
 | Font | Plus Jakarta Sans (self-hosted) |

@@ -10,11 +10,12 @@
   const map = L.map(mapEl, {
     scrollWheelZoom: false,
     zoomControl: true,
+    attributionControl: false,
   }).setView([-6.301, 107.305], 7);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  // Basemap topografi: elevasi, kontur, dan label nama tempat tetap terlihat.
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
   }).addTo(map);
 
   const bounds = [];

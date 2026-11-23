@@ -108,7 +108,7 @@ function admin_store_form_html(?array $store): string
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
                     <p class="field-label !mb-0">Titik lokasi toko</p>
-                    <p class="helper mt-1">Klik peta atau geser marker untuk memilih lokasi. Leaflet + OpenStreetMap.</p>
+                    <p class="helper mt-1">Klik peta atau geser marker untuk memilih lokasi. Basemap topografi dengan label nama tempat.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <input id="store-map-search" class="input !w-auto min-w-[12rem] !py-2 text-xs" type="search" placeholder="Cari alamat..." data-store-map-search>
@@ -128,6 +128,7 @@ function admin_store_form_html(?array $store): string
                 </div>
             </div>
             <p class="helper mt-2" data-store-map-status><?= $isEdit ? 'Titik saat ini: ' . e($store['latitude'] ?? '-') . ', ' . e($store['longitude'] ?? '-') : 'Belum ada titik lokasi.' ?></p>
+            <p class="mt-1 text-[0.6rem] text-muted/80">Peta: Esri World Topographic · © OpenStreetMap</p>
         </section>
 
         <div class="grid gap-3 sm:grid-cols-3">
