@@ -109,6 +109,7 @@ Satu akun, banyak basecamp. Superadmin mengelola master toko dan titik lokasinya
 - Halaman `toko.php?store=...` menampilkan **katalog cabang itu, kontak unik (telepon/WhatsApp/email), jam operasional, dan jarak**.
 - Keranjang dan pesanan terikat pada **satu cabang**; pindah cabang harus mengosongkan keranjang agar stok tetap akurat.
 - **Perbandingan Toko** untuk superadmin: leaderboard omzet, share, tren 8 bulan, utilisasi stok, keterlambatan, pembayaran pending, dan export CSV.
+- **Tabel admin async:** semua tabel panel admin memakai DataTables server-side, jadi halaman ringan dan data dimuat per halaman saat dibutuhkan.
 
 <div align="center">
 <table>
@@ -194,6 +195,7 @@ Admin cabang memakai **Barang & Gear** untuk mengatur harga/stok/varian khusus c
 | Database | MySQL 8 / MariaDB 10.4+, 28 tabel, prepared statements |
 | Frontend | Tailwind CSS v4 (build lokal), JavaScript modular vanilla, Fetch API |
 | Form | Flatpickr (date picker) + Tom Select (searchable select), tema lokal |
+| Tabel | DataTables 3 server-side (async AJAX, paging/sortir/filter tanpa reload) |
 | 3D | Three.js (vendor lokal) untuk landing page |
 | Peta | Leaflet 1.9 + basemap topografi Esri World Topographic + data © OpenStreetMap |
 | Grafik | Chart.js (vendor lokal) untuk dashboard & laporan |
@@ -389,6 +391,7 @@ Semua respons berupa JSON. Request non-GET wajib menyertakan header `X-CSRF-Toke
 | POST | `/api/admin.php?action=payment_verify` | Verifikasi / tolak pembayaran (scoped cabang) |
 | POST | `/api/admin.php?action=category_save` | Simpan kategori |
 | POST | `/api/admin.php?action=settings_save` | Simpan pengaturan |
+| GET | `/api/admin_table.php?dataset=inventory` | Data tabel admin (server-side DataTables: inventory, bookings, customers, returns, users, stores, report, comparison, AI) |
 | GET | `/admin/laporan.php?export=csv` | Export laporan CSV |
 | GET | `/admin/perbandingan.php?export=csv` | Export leaderboard perbandingan toko (superadmin) |
 
@@ -475,6 +478,7 @@ Yang sudah diuji pada mesin demo:
 - Perbandingan toko superadmin: leaderboard, 3 grafik Chart.js, export CSV; halaman ini 302 untuk admin cabang.
 - Migrasi legacy (tanpa `store_items`/`owner_store_id`/`store_item_id`) dan migrasi ulang idempoten; seed baru menghasilkan 238 `store_items` + 126 varian cabang.
 - Flatpickr & Tom Select aktif di katalog, detail, AI Planner, filter admin, dan modal form (termasuk modal dinamis), tanpa error console.
+- Semua tabel admin (barang, pesanan, pelanggan, pengembalian, pengguna, toko, laporan, perbandingan, AI, detail pesanan/pelanggan) memakai DataTables server-side; filter/paging/sortir berjalan async tanpa reload halaman.
 - Export CSV per cabang dan tampilan responsif 390 px / 1440 px.
 
 Health check cepat:

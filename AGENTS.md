@@ -142,8 +142,8 @@ Uji juga endpoint yang berubah, termasuk request non-GET dengan CSRF.
 | `api/` | Endpoint JSON + `_bootstrap.php` + `location.php` |
 | `assets/css/app.css` | Sumber Tailwind + komponen kustom |
 | `assets/css/tailwind.css` | Hasil build, **di-commit** |
-| `assets/js/` | `app.js`, `catalog.js`, `detail.js`, `ai.js`, `cart.js`, `booking.js`, `profile.js`, `auth.js`, `admin.js`, `inputs.js`, `landing-3d.js`, `location.js`, `map-stores.js`, `admin-stores.js` |
-| `assets/vendor/` | Three.js, Chart.js, Leaflet (JS/CSS/marker), Flatpickr, Tom Select hasil salinan |
+| `assets/js/` | `app.js`, `catalog.js`, `detail.js`, `ai.js`, `cart.js`, `booking.js`, `profile.js`, `auth.js`, `admin.js`, `inputs.js`, `admin-tables.js`, `landing-3d.js`, `location.js`, `map-stores.js`, `admin-stores.js` |
+| `assets/vendor/` | Three.js, Chart.js, Leaflet (JS/CSS/marker), Flatpickr, Tom Select, DataTables hasil salinan |
 | `config/` | Bootstrap, database, AI, env |
 | `database/` | `rentify.sql`, `seed.sql`, `migrate.php` |
 | `includes/` | Layout, nav, helper, renderer, auth |
@@ -191,6 +191,7 @@ Uji juga endpoint yang berubah, termasuk request non-GET dengan CSRF.
 - `map-stores.js` hanya untuk `toko.php`; `admin-stores.js` hanya untuk modal toko.
 - Muat Leaflet CSS lewat `$pageStyles = ['vendor/leaflet/leaflet.css']` dan JS lewat `$pageVendorScripts = ['leaflet/leaflet.js']`.
 - `inputs.js` menginisialisasi Flatpickr pada `input[type=date]` dan Tom Select pada `select[data-searchable]`; panggil `window.RENTIFY_INPUTS.refresh(root)` setelah menyuntik HTML dinamis (modal sudah otomatis lewat event `admin:modal-open`).
+- Tabel admin memakai DataTables server-side: `<table data-datatable="dataset" data-order='[[0,"desc"]]'>` + `assets/js/admin-tables.js` + dataset di `api/admin_table.php`. Jangan render ribuan baris di PHP untuk halaman list.
 - `catalog.js` melakukan pencarian live (debounce 280 ms), filter/sortir, dan “muat lebih banyak” tanpa reload. **Jangan** menambahkan `scrollIntoView` otomatis setelah update katalog; posisi scroll user harus dipertahankan.
 
 ### Tailwind & desain
@@ -253,6 +254,8 @@ Uji juga endpoint yang berubah, termasuk request non-GET dengan CSRF.
 - **Admin cabang mengubah produk global**: cek `items.owner_store_id`; hanya pemilik atau superadmin yang boleh mengubah data produk.
 - **Keranjang lintas cabang**: satu keranjang = satu cabang; konflik harus mengembalikan 409 + data `current_store`/`new_store`.
 - **Tom Select/Flatpickr tidak muncul di modal**: form dinamis harus memicu `admin:modal-open` atau memanggil `RENTIFY_INPUTS.refresh`.
+- **Tabel admin kosong**: pastikan `data-datatable` cocok dengan dataset di `api/admin_table.php`, jumlah `<th>` sama dengan jumlah `cells`, dan aset DataTables dimuat lewat `$pageStyles`/`$pageVendorScripts`/`$pageScripts`.
+- **Aksi tabel tidak jalan setelah paging**: handler admin harus memakai delegasi (`data-admin-delete`, `data-admin-status`, `data-user-toggle`, `data-admin-modal`) dan memanggil `RENTIFY_TABLES.reload()` alih-alih reload halaman.
 
 ---
 

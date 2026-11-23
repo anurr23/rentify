@@ -179,8 +179,17 @@
       api.toast(payload.message || 'Tersimpan.', 'success');
       const modal = form.closest('[data-modal]');
       if (payload.reload) {
-        const target = payload.redirect || window.location.href;
-        window.setTimeout(() => { window.location.href = target; }, 650);
+        const forceReload = form.dataset.adminForm === 'store';
+        if (payload.redirect) {
+          window.setTimeout(() => { window.location.href = payload.redirect; }, 650);
+        } else if (!forceReload && window.RENTIFY_TABLES && document.querySelector('table[data-datatable]')) {
+          if (modal) api.closeModal(modal);
+          api.setLoading(submit, false);
+          form.dataset.busy = '0';
+          refreshAfterAction(300);
+        } else {
+          window.setTimeout(() => { window.location.reload(); }, 650);
+        }
       } else {
         if (modal) api.closeModal(modal);
         api.setLoading(submit, false);
@@ -194,9 +203,33 @@
     }
   });
 
+
+  function delegateClick(selector, handler) {
+    document.addEventListener('click', (event) => {
+      const target = event.target.closest(selector);
+      if (!target) return;
+      event.preventDefault();
+      handler(target, event);
+    });
+  }
+
+  function refreshAfterAction(delay = 450) {
+    window.setTimeout(() => {
+      const storeTable = document.querySelector('table[data-datatable="stores"]');
+      if (storeTable) {
+        window.location.reload();
+        return;
+      }
+      if (window.RENTIFY_TABLES && document.querySelector('table[data-datatable]')) {
+        window.RENTIFY_TABLES.reload();
+      } else {
+        window.location.reload();
+      }
+    }, delay);
+  }
+
   /* ---------- Delete ---------- */
-  document.querySelectorAll('[data-admin-delete]').forEach((button) => {
-    button.addEventListener('click', async () => {
+  delegateClick('[data-admin-delete]', async (button) => {
       const type = button.dataset.adminDelete;
       const id = button.dataset.id;
       const name = button.dataset.name || 'item ini';
@@ -212,17 +245,15 @@
         if (button.dataset.storeId) body.store_id = button.dataset.storeId;
         const payload = await api.request('admin.php', { method: 'POST', body });
         api.toast(payload.message || 'Dihapus.', 'success');
-        window.setTimeout(() => { window.location.reload(); }, 600);
+        refreshAfterAction();
       } catch (error) {
         api.toast(error.message || 'Gagal menghapus.', 'error');
         api.setLoading(button, false);
       }
-    });
   });
 
   /* ---------- Quick status ---------- */
-  document.querySelectorAll('[data-admin-status]').forEach((button) => {
-    button.addEventListener('click', async () => {
+  delegateClick('[data-admin-status]', async (button) => {
       const confirmed = await api.confirmDialog(button.dataset.confirm || 'Ubah status pesanan ini?', {
         title: 'Ubah status',
         confirmText: 'Ya, ubah',
@@ -235,17 +266,15 @@
           body: { action: 'booking_status', booking_id: button.dataset.bookingId, status: button.dataset.status },
         });
         api.toast(payload.message || 'Status diperbarui.', 'success');
-        window.setTimeout(() => { window.location.reload(); }, 600);
+        refreshAfterAction();
       } catch (error) {
         api.toast(error.message || 'Gagal memperbarui status.', 'error');
         api.setLoading(button, false);
       }
-    });
   });
 
   /* ---------- Batalkan pesanan (admin) ---------- */
-  document.querySelectorAll('[data-booking-cancel-admin]').forEach((button) => {
-    button.addEventListener('click', () => {
+  delegateClick('[data-booking-cancel-admin]', (button) => {
       const modal = api.openModal(
         `<form class="space-y-4" data-admin-form="booking-cancel">
           <input type="hidden" name="action" value="booking_status">
@@ -258,12 +287,10 @@
         { title: 'Batalkan pesanan', maxWidth: '28rem' }
       );
       if (modal) enhanceForm(modal.querySelector('form'));
-    });
   });
 
   /* ---------- Verifikasi pembayaran ---------- */
-  document.querySelectorAll('[data-payment-verify]').forEach((button) => {
-    button.addEventListener('click', async () => {
+  delegateClick('[data-payment-verify]', async (button) => {
       const approve = button.dataset.approve === '1';
       if (approve) {
         const confirmed = await api.confirmDialog('Verifikasi pembayaran ini? Pesanan akan otomatis dikonfirmasi dan customer mendapat notifikasi.', {
@@ -278,7 +305,7 @@
             body: { action: 'payment_verify', payment_id: button.dataset.paymentId, approve: 1 },
           });
           api.toast(payload.message || 'Pembayaran diverifikasi.', 'success');
-          window.setTimeout(() => { window.location.reload(); }, 650);
+          refreshAfterAction();
         } catch (error) {
           api.toast(error.message || 'Gagal memverifikasi.', 'error');
           api.setLoading(button, false);
@@ -298,12 +325,10 @@
         { title: 'Tolak pembayaran', maxWidth: '28rem' }
       );
       if (modal) enhanceForm(modal.querySelector('form'));
-    });
   });
 
   /* ---------- Toko cabang ---------- */
-  document.querySelectorAll('[data-store-toggle]').forEach((button) => {
-    button.addEventListener('click', async () => {
+  delegateClick('[data-store-toggle]', async (button) => {
       const active = Number(button.dataset.active) === 1;
       const confirmed = await api.confirmDialog(
         active ? 'Nonaktifkan toko ini? Toko tidak muncul di checkout dan halaman cabang.' : 'Aktifkan kembali toko ini?',
@@ -314,17 +339,15 @@
       try {
         const payload = await api.request('admin.php', { method: 'POST', body: { action: 'store_toggle', id: button.dataset.id } });
         api.toast(payload.message || 'Status toko diperbarui.', 'success');
-        window.setTimeout(() => { window.location.reload(); }, 600);
+        refreshAfterAction();
       } catch (error) {
         api.toast(error.message || 'Gagal memperbarui toko.', 'error');
         api.setLoading(button, false);
       }
-    });
   });
 
   /* ---------- Pengguna ---------- */
-  document.querySelectorAll('[data-user-toggle]').forEach((button) => {
-    button.addEventListener('click', async () => {
+  delegateClick('[data-user-toggle]', async (button) => {
       const active = Number(button.dataset.active) === 1;
       const confirmed = await api.confirmDialog(active ? 'Nonaktifkan akun ini? Pengguna tidak bisa masuk sampai diaktifkan kembali.' : 'Aktifkan kembali akun ini?', {
         title: active ? 'Nonaktifkan akun' : 'Aktifkan akun',
@@ -336,16 +359,14 @@
       try {
         const payload = await api.request('admin.php', { method: 'POST', body: { action: 'user_toggle', id: button.dataset.id } });
         api.toast(payload.message || 'Status akun diperbarui.', 'success');
-        window.setTimeout(() => { window.location.reload(); }, 600);
+        refreshAfterAction();
       } catch (error) {
         api.toast(error.message || 'Gagal memperbarui akun.', 'error');
         api.setLoading(button, false);
       }
-    });
   });
 
-  document.querySelectorAll('[data-user-reset]').forEach((button) => {
-    button.addEventListener('click', () => {
+  delegateClick('[data-user-reset]', (button) => {
       const modal = api.openModal(
         `<form class="space-y-4" data-admin-form="user-reset">
           <input type="hidden" name="action" value="user_reset_password">
@@ -360,7 +381,6 @@
         enhanceForm(modal.querySelector('form'));
         modal.querySelector('input[type="password"]')?.focus();
       }
-    });
   });
 
   /* ---------- Auto-open form ---------- */

@@ -4,6 +4,9 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 
 require_admin();
+$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css'];
+$pageVendorScripts = ['datatables/dataTables.core.min.js', 'datatables/dataTables.min.js'];
+$pageScripts = ['admin-tables.js'];
 $storeScope = admin_store_id();
 $bookingId = (int) ($_GET['id'] ?? 0);
 $booking = $bookingId ? Booking::find($bookingId) : null;
@@ -88,24 +91,9 @@ if ($booking) {
                         <span class="badge badge-neutral"><?= count($items) ?> jenis</span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="table-app min-w-[36rem]">
+                        <table class="table-app min-w-[36rem]" data-datatable="booking_items" data-booking-id="<?= (int) $booking['id'] ?>" data-ordering="0" data-page-length="10">
                             <thead><tr><th>Gear</th><th>Qty</th><th>Harga/hari</th><th>Durasi</th><th class="text-right">Subtotal</th></tr></thead>
-                            <tbody>
-                            <?php foreach ($items as $item): ?>
-                                <tr>
-                                    <td>
-                                        <div class="flex items-center gap-2.5">
-                                            <div class="h-9 w-9 overflow-hidden rounded-lg bg-cream-100"><img src="<?= e(upload_url($item['primary_image'])) ?>" alt="" class="h-full w-full object-cover"></div>
-                                            <div><p class="font-bold text-forest-900"><?= e($item['item_name']) ?></p><p class="text-[0.62rem] text-muted"><?= e($item['category_name']) ?><?= $item['variant_label'] ? ' · ' . e($item['variant_label']) : '' ?></p></div>
-                                        </div>
-                                    </td>
-                                    <td class="font-bold"><?= (int) $item['qty'] ?></td>
-                                    <td><?= e(format_rupiah($item['price_per_day'])) ?></td>
-                                    <td><?= (int) $item['duration_days'] ?> hari</td>
-                                    <td class="text-right font-extrabold"><?= e(format_rupiah($item['subtotal'])) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
+                            <tbody></tbody>
                         </table>
                     </div>
                     <div class="border-t border-line px-4 py-3 sm:px-5">
@@ -218,10 +206,6 @@ if ($storeScope !== null) {
 } elseif (input_int('store_id') > 0) {
     $filters['store_id'] = input_int('store_id');
 }
-$page = page_number();
-$result = Booking::search($filters, $page, 12);
-$bookings = $result['items'];
-$pagination = $result['pagination'];
 if ($storeScope === null) {
     $pendingCount = (int) Database::conn()->query("SELECT COUNT(*) FROM payments WHERE status = 'pending'")->fetchColumn();
 } else {
@@ -235,18 +219,18 @@ $adminTitle = 'Pesanan';
 $adminPage = 'pesanan';
 require ROOT_PATH . '/includes/admin_header.php';
 ?>
-<div class="space-y-4">
+<div class="space-y-4" data-table-section>
     <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
             <p class="text-xs font-semibold text-muted">Semua transaksi sewa</p>
-            <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-forest-900"><?= format_number((int) $pagination['total']) ?> pesanan</h2>
+            <h2 class="mt-1 text-2xl font-extrabold tracking-tight text-forest-900"><span data-table-count="bookings">?</span> pesanan</h2>
         </div>
         <div class="flex flex-wrap gap-2">
             <?php if ($pendingCount): ?><a href="<?= e(url('admin/pesanan.php?payment_status=pending')) ?>" class="btn btn-primary btn-sm"><?= icon('credit-card', 'h-3.5 w-3.5') ?> <?= $pendingCount ?> pembayaran pending</a><?php endif; ?>
         </div>
     </div>
 
-    <form class="admin-card grid gap-2 p-3.5 sm:grid-cols-2 xl:grid-cols-[1.3fr_auto_auto_auto_auto_auto_auto]" method="get">
+    <form class="admin-card grid gap-2 p-3.5 sm:grid-cols-2 xl:grid-cols-[1.3fr_auto_auto_auto_auto_auto_auto]" method="get" data-table-filters="bookings">
         <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted"><?= icon('search', 'h-4 w-4') ?></span>
             <input class="input input-icon !py-2.5 text-sm" type="search" name="q" value="<?= e($filters['q']) ?>" placeholder="Cari kode, nama, email, atau telepon...">
@@ -278,41 +262,11 @@ require ROOT_PATH . '/includes/admin_header.php';
 
     <div class="admin-card overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="table-app min-w-[56rem]">
+            <table class="table-app min-w-[56rem]" data-datatable="bookings" data-page-length="12" data-order='[[0,"desc"]]'>
                 <thead><tr><th>Kode</th><th>Pelanggan</th><th>Toko</th><th>Jadwal</th><th>Item</th><th>Total</th><th>Status</th><th>Pembayaran</th><th class="text-right">Aksi</th></tr></thead>
-                <tbody>
-                <?php if (!$bookings): ?>
-                    <tr><td colspan="9" class="py-12 text-center text-sm text-muted">Tidak ada pesanan pada filter ini.</td></tr>
-                <?php endif; ?>
-                <?php foreach ($bookings as $row): ?>
-                    <tr>
-                        <td>
-                            <a href="<?= e(url('admin/pesanan.php?id=' . $row['id'])) ?>" class="font-extrabold text-forest-900 hover:underline"><?= e($row['code']) ?></a>
-                            <p class="text-[0.62rem] text-muted"><?= e(time_ago($row['created_at'])) ?></p>
-                        </td>
-                        <td><p class="font-bold"><?= e($row['user_name']) ?></p><p class="text-[0.62rem] text-muted"><?= e($row['user_phone']) ?></p></td>
-                        <td><p class="text-xs font-semibold"><?= e($row['store_name'] ?: '-') ?></p><p class="text-[0.62rem] text-muted"><?= e($row['store_city'] ?: '') ?></p></td>
-                        <td><p class="text-xs font-semibold"><?= e(format_date_id($row['start_date'])) ?></p><p class="text-[0.62rem] text-muted">s/d <?= e(format_date_id($row['end_date'])) ?> · <?= (int) $row['duration_days'] ?>h</p></td>
-                        <td class="font-bold"><?= (int) $row['item_count'] ?></td>
-                        <td class="font-extrabold"><?= e(format_rupiah($row['total'])) ?></td>
-                        <td><span class="badge <?= e(status_class($row['status'])) ?>"><?= e(status_label($row['status'])) ?></span></td>
-                        <td><span class="badge <?= e(payment_status_class($row['payment_status'])) ?>"><?= e(payment_status_label($row['payment_status'])) ?></span></td>
-                        <td><div class="flex justify-end"><a href="<?= e(url('admin/pesanan.php?id=' . $row['id'])) ?>" class="btn btn-outline btn-sm">Detail</a></div></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
-        <?php if ((int) $pagination['pages'] > 1): ?>
-            <div class="flex items-center justify-between border-t border-line px-4 py-3 text-xs text-muted">
-                <span>Halaman <?= (int) $pagination['page'] ?> dari <?= (int) $pagination['pages'] ?></span>
-                <div class="flex gap-1.5">
-                    <?php for ($i = 1; $i <= (int) $pagination['pages']; $i++): ?>
-                        <a href="<?= e(url('admin/pesanan.php?' . http_build_query(array_filter([...$filters, 'status' => $filters['status'] !== 'semua' ? $filters['status'] : null, 'payment_status' => $filters['payment_status'] !== 'semua' ? $filters['payment_status'] : null, 'q' => $filters['q'] ?: null, 'from' => $filters['from'] ?: null, 'to' => $filters['to'] ?: null, 'page' => $i])))) ?>" class="flex h-8 min-w-8 items-center justify-center rounded-full px-2 font-extrabold <?= $i === (int) $pagination['page'] ? 'bg-forest-900 text-white' : 'border border-line bg-white' ?>"><?= $i ?></a>
-                    <?php endfor; ?>
-                </div>
-            </div>
-        <?php endif; ?>
     </div>
 </div>
 <?php require ROOT_PATH . '/includes/admin_footer.php'; ?>

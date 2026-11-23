@@ -53,7 +53,6 @@ $monthly = Report::monthlyRevenue(8, $storeScope);
 $statusRows = Report::bookingsByStatus($storeScope);
 $topItems = Report::topItems(7, $storeScope);
 $topCategories = Report::topCategories($storeScope);
-$rangeBookings = Report::exportRows($from, $to, $storeScope);
 $statusColors = [
     'pending' => '#E5A440', 'confirmed' => '#53A8CF', 'preparing' => '#8B7CC8', 'ready' => '#B2D8C8',
     'ongoing' => '#53CF6C', 'returned' => '#8FA79A', 'completed' => '#1B3B2B', 'cancelled' => '#D9534F',
@@ -61,6 +60,9 @@ $statusColors = [
 
 $adminTitle = 'Laporan';
 $adminPage = 'laporan';
+$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css'];
+$pageVendorScripts = ['datatables/dataTables.core.min.js', 'datatables/dataTables.min.js'];
+$pageScripts = ['admin-tables.js'];
 $inlineScript = 'window.RENTIFY_CHARTS = ' . json_encode([
     [
         'id' => 'reportRevenueChart',
@@ -98,7 +100,7 @@ $inlineScript = 'window.RENTIFY_CHARTS = ' . json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';';
 require ROOT_PATH . '/includes/admin_header.php';
 ?>
-<div class="space-y-4">
+<div class="space-y-4" data-table-section>
     <div class="flex flex-wrap items-end justify-between gap-3 no-print">
         <div>
             <p class="text-xs font-semibold text-muted">Analitik & ekspor</p>
@@ -153,17 +155,9 @@ require ROOT_PATH . '/includes/admin_header.php';
         <section class="admin-card overflow-hidden">
             <div class="border-b border-line px-4 py-3.5"><h3 class="text-sm font-extrabold text-forest-900">Gear terlaris</h3></div>
             <div class="overflow-x-auto">
-                <table class="table-app min-w-[30rem]">
+                <table class="table-app min-w-[30rem]" data-datatable="report_top_items" data-ordering="0" data-page-length="7">
                     <thead><tr><th>Gear</th><th>Disewa</th><th>Pendapatan</th></tr></thead>
-                    <tbody>
-                    <?php foreach ($topItems as $item): ?>
-                        <tr>
-                            <td><div class="flex items-center gap-2.5"><div class="h-9 w-9 overflow-hidden rounded-lg bg-cream-100"><img src="<?= e(upload_url($item['primary_image'])) ?>" alt="" class="h-full w-full object-cover"></div><div><p class="max-w-[14rem] truncate font-bold text-forest-900"><?= e($item['name']) ?></p><p class="text-[0.62rem] text-muted"><?= e($item['category_name']) ?></p></div></div></td>
-                            <td class="font-bold"><?= (int) $item['rented_qty'] ?> unit</td>
-                            <td class="font-bold"><?= e(format_rupiah($item['revenue'])) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </section>
@@ -187,25 +181,13 @@ require ROOT_PATH . '/includes/admin_header.php';
 
     <section class="admin-card overflow-hidden">
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3.5">
-            <div><h3 class="text-sm font-extrabold text-forest-900">Pesanan dalam periode</h3><p class="mt-0.5 text-[0.62rem] text-muted"><?= e(format_date_id($from)) ?> — <?= e(format_date_id($to)) ?> · <?= count($rangeBookings) ?> pesanan</p></div>
-            <span class="text-[0.62rem] text-muted">Total <?= e(format_rupiah($rangeRevenue)) ?></span>
+            <div><h3 class="text-sm font-extrabold text-forest-900">Pesanan dalam periode</h3><p class="mt-0.5 text-[0.62rem] text-muted"><?= e(format_date_id($from)) ?> &mdash; <?= e(format_date_id($to)) ?> &middot; <span data-table-count="report_bookings">&mdash;</span> pesanan</p></div>
+            <span class="text-[0.62rem] text-muted">Total <span data-stat="report_total"><?= e(format_rupiah($rangeRevenue)) ?></span></span>
         </div>
         <div class="max-h-[28rem] overflow-auto">
-            <table class="table-app min-w-[46rem]">
-                <thead class="sticky top-0"><tr><th>Kode</th><th>Pelanggan</th><th>Jadwal</th><th>Total</th><th>Status</th><th>Bayar</th></tr></thead>
-                <tbody>
-                <?php if (!$rangeBookings): ?><tr><td colspan="6" class="py-10 text-center text-sm text-muted">Tidak ada pesanan pada periode ini.</td></tr><?php endif; ?>
-                <?php foreach ($rangeBookings as $row): ?>
-                    <tr>
-                        <td><a href="<?= e(url('admin/pesanan.php?q=' . rawurlencode($row['code']))) ?>" class="font-extrabold text-forest-900 hover:underline"><?= e($row['code']) ?></a><p class="text-[0.62rem] text-muted"><?= e(time_ago($row['created_at'])) ?></p></td>
-                        <td><p class="font-bold"><?= e($row['customer']) ?></p><p class="text-[0.62rem] text-muted"><?= e($row['phone']) ?></p></td>
-                        <td class="text-xs"><?= e(format_date_id($row['start_date'])) ?> — <?= e(format_date_id($row['end_date'])) ?></td>
-                        <td class="font-bold"><?= e(format_rupiah($row['total'])) ?></td>
-                        <td><span class="badge <?= e(status_class($row['status'])) ?>"><?= e(status_label($row['status'])) ?></span></td>
-                        <td><span class="badge <?= e(payment_status_class($row['payment_status'])) ?>"><?= e(payment_status_label($row['payment_status'])) ?></span></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
+            <table class="table-app min-w-[46rem]" data-datatable="report_bookings" data-page-length="15" data-order='[[0,"desc"]]'>
+                <thead><tr><th>Kode</th><th>Pelanggan</th><th>Jadwal</th><th>Total</th><th>Status</th><th>Bayar</th></tr></thead>
+                <tbody></tbody>
             </table>
         </div>
     </section>

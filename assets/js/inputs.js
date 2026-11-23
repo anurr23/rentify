@@ -39,6 +39,14 @@
         placeholder: select.dataset.placeholder || '',
         dropdownParent: 'body',
       });
+      /* Tom Select menyalin class <select> ke wrapper; buang class tampilan
+         agar tidak terbentuk kotak ganda di dalam kontrol bertema. */
+      const stateClasses = ['single', 'multi', 'input-hidden', 'has-items', 'focus', 'full', 'disabled', 'rtl', 'dropdown-active', 'loading', 'invalid'];
+      [...instance.wrapper.classList].forEach((name) => {
+        if (!name.startsWith('ts-') && !stateClasses.includes(name)) {
+          instance.wrapper.classList.remove(name);
+        }
+      });
       instance.wrapper.classList.add('ts-themed');
       if (inline) instance.wrapper.classList.add('ts-inline');
       if (mode === 'pill') instance.wrapper.classList.add('ts-pill');

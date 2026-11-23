@@ -11,9 +11,9 @@ $defaultStore = Store::defaultStore();
 
 $adminTitle = 'Toko Cabang';
 $adminPage = 'toko';
-$pageStyles = ['vendor/leaflet/leaflet.css'];
-$pageVendorScripts = ['leaflet/leaflet.js'];
-$pageScripts = ['admin-stores.js'];
+$pageStyles = ['vendor/leaflet/leaflet.css', 'vendor/datatables/dataTables.min.css', 'css/datatables.css'];
+$pageVendorScripts = ['leaflet/leaflet.js', 'datatables/dataTables.core.min.js', 'datatables/dataTables.min.js'];
+$pageScripts = ['admin-stores.js', 'admin-tables.js'];
 require ROOT_PATH . '/includes/admin_header.php';
 ?>
 <div class="space-y-4">
@@ -52,53 +52,9 @@ require ROOT_PATH . '/includes/admin_header.php';
             <?php endif; ?>
         </div>
         <div class="overflow-x-auto">
-            <table class="table-app min-w-[60rem]">
+            <table class="table-app min-w-[60rem]" data-datatable="stores" data-ordering="0" data-page-length="10">
                 <thead><tr><th>Toko</th><th>Kota</th><th>Koordinat</th><th>Admin</th><th>Pesanan</th><th>Status</th><th class="text-right">Aksi</th></tr></thead>
-                <tbody>
-                <?php if (!$stores): ?>
-                    <tr><td colspan="7" class="py-12 text-center text-sm text-muted">Belum ada toko cabang.</td></tr>
-                <?php endif; ?>
-                <?php foreach ($stores as $store): ?>
-                    <tr>
-                        <td>
-                            <div class="flex items-center gap-2.5">
-                                <div class="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-cream-100">
-                                    <img src="<?= e(upload_url($store['image'] ?? null)) ?>" alt="" class="h-full w-full object-cover">
-                                </div>
-                                <div class="min-w-0">
-                                    <p class="truncate font-extrabold text-forest-900"><?= e($store['name']) ?></p>
-                                    <p class="text-[0.62rem] text-muted"><?= e($store['code']) ?><?= (int) $store['is_default'] ? ' · Default' : '' ?></p>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <p class="text-xs font-bold text-forest-900"><?= e($store['city']) ?></p>
-                            <p class="text-[0.62rem] text-muted"><?= e($store['province']) ?></p>
-                        </td>
-                        <td>
-                            <?php if ($store['latitude'] !== null && $store['longitude'] !== null): ?>
-                                <p class="font-mono text-[0.62rem] text-forest-700"><?= e($store['latitude']) ?>, <?= e($store['longitude']) ?></p>
-                                <a href="<?= e(store_maps_link($store)) ?>" target="_blank" rel="noopener" class="text-[0.62rem] font-bold text-forest-600 hover:underline">Buka peta</a>
-                            <?php else: ?>
-                                <span class="badge badge-warning">Belum diset</span>
-                            <?php endif; ?>
-                        </td>
-                        <td class="font-bold"><?= (int) $store['admin_count'] ?></td>
-                        <td class="font-bold"><?= (int) $store['booking_count'] ?></td>
-                        <td>
-                            <span class="badge <?= (int) $store['is_active'] ? 'badge-success' : 'badge-danger' ?>"><?= (int) $store['is_active'] ? 'Aktif' : 'Nonaktif' ?></span>
-                        </td>
-                        <td>
-                            <div class="flex justify-end gap-1">
-                                <a href="<?= e(url('toko.php?store=' . rawurlencode($store['slug']))) ?>" target="_blank" class="icon-btn h-8 w-8" aria-label="Lihat halaman toko"><?= icon('arrow-up-right', 'h-3.5 w-3.5') ?></a>
-                                <button type="button" class="icon-btn h-8 w-8" data-admin-modal data-url="<?= e(url('api/admin.php?action=store_form&id=' . $store['id'])) ?>" data-admin-modal-title="Edit <?= e($store['name']) ?>" aria-label="Edit toko"><?= icon('edit', 'h-3.5 w-3.5') ?></button>
-                                <button type="button" class="icon-btn h-8 w-8 <?= (int) $store['is_active'] ? 'text-danger' : '' ?>" data-store-toggle data-id="<?= (int) $store['id'] ?>" data-active="<?= (int) $store['is_active'] ?>" aria-label="Ubah status toko"><?= icon('shield', 'h-3.5 w-3.5') ?></button>
-                                <button type="button" class="icon-btn h-8 w-8 text-danger" data-admin-delete="store" data-id="<?= (int) $store['id'] ?>" data-name="<?= e($store['name']) ?>" aria-label="Hapus toko"><?= icon('trash', 'h-3.5 w-3.5') ?></button>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>

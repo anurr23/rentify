@@ -10,7 +10,6 @@ $adminStore = admin_current_store();
 $summary = Report::summary($storeScope);
 $monthly = Report::monthlyRevenue(8, $storeScope);
 $statusRows = Report::bookingsByStatus($storeScope);
-$recent = Report::recentBookings(7, $storeScope);
 $pendingPayments = Payment::pending(4, $storeScope);
 $lowStock = StoreItem::lowStock($storeScope, 5, 4);
 $dueSoon = Booking::dueSoon($storeScope);
@@ -29,6 +28,9 @@ foreach ($statusRows as $row) {
 
 $adminTitle = 'Dashboard';
 $adminPage = 'dashboard';
+$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css'];
+$pageVendorScripts = ['datatables/dataTables.core.min.js', 'datatables/dataTables.min.js'];
+$pageScripts = ['admin-tables.js'];
 $inlineScript = 'window.RENTIFY_CHARTS = ' . json_encode([
     [
         'id' => 'revenueChart',
@@ -180,19 +182,9 @@ require ROOT_PATH . '/includes/admin_header.php';
                 <a href="<?= e(url('admin/pesanan.php')) ?>" class="text-xs font-extrabold text-forest-700">Semua</a>
             </div>
             <div class="overflow-x-auto">
-                <table class="table-app">
+                <table class="table-app" data-datatable="dashboard_recent" data-ordering="0" data-page-length="7">
                     <thead><tr><th>Kode</th><th>Pelanggan</th><th>Total</th><th>Status</th></tr></thead>
-                    <tbody>
-                    <?php if (!$recent): ?><tr><td colspan="4" class="text-center text-muted">Belum ada pesanan.</td></tr><?php endif; ?>
-                    <?php foreach ($recent as $booking): ?>
-                        <tr>
-                            <td><a href="<?= e(url('admin/pesanan.php?id=' . $booking['id'])) ?>" class="font-extrabold text-forest-900 hover:underline"><?= e($booking['code']) ?></a><p class="text-[0.62rem] text-muted"><?= e(time_ago($booking['created_at'])) ?></p></td>
-                            <td><p class="font-semibold"><?= e($booking['user_name']) ?></p><p class="text-[0.62rem] text-muted"><?= e(format_date_id($booking['start_date'])) ?></p></td>
-                            <td class="font-bold"><?= e(format_rupiah($booking['total'])) ?></td>
-                            <td><span class="badge <?= e(status_class($booking['status'])) ?>"><?= e(status_label($booking['status'])) ?></span></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </section>

@@ -1,0 +1,194 @@
+/* Tema DataTables agar menyatu dengan komponen Rentify. */
+.dt-container {
+  font-size: 0.8rem;
+}
+
+.dt-container .dt-layout-row {
+  margin: 0;
+}
+
+.dt-container .dt-layout-cell {
+  padding: 0;
+}
+
+.dt-container .dt-info {
+  padding: 0.75rem 1rem;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.dt-container .dt-paging {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  padding: 0.65rem 1rem;
+}
+
+.dt-container .dt-paging .dt-paging-button {
+  min-width: 2rem;
+  height: 2rem;
+  margin: 0;
+  padding: 0 0.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: 9999px;
+  background: #fff;
+  color: var(--color-forest-800);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.9;
+  text-align: center;
+  box-shadow: none;
+}
+
+.dt-container .dt-paging .dt-paging-button:hover:not(.disabled):not(.current) {
+  border-color: var(--color-sage-300);
+  background: var(--color-mint-100);
+  color: var(--color-forest-900);
+}
+
+.dt-container .dt-paging .dt-paging-button.current,
+.dt-container .dt-paging .dt-paging-button.current:hover {
+  border-color: var(--color-forest-900);
+  background: var(--color-forest-900);
+  color: #fff;
+}
+
+.dt-container .dt-paging .dt-paging-button.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dt-container .dt-paging .dt-paging-button.ellipsis {
+  border-color: transparent;
+  background: transparent;
+}
+
+.dt-container .dt-processing {
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-forest-700);
+  font-size: 0.72rem;
+  font-weight: 700;
+  box-shadow: 0 24px 48px -32px rgba(3, 37, 23, 0.45);
+}
+
+.dt-container .dt-processing .dt-processing-message {
+  padding: 0.35rem 0.5rem;
+}
+
+table.dataTable thead th.dt-orderable-asc,
+table.dataTable thead th.dt-orderable-desc {
+  cursor: pointer;
+}
+
+table.dataTable thead th.dt-ordering-asc .dt-orderable-asc span.dt-column-order::before,
+table.dataTable thead th.dt-ordering-desc .dt-orderable-desc span.dt-column-order::after {
+  color: var(--color-forest-700);
+  opacity: 1;
+}
+
+table.dataTable tbody tr.bg-red-50\/40 > td {
+  background-color: rgba(217, 83, 79, 0.06);
+}
+
+.admin-card > .dt-layout-row {
+  border-top: 1px solid var(--color-line);
+}
+
+.admin-card > .dt-layout-row .dt-info {
+  padding: 0.75rem 1rem;
+}
+
+.admin-card > .dt-layout-row .dt-paging {
+  padding: 0.65rem 1rem;
+}
+
+/* Variabel resmi DataTables agar tombol paging mengikuti tema Rentify. */
+.dt-container {
+  --dt-paging-button_padding: 0.3rem 0.6rem;
+  --dt-paging-button_margin-left: 0.25rem;
+  --dt-paging-button_border-radius: 9999px;
+  --dt-paging-button_background: #ffffff;
+  --dt-paging-button_border: 1px solid var(--color-line);
+  --dt-paging-button_color: var(--color-forest-800);
+  --dt-paging-button_background-disabled: var(--color-cream-50);
+  --dt-paging-button_border-disabled: 1px solid var(--color-line);
+  --dt-paging-button_color-disabled: var(--color-forest-300);
+  --dt-paging-button_background-hover: var(--color-mint-100);
+  --dt-paging-button_border-hover: 1px solid var(--color-sage-300);
+  --dt-paging-button_color-hover: var(--color-forest-900);
+  --dt-paging-button_background-current: var(--color-forest-900);
+  --dt-paging-button_border-current: 1px solid var(--color-forest-900);
+  --dt-paging-button_color-current: #ffffff;
+  --dt-paging-button_background-current-hover: var(--color-forest-700);
+  --dt-paging-button_border-current-hover: 1px solid var(--color-forest-700);
+  --dt-paging-button_color-current-hover: #ffffff;
+  --dt-paging-button_box-shadow: none;
+  --dt-paging-button_box-shadow-active: none;
+  --dt-control_color: var(--color-forest-700);
+}
+
+/* Samakan tinggi tombol paging dengan komponen tombol Rentify. */
+div.dt-container .dt-paging .dt-paging-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+div.dt-container .dt-paging .dt-paging-button.ellipsis {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+/* Loader DataTables bertema: pil putih + spinner mint. */
+div.dt-container .dt-processing,
+div.dt-processing {
+  top: 50%;
+  left: 50%;
+  width: auto;
+  min-width: 11rem;
+  margin: 0;
+  padding: 0.6rem 1rem;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--color-line);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--color-forest-700);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+  z-index: 40;
+  box-shadow: 0 24px 48px -32px rgba(3, 37, 23, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+div.dt-processing > div:last-child {
+  display: none;
+}
+
+div.dt-processing::before {
+  content: "";
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-right: 0.5rem;
+  vertical-align: -0.12rem;
+  border: 2px solid var(--color-mint-300);
+  border-top-color: var(--color-forest-700);
+  border-radius: 9999px;
+  animation: rentify-dt-spin 0.7s linear infinite;
+}
+
+@keyframes rentify-dt-spin {
+  to { transform: rotate(360deg); }
+}

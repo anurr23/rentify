@@ -27,7 +27,6 @@ if ($sessionId) {
     }
 }
 $stats = AiRecommender::stats();
-$sessions = AiRecommender::recentSessions(20);
 $fallbackRate = $stats['sessions'] > 0 ? round($stats['fallback'] / $stats['sessions'] * 100, 1) : 0;
 $successRate = $stats['sessions'] > 0 ? round($stats['success'] / $stats['sessions'] * 100, 1) : 0;
 $aiHost = (string) (parse_url($aiConfig['base_url'], PHP_URL_HOST) ?: 'localhost');
@@ -37,6 +36,9 @@ $aiKeyLabel = trim((string) $aiConfig['api_key']) !== '' ? 'Terkonfigurasi' : 'B
 
 $adminTitle = 'AI Planner';
 $adminPage = 'rekomendasi';
+$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css'];
+$pageVendorScripts = ['datatables/dataTables.core.min.js', 'datatables/dataTables.min.js'];
+$pageScripts = ['admin-tables.js'];
 require ROOT_PATH . '/includes/admin_header.php';
 ?>
 <div class="space-y-4">
@@ -106,22 +108,9 @@ require ROOT_PATH . '/includes/admin_header.php';
             <section class="admin-card overflow-hidden">
                 <div class="border-b border-line px-4 py-3.5"><h3 class="text-sm font-extrabold text-forest-900">Sesi terbaru</h3></div>
                 <div class="overflow-x-auto">
-                    <table class="table-app min-w-[48rem]">
+                    <table class="table-app min-w-[48rem]" data-datatable="ai_sessions" data-ordering="0" data-page-length="10">
                         <thead><tr><th>Waktu</th><th>Pengguna</th><th>Rencana</th><th>Hasil</th><th>Model</th><th>Durasi</th><th class="text-right">Aksi</th></tr></thead>
-                        <tbody>
-                        <?php if (!$sessions): ?><tr><td colspan="7" class="py-10 text-center text-sm text-muted">Belum ada sesi AI.</td></tr><?php endif; ?>
-                        <?php foreach ($sessions as $row): ?>
-                            <tr>
-                                <td><p class="text-xs font-bold"><?= e(time_ago($row['created_at'])) ?></p><p class="text-[0.6rem] text-muted"><?= e(format_datetime_id($row['created_at'])) ?></p></td>
-                                <td class="text-xs"><?= e($row['user_name'] ?: 'Tamu') ?></td>
-                                <td><p class="text-xs font-bold text-forest-900"><?= e($row['activity_name'] ?: 'â€”') ?></p><p class="text-[0.62rem] text-muted"><?= e($row['destination_text'] ?: 'â€”') ?> Â· <?= (int) $row['duration_days'] ?>h</p></td>
-                                <td><span class="badge <?= $row['status'] === 'success' ? 'badge-success' : ($row['status'] === 'failed' ? 'badge-danger' : 'badge-warning') ?>"><?= e($row['status']) ?></span><p class="mt-0.5 text-[0.6rem] text-muted"><?= (int) $row['item_count'] ?> gear</p></td>
-                                <td class="text-[0.62rem] text-muted"><?= e($row['model'] ?: 'â€”') ?></td>
-                                <td class="text-xs"><?= $row['latency_ms'] ? number_format(((int) $row['latency_ms']) / 1000, 1, ',', '.') . 's' : 'â€”' ?></td>
-                                <td><div class="flex justify-end"><a href="<?= e(url('admin/rekomendasi.php?id=' . $row['id'])) ?>" class="btn btn-outline btn-sm">Detail</a></div></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </section>

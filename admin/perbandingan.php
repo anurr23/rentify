@@ -64,6 +64,9 @@ foreach ($monthly['datasets'] as $index => $dataset) {
 
 $adminTitle = 'Perbandingan Toko';
 $adminPage = 'perbandingan';
+$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css'];
+$pageVendorScripts = ['datatables/dataTables.core.min.js', 'datatables/dataTables.min.js'];
+$pageScripts = ['admin-tables.js'];
 $inlineScript = 'window.RENTIFY_CHARTS = ' . json_encode([
     [
         'id' => 'storeRevenueChart',
@@ -173,36 +176,9 @@ require ROOT_PATH . '/includes/admin_header.php';
             <p class="mt-0.5 text-[0.62rem] text-muted">Diurutkan berdasarkan omzet periode terpilih.</p>
         </div>
         <div class="overflow-x-auto">
-            <table class="table-app min-w-[70rem]">
+            <table class="table-app min-w-[70rem]" data-datatable="comparison_stores" data-ordering="0" data-page-length="20">
                 <thead><tr><th>Rank</th><th>Toko</th><th>Omzet</th><th>Pesanan</th><th>AOV</th><th>Growth</th><th>Utilisasi</th><th>Telat</th><th>Pending</th><th>Rating</th><th>Barang / Stok</th></tr></thead>
-                <tbody>
-                <?php if (!$performance): ?><tr><td colspan="11" class="py-12 text-center text-sm text-muted">Belum ada data cabang.</td></tr><?php endif; ?>
-                <?php foreach ($performance as $row): ?>
-                    <tr>
-                        <td>
-                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full <?= $row['rank'] <= 3 ? 'bg-forest-900 text-mint-300' : 'bg-cream-100 text-forest-700' ?> text-xs font-extrabold">#<?= (int) $row['rank'] ?></span>
-                        </td>
-                        <td>
-                            <p class="font-extrabold text-forest-900"><?= e($row['name']) ?></p>
-                            <p class="text-[0.62rem] text-muted"><?= e($row['code']) ?> · <?= e($row['city']) ?></p>
-                        </td>
-                        <td class="font-extrabold"><?= e(format_rupiah($row['revenue'])) ?></td>
-                        <td class="font-bold"><?= (int) $row['orders'] ?></td>
-                        <td><?= e(format_rupiah_short($row['aov'])) ?></td>
-                        <td><span class="badge <?= $row['growth'] >= 0 ? 'badge-success' : 'badge-danger' ?>"><?= ($row['growth'] >= 0 ? '+' : '') . number_format($row['growth'], 1, ',', '.') ?>%</span></td>
-                        <td>
-                            <div class="flex items-center gap-2">
-                                <div class="h-1.5 w-16 overflow-hidden rounded-full bg-cream-200"><div class="h-full rounded-full bg-forest-700" style="width:<?= (int) $row['utilization'] ?>%"></div></div>
-                                <span class="text-[0.65rem] font-bold text-forest-700"><?= (int) $row['utilization'] ?>%</span>
-                            </div>
-                        </td>
-                        <td><span class="badge <?= (int) $row['late_returns'] ? 'badge-danger' : 'badge-neutral' ?>"><?= (int) $row['late_returns'] ?></span></td>
-                        <td><span class="badge <?= (int) $row['pending_payments'] ? 'badge-warning' : 'badge-neutral' ?>"><?= (int) $row['pending_payments'] ?></span></td>
-                        <td class="text-xs font-bold"><?= $row['rating'] > 0 ? number_format($row['rating'], 1, ',', '.') : '—' ?></td>
-                        <td class="text-xs"><span class="font-bold text-forest-900"><?= (int) $row['items'] ?></span> / <?= (int) $row['stock'] ?> unit</td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>

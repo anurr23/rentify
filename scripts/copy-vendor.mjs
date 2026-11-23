@@ -14,6 +14,9 @@ const files = [
   ['node_modules/flatpickr/dist/l10n/id.js', 'assets/vendor/flatpickr/id.js'],
   ['node_modules/tom-select/dist/js/tom-select.complete.min.js', 'assets/vendor/tom-select/tom-select.min.js'],
   ['node_modules/tom-select/dist/css/tom-select.min.css', 'assets/vendor/tom-select/tom-select.min.css'],
+  ['node_modules/datatables.net/js/dataTables.min.js', 'assets/vendor/datatables/dataTables.core.min.js'],
+  ['node_modules/datatables.net-dt/js/dataTables.dataTables.min.js', 'assets/vendor/datatables/dataTables.min.js'],
+  ['node_modules/datatables.net-dt/css/dataTables.dataTables.min.css', 'assets/vendor/datatables/dataTables.min.css'],
 ];
 
 for (const [from, to] of files) {

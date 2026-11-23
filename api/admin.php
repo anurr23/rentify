@@ -1127,14 +1127,11 @@ if ($action === 'item_delete') {
         if (!$result['success']) {
             json_error($result['message']);
         }
-        $isBranchOwned = $item['owner_store_id'] !== null && (int) $item['owner_store_id'] === $storeId;
-        if ($isBranchOwned) {
-            $remaining = (int) Database::conn()->query(
-                'SELECT COUNT(*) FROM store_items WHERE item_id = ' . $id
-            )->fetchColumn();
-            if ($remaining === 0) {
-                Item::delete($id);
-            }
+        $remaining = (int) Database::conn()->query(
+            'SELECT COUNT(*) FROM store_items WHERE item_id = ' . $id
+        )->fetchColumn();
+        if ($remaining === 0) {
+            Item::delete($id);
         }
         log_audit('store_item.delete', 'store_item', (int) $storeItem['id'], ['item_id' => $id, 'store_id' => $storeId]);
         json_success(['message' => $result['message'], 'reload' => true]);
