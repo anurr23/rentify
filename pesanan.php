@@ -27,7 +27,7 @@ $cancelCount = $counts['cancelled'] ?? 0;
 
 $tabs = [
     'semua' => ['label' => 'Semua', 'count' => $totalAll],
-    'pending' => ['label' => 'Belum bayar', 'count' => $counts['pending'] ?? 0],
+    'pending' => ['label' => 'Pesanan dibuat', 'count' => $counts['pending'] ?? 0],
     'aktif' => ['label' => 'Aktif', 'count' => $activeCount],
     'selesai' => ['label' => 'Selesai', 'count' => $doneCount],
     'dibatalkan' => ['label' => 'Dibatalkan', 'count' => $cancelCount],
@@ -102,7 +102,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                             </a>
                             <div class="min-w-0 flex-1">
                                 <div class="flex flex-wrap items-center gap-1.5">
-                                    <span class="badge <?= e(status_class($booking['status'])) ?>"><?= e(status_label($booking['status'])) ?></span>
+                                    <span class="badge <?= e(status_class($booking['status'])) ?>"><?= e(status_label($booking['status'], $booking['pickup_method'] ?? null)) ?></span>
                                     <span class="badge <?= e(payment_status_class($booking['payment_status'])) ?>"><?= e(payment_status_label($booking['payment_status'])) ?></span>
                                     <?php if ($booking['status'] === 'pending' && !empty($booking['hold_expires_at']) && strtotime($booking['hold_expires_at']) > time()): ?>
                                         <span class="text-[0.6rem] font-semibold text-muted">Bayar sebelum <?= e(format_datetime_id($booking['hold_expires_at'])) ?></span>

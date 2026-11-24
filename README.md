@@ -89,7 +89,7 @@ Setiap item bisa di-include/exclude, diubah jumlahnya, lalu dimasukkan ke keranj
 
 ![Daftar pesanan customer](docs/screenshots/pesanan.jpg)
 
-- Timeline status dari `pending` sampai `completed`.
+- Timeline status: Pesanan dibuat → Pembayaran lunas → Pesanan disiapkan → Siap diambil / Pesanan diantar → Diterima → Dikembalikan → Selesai.
 - Status pembayaran, batas waktu bayar, dan riwayat verifikasi.
 - Kode pengambilan, pembatalan, dan tombol chat admin.
 - Review dan rating setelah gear dikembalikan.

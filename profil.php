@@ -172,7 +172,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                                         <p class="truncate text-xs font-extrabold text-forest-900"><?= e($booking['code']) ?></p>
                                         <p class="text-[0.62rem] text-muted"><?= e(format_date_id($booking['start_date'])) ?> · <?= e(format_rupiah($booking['total'])) ?></p>
                                     </div>
-                                    <span class="badge <?= e(status_class($booking['status'])) ?>"><?= e(status_label($booking['status'])) ?></span>
+                                    <span class="badge <?= e(status_class($booking['status'])) ?>"><?= e(status_label($booking['status'], $booking['pickup_method'] ?? null)) ?></span>
                                 </a>
                             <?php endforeach; ?>
                         </div>

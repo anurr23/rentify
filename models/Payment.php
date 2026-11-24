@@ -7,6 +7,7 @@ class Payment extends Model
     {
         $payment = self::fetchOne(
             'SELECT p.*, b.code AS booking_code, b.user_id, b.store_id, b.total AS booking_total,
+                b.status AS booking_status, b.payment_status AS booking_payment_status,
                 u.name AS user_name, s.name AS store_name
              FROM payments p JOIN bookings b ON b.id = p.booking_id JOIN users u ON u.id = b.user_id
              LEFT JOIN stores s ON s.id = b.store_id
@@ -57,9 +58,11 @@ class Payment extends Model
                         status = CASE WHEN status = 'pending' THEN 'confirmed' ELSE status END
                      WHERE id = ?"
                 )->execute([$payment['booking_id']]);
-                $db->prepare(
-                    "INSERT INTO booking_status_logs (booking_id, status, note, changed_by) VALUES (?, 'confirmed', ?, ?)"
-                )->execute([$payment['booking_id'], 'Pembayaran diverifikasi admin.', $adminId]);
+                if ($payment['booking_status'] === 'pending') {
+                    $db->prepare(
+                        "INSERT INTO booking_status_logs (booking_id, status, note, changed_by) VALUES (?, 'confirmed', ?, ?)"
+                    )->execute([$payment['booking_id'], 'Pembayaran diverifikasi admin.', $adminId]);
+                }
             } else {
                 $db->prepare("UPDATE bookings SET payment_status = 'unpaid' WHERE id = ?")
                     ->execute([$payment['booking_id']]);

@@ -1197,7 +1197,7 @@ if ($action === 'booking_status') {
     json_success([
         'message' => $result['message'],
         'status' => $status,
-        'status_label' => status_label($status),
+        'status_label' => status_label($status, $targetBooking['pickup_method'] ?? null),
         'status_class' => status_class($status),
         'reload' => true,
     ]);

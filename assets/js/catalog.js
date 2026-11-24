@@ -19,7 +19,9 @@
     q: initial.get('q') || '',
     sort: initial.get('sort') || 'nearest',
     page: Number(initial.get('page') || 1) || 1,
-    view: window.localStorage.getItem('rentify-catalog-view') || 'grid',
+    view: initial.get('view') === 'list'
+      ? 'list'
+      : (initial.get('view') === 'grid' ? 'grid' : (window.localStorage.getItem('rentify-catalog-view') || 'grid')),
     store: initial.get('store') || root.dataset.store || '',
     filters: {},
   };
@@ -61,6 +63,11 @@
   }
 
   function updateHint(total = null, loading = false) {
+    if (total !== null && !loading) {
+      document.querySelectorAll('[data-catalog-total-hero]').forEach((el) => {
+        el.textContent = String(total);
+      });
+    }
     if (!hint) return;
     if (loading) {
       hint.textContent = state.q ? `Mencari “${state.q}”...` : 'Memuat katalog...';
@@ -310,4 +317,9 @@
   setSortValue();
   updateClearButtons();
   updateHint(Number(document.querySelector('[data-catalog-total]')?.textContent || 0), false);
+
+  const initialGrid = results?.querySelector('[data-catalog-grid]');
+  if (initialGrid && initialGrid.dataset.view !== state.view) {
+    load({ page: 1 });
+  }
 })();

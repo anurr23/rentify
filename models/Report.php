@@ -307,7 +307,7 @@ class Report extends Model
         return self::fetchAll(
             "SELECT b.code, b.created_at, u.name AS customer, u.phone,
                 b.start_date, b.end_date, b.duration_days, b.subtotal, b.deposit_total, b.delivery_fee,
-                b.discount, b.total, b.status, b.payment_status, s.name AS store_name
+                b.discount, b.total, b.status, b.payment_status, b.pickup_method, s.name AS store_name
              FROM bookings b JOIN users u ON u.id = b.user_id
              LEFT JOIN stores s ON s.id = b.store_id
              WHERE DATE(b.created_at) BETWEEN ? AND ?$storeWhere

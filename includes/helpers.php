@@ -335,18 +335,21 @@ function generate_member_code(int $id): string
     return 'RNT-' . date('Y') . '-' . str_pad((string) $id, 4, '0', STR_PAD_LEFT);
 }
 
-function status_label(string $status): string
+function status_label(string $status, ?string $pickupMethod = null): string
 {
-    return [
-        'pending' => 'Menunggu Pembayaran',
-        'confirmed' => 'Dikonfirmasi',
-        'preparing' => 'Disiapkan',
-        'ready' => 'Siap Diambil',
-        'ongoing' => 'Sedang Berjalan',
+    $labels = [
+        'pending' => 'Pesanan Dibuat',
+        'confirmed' => 'Pembayaran Lunas',
+        'preparing' => 'Pesanan Disiapkan',
+        'ready' => $pickupMethod === 'delivery'
+            ? 'Pesanan Diantar'
+            : ($pickupMethod === 'pickup' ? 'Siap Diambil' : 'Siap Diambil / Diantar'),
+        'ongoing' => 'Diterima',
         'returned' => 'Dikembalikan',
         'completed' => 'Selesai',
         'cancelled' => 'Dibatalkan',
-    ][$status] ?? ucfirst($status);
+    ];
+    return $labels[$status] ?? ucfirst($status);
 }
 
 function status_class(string $status): string

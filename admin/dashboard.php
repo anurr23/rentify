@@ -106,7 +106,7 @@ require ROOT_PATH . '/includes/admin_header.php';
         $metrics = [
             ['wallet', 'Pendapatan bulan ini', format_rupiah($summary['revenue_month']), $summary['revenue_growth'], 'text-forest-700'],
             ['clipboard', 'Pesanan bulan ini', format_number($summary['bookings_month']), $summary['bookings_growth'], 'text-sky-700'],
-            ['tent', 'Sedang berjalan', (string) $summary['active_rentals'], null, 'text-success'],
+            ['tent', 'Pesanan aktif', (string) $summary['active_rentals'], null, 'text-success'],
             ['clock', 'Pembayaran pending', (string) $summary['pending_payments'], null, 'text-star'],
         ];
         foreach ($metrics as $metric): ?>

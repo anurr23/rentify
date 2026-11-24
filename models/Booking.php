@@ -339,7 +339,10 @@ class Booking extends Model
         if (!$booking) {
             return ['success' => false, 'message' => 'Pesanan tidak ditemukan.'];
         }
-        if ($booking['status'] === $newStatus) {
+        $paidStages = ['confirmed', 'preparing', 'ready', 'ongoing', 'returned', 'completed'];
+        $syncPayment = in_array($newStatus, $paidStages, true) && $booking['payment_status'] === 'waiting';
+        $cancelWaitingPayment = $newStatus === 'cancelled' && $booking['payment_status'] === 'waiting';
+        if ($booking['status'] === $newStatus && !$syncPayment && !$cancelWaitingPayment) {
             return ['success' => true, 'message' => 'Status tidak berubah.'];
         }
         $db = self::pdo();
@@ -347,6 +350,12 @@ class Booking extends Model
         try {
             $sets = ['status = ?'];
             $params = [$newStatus];
+            if ($syncPayment) {
+                $sets[] = "payment_status = 'paid'";
+            }
+            if ($cancelWaitingPayment) {
+                $sets[] = "payment_status = 'unpaid'";
+            }
             if ($newStatus === 'completed') {
                 $sets[] = 'completed_at = NOW()';
             }
@@ -361,8 +370,29 @@ class Booking extends Model
             $stmt = $db->prepare('UPDATE bookings SET ' . implode(', ', $sets) . ' WHERE id = ?');
             $stmt->execute($params);
 
+            if ($syncPayment) {
+                $db->prepare(
+                    "UPDATE payments SET status = 'verified', verified_by = COALESCE(?, verified_by), updated_at = NOW()
+                     WHERE booking_id = ? AND status = 'pending'"
+                )->execute([$adminId, $bookingId]);
+            }
+            if ($cancelWaitingPayment) {
+                $db->prepare(
+                    "UPDATE payments SET status = 'rejected', verified_by = COALESCE(?, verified_by),
+                        note = 'Pesanan dibatalkan.', updated_at = NOW()
+                     WHERE booking_id = ? AND status = 'pending'"
+                )->execute([$adminId, $bookingId]);
+            }
+
+            $logNote = $note ?: status_label($newStatus, $booking['pickup_method'] ?? null);
+            if ($syncPayment) {
+                $logNote .= ' · Pembayaran diverifikasi.';
+            }
+            if ($cancelWaitingPayment) {
+                $logNote .= ' · Pembayaran dibatalkan.';
+            }
             $db->prepare('INSERT INTO booking_status_logs (booking_id, status, note, changed_by) VALUES (?, ?, ?, ?)')
-                ->execute([$bookingId, $newStatus, $note ?: status_label($newStatus), $adminId]);
+                ->execute([$bookingId, $newStatus, $logNote, $adminId]);
 
             $db->commit();
         } catch (Throwable $exception) {
@@ -375,11 +405,11 @@ class Booking extends Model
             (int) $booking['user_id'],
             'booking',
             'Status pesanan ' . $booking['code'] . ' diperbarui',
-            status_label($newStatus) . ($note ? ' — ' . $note : ''),
+            status_label($newStatus, $booking['pickup_method'] ?? null) . ($note ? ' — ' . $note : ''),
             'pesanan_detail.php?id=' . $bookingId
         );
         log_audit('booking.status', 'booking', $bookingId, ['status' => $newStatus, 'note' => $note]);
-        return ['success' => true, 'message' => 'Status pesanan diperbarui menjadi ' . status_label($newStatus) . '.'];
+        return ['success' => true, 'message' => 'Status pesanan diperbarui menjadi ' . status_label($newStatus, $booking['pickup_method'] ?? null) . '.'];
     }
 
     public static function cancelByCustomer(int $bookingId, int $userId, string $reason = ''): array

@@ -38,6 +38,7 @@ $allowedSorts = ['nearest', 'popular', 'rating', 'price_asc', 'price_desc', 'new
 if (!in_array($sort, $allowedSorts, true)) {
     $sort = 'nearest';
 }
+$view = ($_GET['view'] ?? 'grid') === 'list' ? 'list' : 'grid';
 
 $storeSlug = trim((string) ($_GET['store'] ?? ''));
 $storeFilter = $storeSlug !== '' ? Store::findBySlug($storeSlug) : null;
@@ -101,26 +102,45 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
 <main id="main" class="pb-16 lg:pb-24">
     <section class="app-hero -mb-7 pb-14">
         <div class="absolute inset-0 bg-cover bg-center opacity-35" style="background-image:url('<?= e(upload_url($heroImage)) ?>');"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-forest-950/65 via-forest-950/70 to-forest-900"></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-forest-950/70 via-forest-950/75 to-forest-900"></div>
+        <div class="pointer-events-none absolute -right-24 -top-24 hidden h-72 w-72 rounded-full bg-mint-300/10 blur-3xl lg:block"></div>
+        <div class="pointer-events-none absolute -left-24 top-24 hidden h-64 w-64 rounded-full bg-mint-300/5 blur-3xl lg:block"></div>
 
-        <div class="container-app relative pt-3">
-            <div class="flex items-center justify-between">
-                <a href="<?= e(url('katalog.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10 lg:hidden" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
-                <div class="text-center lg:mx-auto">
-                    <p class="text-[0.55rem] font-extrabold uppercase tracking-[0.2em] text-mint-300/70">Rentify</p>
-                    <h1 class="text-base font-extrabold tracking-tight"><?= e($category['name'] ?? 'Semua Kategori') ?></h1>
-                </div>
-                <a href="<?= e(url('keranjang.php')) ?>" class="icon-btn icon-btn-dark relative h-10 w-10 lg:hidden" aria-label="Keranjang">
+        <div class="container-app relative pt-3 lg:pt-6">
+            <div class="flex items-center justify-between lg:hidden">
+                <a href="<?= e(url('katalog.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
+                <a href="<?= e(url('keranjang.php')) ?>" class="icon-btn icon-btn-dark relative h-10 w-10" aria-label="Keranjang">
                     <?= icon('cart', 'h-[1.1rem] w-[1.1rem]') ?>
                     <span class="nav-badge <?= $cartCount ? '' : 'hidden' ?>" data-cart-count><?= $cartCount ?></span>
                 </a>
             </div>
 
-            <div class="mx-auto mt-6 max-w-2xl text-center">
-                <p class="text-xs text-white/55"><?= $category ? (int) $category['item_count'] . ' unit siap sewa · ' . e($category['description']) : '12 kategori perlengkapan outdoor di Karawang' ?></p>
+            <div class="mt-5 lg:mt-8 lg:flex lg:items-end lg:justify-between lg:gap-10">
+                <div class="text-center lg:max-w-3xl lg:text-left">
+                    <p class="inline-flex items-center gap-1.5 text-[0.6rem] font-extrabold uppercase tracking-[0.18em] text-mint-300">
+                        <?= icon('compass', 'h-3.5 w-3.5') ?>
+                        <?= $category ? 'Kategori gear outdoor' : 'Katalog gear outdoor' ?>
+                    </p>
+                    <h1 class="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl"><?= e($category['name'] ?? 'Semua Kategori') ?></h1>
+                    <p class="mt-2 text-xs leading-relaxed text-white/55 sm:text-[0.82rem]"><?= $category ? (int) $category['item_count'] . ' unit siap sewa · ' . e($category['description']) : '12 kategori perlengkapan outdoor siap sewa, dikirim dari cabang terdekat di Karawang' ?></p>
+                </div>
+                <div class="mt-5 hidden items-center justify-center gap-2 lg:mt-0 lg:flex lg:justify-end">
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[0.65rem] font-bold text-white/70 backdrop-blur">
+                        <?= icon('package', 'h-3.5 w-3.5 text-mint-300') ?>
+                        <span class="font-extrabold text-white" data-catalog-total-hero><?= (int) ($result['total'] ?? 0) ?></span> gear
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[0.65rem] font-bold text-white/70 backdrop-blur">
+                        <?= icon('grid', 'h-3.5 w-3.5 text-mint-300') ?>
+                        <?= count($categories) ?> kategori
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[0.65rem] font-bold text-white/70 backdrop-blur">
+                        <?= icon('map-pin', 'h-3.5 w-3.5 text-mint-300') ?>
+                        <?= count($stores) ?> cabang
+                    </span>
+                </div>
             </div>
 
-            <form action="<?= e(url('katalog.php')) ?>" method="get" class="hero-search mx-auto mt-5 max-w-2xl" role="search" data-catalog-search-form>
+            <form action="<?= e(url('katalog.php')) ?>" method="get" class="hero-search mt-4 lg:mt-5" role="search" data-catalog-search-form>
                 <?php if ($category): ?><input type="hidden" name="category" value="<?= e($category['slug']) ?>"><?php endif; ?>
                 <?php if ($storeFilter): ?><input type="hidden" name="store" value="<?= e($storeFilter['slug']) ?>"><?php endif; ?>
                 <span class="text-white/55"><?= icon('search', 'h-[1.15rem] w-[1.15rem]') ?></span>
@@ -128,17 +148,25 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
                 <button type="button" class="flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white <?= $q === '' ? 'hidden' : '' ?>" data-catalog-search-clear aria-label="Hapus pencarian"><?= icon('x', 'h-4 w-4') ?></button>
                 <button type="submit" class="search-submit" aria-label="Cari sekarang"><?= icon('search', 'h-[1.1rem] w-[1.1rem]') ?></button>
             </form>
-            <p class="mx-auto mt-2 max-w-2xl text-center text-[0.65rem] font-semibold text-white/45" data-catalog-search-hint aria-live="polite">
-                <?= $q !== '' ? 'Hasil pencarian untuk &ldquo;' . e($q) . '&rdquo;' : 'Ketik untuk mencari secara langsung' ?>
-            </p>
+            <div class="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[0.65rem] font-semibold text-white/45 lg:justify-between">
+                <p data-catalog-search-hint aria-live="polite">
+                    <?= $q !== '' ? 'Hasil pencarian untuk &ldquo;' . e($q) . '&rdquo;' : 'Ketik untuk mencari secara langsung' ?>
+                </p>
+                <?php if ($q !== '' || $activeFilters || $category || $storeFilter): ?>
+                    <a href="<?= e(url('katalog.php')) ?>" class="inline-flex items-center gap-1 text-white/55 transition hover:text-mint-300">
+                        <?= icon('arrow-left', 'h-3 w-3') ?> Reset pencarian
+                    </a>
+                <?php endif; ?>
+            </div>
 
-            <a href="<?= e(url('rekomendasi.php' . ($category ? '?' . http_build_query(['category' => $category['slug']]) : ''))) ?>" class="mx-auto mt-3 flex max-w-2xl items-center gap-3 rounded-[1.15rem] border border-white/15 bg-white/10 p-3 backdrop-blur transition hover:bg-white/15">
+            <a href="<?= e(url('rekomendasi.php' . ($category ? '?' . http_build_query(['category' => $category['slug']]) : ''))) ?>" class="group mt-2.5 flex items-center gap-3 rounded-[1.15rem] border border-white/15 bg-white/10 p-3 backdrop-blur transition hover:border-mint-300/30 hover:bg-white/15">
                 <span class="ai-orb !h-10 !w-10"><?= icon('sparkles', 'h-4 w-4') ?></span>
                 <div class="min-w-0 flex-1">
                     <p class="text-[0.82rem] font-extrabold"><?= e($advisorTitle) ?></p>
                     <p class="truncate text-[0.65rem] text-white/50"><?= e($advisorSubtitle) ?></p>
                 </div>
-                <span class="btn btn-accent btn-sm shrink-0">Coba Sekarang <?= icon('arrow-right', 'h-3 w-3') ?></span>
+                <span class="btn btn-accent btn-sm hidden shrink-0 sm:inline-flex">Coba Sekarang <?= icon('arrow-right', 'h-3 w-3') ?></span>
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mint-300 text-forest-900 sm:hidden"><?= icon('arrow-right', 'h-4 w-4') ?></span>
             </a>
         </div>
 
@@ -195,7 +223,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
                     </div>
                     <section id="katalog-lengkap" class="scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="" data-store="<?= e($storeFilter['slug'] ?? '') ?>">
                         <div data-catalog-results>
-                            <?= render_catalog_results($result, $category) ?>
+                            <?= render_catalog_results($result, $category, $view) ?>
                         </div>
                     </section>
 
@@ -257,7 +285,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
             </div>
             <section id="katalog-lengkap" class="mt-4 scroll-mt-24 pb-4" data-catalog-root data-catalog-base="<?= e(url('katalog.php')) ?>" data-category="<?= e($category['slug'] ?? '') ?>" data-store="<?= e($storeFilter['slug'] ?? '') ?>">
                 <div data-catalog-results>
-                    <?= render_catalog_results($result, $category) ?>
+                    <?= render_catalog_results($result, $category, $view) ?>
                 </div>
             </section>
 

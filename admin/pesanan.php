@@ -53,7 +53,7 @@ if ($booking) {
                             <p class="mt-1 text-xs text-muted"><?= (int) $booking['duration_days'] ?> hari · <?= $booking['pickup_method'] === 'delivery' ? 'Diantar' : 'Ambil di ' . e($booking['pickup_name'] ?: 'basecamp') ?></p>
                         </div>
                         <div class="flex flex-wrap gap-1.5">
-                            <span class="badge <?= e(status_class($booking['status'])) ?>"><?= e(status_label($booking['status'])) ?></span>
+                            <span class="badge <?= e(status_class($booking['status'])) ?>"><?= e(status_label($booking['status'], $booking['pickup_method'] ?? null)) ?></span>
                             <span class="badge <?= e(payment_status_class($booking['payment_status'])) ?>"><?= e(payment_status_label($booking['payment_status'])) ?></span>
                         </div>
                     </div>
@@ -145,7 +145,7 @@ if ($booking) {
                         <?php foreach (array_reverse($logs) as $log): ?>
                             <div class="timeline-item">
                                 <div class="flex flex-wrap items-center justify-between gap-1">
-                                    <p class="text-xs font-extrabold text-forest-900"><?= e(status_label($log['status'])) ?></p>
+                                    <p class="text-xs font-extrabold text-forest-900"><?= e(status_label($log['status'], $booking['pickup_method'] ?? null)) ?></p>
                                     <span class="text-[0.6rem] text-muted"><?= e(format_datetime_id($log['created_at'])) ?></span>
                                 </div>
                                 <p class="mt-0.5 text-[0.68rem] text-muted"><?= e($log['note'] ?: '-') ?><?= $log['user_name'] ? ' · ' . e($log['user_name']) : '' ?></p>
@@ -160,12 +160,12 @@ if ($booking) {
                     <input type="hidden" name="action" value="booking_status">
                     <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
                     <h3 class="text-sm font-extrabold text-forest-900">Ubah status</h3>
-                    <p class="mt-1 text-[0.68rem] text-muted">Status saat ini: <?= e(status_label($booking['status'])) ?></p>
+                    <p class="mt-1 text-[0.68rem] text-muted">Status saat ini: <?= e(status_label($booking['status'], $booking['pickup_method'] ?? null)) ?></p>
                     <div class="mt-3">
                         <label class="field-label" for="order-status">Status baru</label>
                         <select id="order-status" class="select input !py-2.5 text-sm" name="status">
                             <?php foreach (['pending', 'confirmed', 'preparing', 'ready', 'ongoing', 'returned', 'completed', 'cancelled'] as $status): ?>
-                                <option value="<?= e($status) ?>" <?= $booking['status'] === $status ? 'selected' : '' ?>><?= e(status_label($status)) ?></option>
+                                <option value="<?= e($status) ?>" <?= $booking['status'] === $status ? 'selected' : '' ?>><?= e(status_label($status, $booking['pickup_method'] ?? null)) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>

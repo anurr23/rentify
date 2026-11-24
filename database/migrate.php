@@ -444,6 +444,30 @@ if (!function_exists('rentify_migrate')) {
             }
         }
 
+        // Selaraskan pembayaran yang masih menunggu verifikasi pada pesanan yang sudah dikonfirmasi/diproses.
+        $pdo->exec(
+            "UPDATE payments p JOIN bookings b ON b.id = p.booking_id
+             SET p.status = 'verified', p.updated_at = NOW()
+             WHERE p.status = 'pending'
+               AND b.payment_status = 'waiting'
+               AND b.status IN ('confirmed','preparing','ready','ongoing','returned','completed')"
+        );
+        $pdo->exec(
+            "UPDATE bookings SET payment_status = 'paid'
+             WHERE payment_status = 'waiting'
+               AND status IN ('confirmed','preparing','ready','ongoing','returned','completed')"
+        );
+        $pdo->exec(
+            "UPDATE payments p JOIN bookings b ON b.id = p.booking_id
+             SET p.status = 'rejected', p.note = COALESCE(p.note, 'Pesanan dibatalkan.'), p.updated_at = NOW()
+             WHERE p.status = 'pending' AND b.status = 'cancelled'"
+        );
+        $pdo->exec(
+            "UPDATE bookings SET payment_status = 'unpaid'
+             WHERE payment_status = 'waiting' AND status = 'cancelled'"
+        );
+        $messages[] = 'Status pembayaran pesanan yang sudah diproses diselaraskan.';
+
         return ['success' => true, 'messages' => $messages];
     }
 }

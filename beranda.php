@@ -121,7 +121,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                     <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-mint-300 text-forest-900"><?= icon('tent', 'h-6 w-6') ?></span>
                     <div class="min-w-0 flex-1">
                         <p class="text-[0.62rem] font-bold uppercase tracking-[0.16em] text-mint-300">Pesanan mendatang</p>
-                        <p class="mt-1 truncate text-sm font-extrabold"><?= e($activeBooking['code']) ?> · <?= e(status_label($activeBooking['status'])) ?></p>
+                        <p class="mt-1 truncate text-sm font-extrabold"><?= e($activeBooking['code']) ?> · <?= e(status_label($activeBooking['status'], $activeBooking['pickup_method'] ?? null)) ?></p>
                         <p class="mt-0.5 text-xs text-white/50"><?= e(format_date_id($activeBooking['start_date'])) ?> — <?= e(format_date_id($activeBooking['end_date'])) ?> · <?= (int) $activeBooking['duration_days'] ?> hari</p>
                     </div>
                     <span class="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition group-hover:bg-mint-300 group-hover:text-forest-900"><?= icon('arrow-right', 'h-4 w-4') ?></span>

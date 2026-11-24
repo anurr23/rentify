@@ -37,7 +37,7 @@ function render_catalog_results(array $result, ?array $category = null, string $
         </div>
     </div>
 
-    <div class="mt-4 <?= $view === 'list' ? 'grid grid-cols-1 gap-4 lg:grid-cols-2' : 'grid grid-cols-2 gap-3.5 sm:gap-5 xl:grid-cols-3' ?>" data-catalog-grid data-view="<?= e($view) ?>">
+    <div class="mt-4 <?= $view === 'list' ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-2 gap-3.5 sm:gap-5 xl:grid-cols-3' ?>" data-catalog-grid data-view="<?= e($view) ?>">
         <?php if (!$items): ?>
             <div class="col-span-full rounded-[1.35rem] border border-dashed border-line bg-white px-6 py-14 text-center">
                 <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-cream-100 text-muted"><?= icon('search', 'h-6 w-6') ?></span>
@@ -47,7 +47,7 @@ function render_catalog_results(array $result, ?array $category = null, string $
             </div>
         <?php endif; ?>
         <?php foreach ($items as $item): ?>
-            <?= item_card($item) ?>
+            <?= item_card($item, $view === 'list' ? ['variant' => 'list'] : []) ?>
         <?php endforeach; ?>
     </div>
 

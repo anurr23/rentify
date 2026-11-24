@@ -42,12 +42,13 @@ $accountName = setting('payment_account_name', 'Rentify Outdoor Karawang');
 $qrisImage = setting('qris_image', '');
 $waLink = phone_wa_link(setting('whatsapp', '6281234567890'), 'Halo Rentify, saya ingin menanyakan pesanan ' . $booking['code'] . '.');
 
+$isDelivery = ($booking['pickup_method'] ?? 'pickup') === 'delivery';
 $steps = [
     'pending' => ['label' => 'Pesanan dibuat', 'icon' => 'receipt'],
     'confirmed' => ['label' => 'Pembayaran lunas', 'icon' => 'check-circle'],
-    'preparing' => ['label' => 'Gear disiapkan', 'icon' => 'package'],
-    'ready' => ['label' => 'Siap diambil', 'icon' => 'map-pin'],
-    'ongoing' => ['label' => 'Sedang berjalan', 'icon' => 'tent'],
+    'preparing' => ['label' => 'Pesanan disiapkan', 'icon' => 'package'],
+    'ready' => ['label' => $isDelivery ? 'Pesanan diantar' : 'Siap diambil', 'icon' => $isDelivery ? 'truck' : 'map-pin'],
+    'ongoing' => ['label' => 'Diterima', 'icon' => 'tent'],
     'returned' => ['label' => 'Dikembalikan', 'icon' => 'rotate'],
     'completed' => ['label' => 'Selesai', 'icon' => 'star-filled'],
 ];
@@ -78,7 +79,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
 
             <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="badge <?= e(status_class($booking['status'])) ?> !border-white/15"><?= e(status_label($booking['status'])) ?></span>
+                    <span class="badge <?= e(status_class($booking['status'])) ?> !border-white/15"><?= e(status_label($booking['status'], $booking['pickup_method'] ?? null)) ?></span>
                     <span class="badge <?= e(payment_status_class($booking['payment_status'])) ?> !border-white/15"><?= e(payment_status_label($booking['payment_status'])) ?></span>
                     <span class="text-[0.62rem] text-white/50">Dibuat <?= e(format_datetime_id($booking['created_at'])) ?></span>
                 </div>
@@ -225,10 +226,10 @@ require ROOT_PATH . '/includes/customer_nav.php';
                             <div class="timeline-item">
                                 <span class="status-dot <?= e(status_class($log['status'])) ?>"></span>
                                 <div class="flex flex-wrap items-center justify-between gap-1">
-                                    <p class="text-xs font-extrabold text-forest-900"><?= e(status_label($log['status'])) ?></p>
+                                    <p class="text-xs font-extrabold text-forest-900"><?= e(status_label($log['status'], $booking['pickup_method'] ?? null)) ?></p>
                                     <span class="text-[0.6rem] text-muted"><?= e(time_ago($log['created_at'])) ?></span>
                                 </div>
-                                <p class="mt-0.5 text-[0.68rem] leading-relaxed text-muted"><?= e($log['note'] ?: status_label($log['status'])) ?><?= $log['user_name'] ? ' · ' . e($log['user_name']) : '' ?></p>
+                                <p class="mt-0.5 text-[0.68rem] leading-relaxed text-muted"><?= e($log['note'] ?: status_label($log['status'], $booking['pickup_method'] ?? null)) ?><?= $log['user_name'] ? ' · ' . e($log['user_name']) : '' ?></p>
                             </div>
                         <?php endforeach; ?>
                         <?php if (!$logs): ?>

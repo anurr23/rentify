@@ -147,30 +147,61 @@ require ROOT_PATH . '/includes/customer_nav.php';
 
     <div class="container-app relative -mt-20 pb-6">
         <section class="grid gap-4 lg:grid-cols-[1.15fr_1fr] lg:items-start lg:gap-8">
-            <div class="overflow-hidden rounded-[1.6rem] border border-line bg-white shadow-soft">
-                <div class="relative aspect-[4/3] bg-cream-100 sm:aspect-[16/10]" data-gallery-main>
-                    <img src="<?= e(upload_url($gallery[0])) ?>" alt="<?= e($item['name']) ?>" class="h-full w-full object-cover" data-gallery-image>
-                    <span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-extrabold text-forest-900 backdrop-blur">
-                        <?= icon('star-filled', 'h-3.5 w-3.5 text-star') ?>
-                        <?= (float) $item['rating_avg'] > 0 ? number_format((float) $item['rating_avg'], 1, ',', '.') : 'Baru' ?>
-                        <span class="font-semibold text-muted">(<?= (int) $item['rating_count'] ?>)</span>
-                    </span>
-                    <?php if (!empty($item['is_featured'])): ?>
-                        <span class="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-forest-900/90 px-3 py-1.5 text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-mint-300 backdrop-blur"><?= icon('sparkles', 'h-3 w-3') ?> Pilihan Rentify</span>
+            <div class="max-lg:contents lg:min-w-0 lg:space-y-6">
+                <div class="overflow-hidden rounded-[1.6rem] border border-line bg-white shadow-soft">
+                    <div class="relative aspect-[4/3] bg-cream-100 sm:aspect-[16/10]" data-gallery-main>
+                        <img src="<?= e(upload_url($gallery[0])) ?>" alt="<?= e($item['name']) ?>" class="h-full w-full object-cover" data-gallery-image>
+                        <span class="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-extrabold text-forest-900 backdrop-blur">
+                            <?= icon('star-filled', 'h-3.5 w-3.5 text-star') ?>
+                            <?= (float) $item['rating_avg'] > 0 ? number_format((float) $item['rating_avg'], 1, ',', '.') : 'Baru' ?>
+                            <span class="font-semibold text-muted">(<?= (int) $item['rating_count'] ?>)</span>
+                        </span>
+                        <?php if (!empty($item['is_featured'])): ?>
+                            <span class="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-forest-900/90 px-3 py-1.5 text-[0.62rem] font-extrabold uppercase tracking-[0.1em] text-mint-300 backdrop-blur"><?= icon('sparkles', 'h-3 w-3') ?> Pilihan Rentify</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (count($gallery) > 1): ?>
+                        <div class="flex gap-2 overflow-x-auto p-3">
+                            <?php foreach ($gallery as $index => $image): ?>
+                                <button type="button" class="h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2 <?= $index === 0 ? 'border-forest-900' : 'border-transparent opacity-70' ?> transition hover:opacity-100" data-gallery-thumb data-src="<?= e(upload_url($image)) ?>" aria-label="Foto <?= $index + 1 ?>">
+                                    <img src="<?= e(upload_url($image)) ?>" alt="" class="h-full w-full object-cover">
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
                     <?php endif; ?>
                 </div>
-                <?php if (count($gallery) > 1): ?>
-                    <div class="flex gap-2 overflow-x-auto p-3">
-                        <?php foreach ($gallery as $index => $image): ?>
-                            <button type="button" class="h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2 <?= $index === 0 ? 'border-forest-900' : 'border-transparent opacity-70' ?> transition hover:opacity-100" data-gallery-thumb data-src="<?= e(upload_url($image)) ?>" aria-label="Foto <?= $index + 1 ?>">
-                                <img src="<?= e(upload_url($image)) ?>" alt="" class="h-full w-full object-cover">
-                            </button>
-                        <?php endforeach; ?>
+
+                <div class="card p-5 max-lg:order-3 sm:p-6">
+                    <h2 class="text-lg font-extrabold text-forest-900">Tentang gear ini</h2>
+                    <div class="prose-app mt-3 text-sm leading-relaxed text-forest-700">
+                        <?= nl2br(e($item['description'] ?: $item['short_description'] ?: 'Belum ada deskripsi lengkap.')) ?>
+                    </div>
+                    <?php if ($item['features']): ?>
+                        <h3 class="mt-5 text-sm font-extrabold text-forest-900">Yang kamu dapat</h3>
+                        <ul class="mt-2 grid gap-2 sm:grid-cols-2">
+                            <?php foreach ($item['features'] as $feature): ?>
+                                <li class="flex items-start gap-2 text-sm text-forest-700"><span class="mt-0.5 text-forest-500"><?= icon('check-circle', 'h-4 w-4') ?></span><?= e($feature) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </div>
+
+                <?php if ($item['specs']): ?>
+                    <div class="card p-5 max-lg:order-4 sm:p-6">
+                        <h2 class="text-lg font-extrabold text-forest-900">Spesifikasi</h2>
+                        <dl class="mt-3 divide-y divide-line">
+                            <?php foreach ($item['specs'] as $key => $value): ?>
+                                <div class="flex items-start justify-between gap-4 py-2.5 text-sm">
+                                    <dt class="text-muted"><?= e($key) ?></dt>
+                                    <dd class="text-right font-bold text-forest-900"><?= e($value) ?></dd>
+                                </div>
+                            <?php endforeach; ?>
+                        </dl>
                     </div>
                 <?php endif; ?>
             </div>
 
-            <div class="rounded-[1.6rem] border border-line bg-white p-5 shadow-card sm:p-6">
+            <div class="rounded-[1.6rem] border border-line bg-white p-5 shadow-card max-lg:order-2 sm:p-6">
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <p class="text-[0.64rem] font-extrabold uppercase tracking-[0.15em] text-forest-500"><?= e($item['brand'] ?: $item['category_name']) ?></p>
@@ -297,36 +328,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
         </section>
 
         <section class="mt-8 grid gap-6 lg:grid-cols-[1.15fr_1fr] lg:items-start">
-            <div class="space-y-6">
-                <div class="card p-5 sm:p-6">
-                    <h2 class="text-lg font-extrabold text-forest-900">Tentang gear ini</h2>
-                    <div class="prose-app mt-3 text-sm leading-relaxed text-forest-700">
-                        <?= nl2br(e($item['description'] ?: $item['short_description'] ?: 'Belum ada deskripsi lengkap.')) ?>
-                    </div>
-                    <?php if ($item['features']): ?>
-                        <h3 class="mt-5 text-sm font-extrabold text-forest-900">Yang kamu dapat</h3>
-                        <ul class="mt-2 grid gap-2 sm:grid-cols-2">
-                            <?php foreach ($item['features'] as $feature): ?>
-                                <li class="flex items-start gap-2 text-sm text-forest-700"><span class="mt-0.5 text-forest-500"><?= icon('check-circle', 'h-4 w-4') ?></span><?= e($feature) ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </div>
-
-                <?php if ($item['specs']): ?>
-                    <div class="card p-5 sm:p-6">
-                        <h2 class="text-lg font-extrabold text-forest-900">Spesifikasi</h2>
-                        <dl class="mt-3 divide-y divide-line">
-                            <?php foreach ($item['specs'] as $key => $value): ?>
-                                <div class="flex items-start justify-between gap-4 py-2.5 text-sm">
-                                    <dt class="text-muted"><?= e($key) ?></dt>
-                                    <dd class="text-right font-bold text-forest-900"><?= e($value) ?></dd>
-                                </div>
-                            <?php endforeach; ?>
-                        </dl>
-                    </div>
-                <?php endif; ?>
-
+            <div class="min-w-0 space-y-6">
                 <div class="card p-5 sm:p-6" id="ulasan">
                     <div class="flex flex-wrap items-end justify-between gap-3">
                         <div>

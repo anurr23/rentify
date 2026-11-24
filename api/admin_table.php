@@ -243,7 +243,7 @@ switch ($dataset) {
                     . '<p class="text-[0.62rem] text-muted">s/d ' . e(format_date_id($row['end_date'])) . ' · ' . (int) $row['duration_days'] . 'h</p>',
                 '<span class="font-bold">' . (int) $row['item_count'] . '</span>',
                 '<span class="font-extrabold">' . e(format_rupiah($row['total'])) . '</span>',
-                at_badge(status_class((string) $row['status']), status_label((string) $row['status'])),
+                at_badge(status_class((string) $row['status']), status_label((string) $row['status'], $row['pickup_method'] ?? null)),
                 at_badge(payment_status_class((string) $row['payment_status']), payment_status_label((string) $row['payment_status'])),
                 '<div class="flex justify-end"><a href="' . e(url('admin/pesanan.php?id=' . (int) $row['id'])) . '" class="btn btn-outline btn-sm">Detail</a></div>',
             ];
@@ -392,7 +392,7 @@ switch ($dataset) {
                 '<p class="text-xs font-semibold">' . e(format_date_id($row['start_date'])) . ' – ' . e(format_date_id($row['end_date'])) . '</p>'
                     . '<p class="text-[0.62rem] text-muted">' . (int) $row['duration_days'] . ' hari</p>',
                 '<span class="font-bold">' . (int) $row['qty_total'] . ' unit</span>',
-                at_badge(status_class((string) $row['status']), status_label((string) $row['status'])),
+                at_badge(status_class((string) $row['status']), status_label((string) $row['status'], $row['pickup_method'] ?? null)),
                 $late,
                 '<div class="flex justify-end gap-1.5">'
                     . '<button type="button" class="btn btn-outline btn-sm" data-admin-status data-booking-id="' . (int) $row['id'] . '" data-status="returned" data-confirm="Tandai gear sudah dikembalikan?">Dikembalikan</button>'
@@ -536,7 +536,7 @@ switch ($dataset) {
                 '<p class="font-semibold">' . e($row['user_name']) . '</p>'
                     . '<p class="text-[0.62rem] text-muted">' . e(format_date_id($row['start_date'])) . '</p>',
                 '<span class="font-bold">' . e(format_rupiah($row['total'])) . '</span>',
-                at_badge(status_class((string) $row['status']), status_label((string) $row['status'])),
+                at_badge(status_class((string) $row['status']), status_label((string) $row['status'], $row['pickup_method'] ?? null)),
             ];
             $rows[] = ['cells' => $cells, 'meta' => []];
         }
@@ -587,7 +587,7 @@ switch ($dataset) {
         $orderSql = ($orderMap[$orderColumn] ?? 'b.created_at') . ' ' . $orderDir;
         $items = at_rows(
             "SELECT b.code, b.created_at, u.name AS customer, u.phone, b.start_date, b.end_date,
-                b.duration_days, b.total, b.status, b.payment_status, s.name AS store_name
+                b.duration_days, b.total, b.status, b.payment_status, b.pickup_method, s.name AS store_name
              $base WHERE $where ORDER BY $orderSql, b.id DESC"
             . at_limit($length, $start),
             $params
@@ -599,7 +599,7 @@ switch ($dataset) {
                 '<p class="font-bold">' . e($row['customer']) . '</p><p class="text-[0.62rem] text-muted">' . e($row['phone']) . '</p>',
                 '<span class="text-xs">' . e(format_date_id($row['start_date'])) . ' &ndash; ' . e(format_date_id($row['end_date'])) . '</span>',
                 '<span class="font-bold">' . e(format_rupiah($row['total'])) . '</span>',
-                at_badge(status_class((string) $row['status']), status_label((string) $row['status'])),
+                at_badge(status_class((string) $row['status']), status_label((string) $row['status'], $row['pickup_method'] ?? null)),
                 at_badge(payment_status_class((string) $row['payment_status']), payment_status_label((string) $row['payment_status'])),
             ];
             $rows[] = ['cells' => $cells, 'meta' => []];
@@ -688,7 +688,7 @@ switch ($dataset) {
                     . '<p class="text-[0.62rem] text-muted">' . e(time_ago($row['created_at'])) . '</p>',
                 '<span class="text-xs">' . e(format_date_id($row['start_date'])) . ' &ndash; ' . e(format_date_id($row['end_date'])) . '</span>',
                 '<span class="font-bold">' . e(format_rupiah($row['total'])) . '</span>',
-                at_badge(status_class((string) $row['status']), status_label((string) $row['status'])),
+                at_badge(status_class((string) $row['status']), status_label((string) $row['status'], $row['pickup_method'] ?? null)),
             ];
             $rows[] = ['cells' => $cells, 'meta' => []];
         }

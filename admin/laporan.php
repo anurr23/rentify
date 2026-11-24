@@ -29,7 +29,7 @@ if (($_GET['export'] ?? '') === 'csv') {
         fputcsv($out, [
             $row['code'], $row['created_at'], $row['store_name'], $row['customer'], $row['phone'], $row['start_date'], $row['end_date'],
             $row['duration_days'], $row['subtotal'], $row['deposit_total'], $row['delivery_fee'], $row['discount'],
-            $row['total'], status_label($row['status']), payment_status_label($row['payment_status']),
+            $row['total'], status_label($row['status'], $row['pickup_method'] ?? null), payment_status_label($row['payment_status']),
         ], ';', '"', '');
     }
     fclose($out);

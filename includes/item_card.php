@@ -36,16 +36,17 @@ function item_card(array $item, array $options = []): string
     $available = $item['available_now'] ?? ($item['stock_total'] ?? 0);
     $isWished = in_array($itemId, $wishlistIds, true);
     $stockTotal = (int) ($item['stock_total'] ?? 0);
-    $cardWidth = $variant === 'compact' ? 'w-[16.5rem] sm:w-[18rem]' : 'w-full';
+    $isList = $variant === 'list';
+    $cardWidth = $isList ? 'w-full' : ($variant === 'compact' ? 'w-[16.5rem] sm:w-[18rem]' : 'w-full');
     if ($width !== '') {
         $cardWidth = $width;
     }
-    $mediaClass = $variant === 'featured' ? 'aspect-[16/10]' : ($variant === 'compact' ? 'aspect-[4/3]' : 'aspect-[4/3]');
+    $mediaClass = $isList ? '' : ($variant === 'featured' ? 'aspect-[16/10]' : ($variant === 'compact' ? 'aspect-[4/3]' : 'aspect-[4/3]'));
 
     ob_start();
     ?>
-    <article class="card card-hover group relative flex flex-col overflow-hidden <?= e($cardWidth . ' ' . $extraClass) ?>" data-item-card="<?= $itemId ?>">
-        <a href="<?= e($detailUrl) ?>" class="item-media block <?= e($mediaClass) ?>" aria-label="<?= e($item['name'] ?? 'Detail item') ?>">
+    <article class="card card-hover group relative flex <?= $isList ? 'flex-row' : 'flex-col' ?> overflow-hidden <?= e($cardWidth . ' ' . $extraClass) ?>" data-item-card="<?= $itemId ?>">
+        <a href="<?= e($detailUrl) ?>" class="item-media <?= $isList ? 'relative w-32 shrink-0 sm:w-48 lg:w-60' : 'block ' . e($mediaClass) ?>" aria-label="<?= e($item['name'] ?? 'Detail item') ?>">
             <img src="<?= e($image) ?>" alt="<?= e($item['name'] ?? '') ?>" loading="lazy" decoding="async" class="h-full w-full object-cover">
             <span class="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[0.68rem] font-extrabold text-forest-900 backdrop-blur">
                 <span class="text-star"><?= icon('star-filled', 'h-3.5 w-3.5') ?></span>
@@ -63,7 +64,7 @@ function item_card(array $item, array $options = []): string
         </a>
 
         <button type="button"
-                class="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-forest-950/25 text-white backdrop-blur transition hover:bg-forest-950/45 <?= $isWished ? 'is-wished !bg-white !text-danger' : '' ?>"
+                class="absolute <?= $isList ? 'bottom-3 left-3' : 'right-3 top-3' ?> flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-forest-950/25 text-white backdrop-blur transition hover:bg-forest-950/45 <?= $isWished ? 'is-wished !bg-white !text-danger' : '' ?>"
                 data-wishlist-button
                 data-item-id="<?= $itemId ?>"
                 aria-label="<?= $isWished ? 'Hapus dari wishlist' : 'Simpan ke wishlist' ?>"
@@ -71,7 +72,7 @@ function item_card(array $item, array $options = []): string
             <svg viewBox="0 0 24 24" class="h-[1.05rem] w-[1.05rem]" fill="<?= $isWished ? 'currentColor' : 'none' ?>" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 8.5c0 5.5-8.5 11-8.5 11s-8.5-5.5-8.5-11a5 5 0 0 1 8.5-3.5 5 5 0 0 1 8.5 3.5Z"/></svg>
         </button>
 
-        <div class="flex flex-1 flex-col p-3.5 sm:p-4">
+        <div class="flex min-w-0 flex-1 flex-col p-3.5 sm:p-4">
             <div class="flex items-center justify-between gap-2">
                 <p class="truncate text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-forest-500"><?= e($item['brand'] ?? ($item['category_name'] ?? 'Rentify Select')) ?></p>
                 <?php if ($showStock): ?>
@@ -101,7 +102,7 @@ function item_card(array $item, array $options = []): string
                 </div>
             <?php endif; ?>
 
-            <div class="mt-3 flex items-end justify-between gap-2 border-t border-line pt-3">
+            <div class="<?= $isList ? 'mt-auto' : 'mt-3' ?> flex items-end justify-between gap-2 border-t border-line pt-3">
                 <div>
                     <p class="text-[0.58rem] font-bold uppercase tracking-[0.12em] text-muted">Mulai</p>
                     <p class="text-base font-extrabold tracking-tight text-forest-900"><?= e(format_rupiah_short($item['price_per_day'] ?? 0)) ?><span class="ml-0.5 text-[0.62rem] font-semibold text-muted">/hari</span></p>
