@@ -173,7 +173,7 @@ $currentPage = basename($_SERVER['PHP_SELF'] ?? '');
         <div class="absolute inset-x-0 bottom-0 h-8 rounded-t-[1.7rem] bg-cream-50"></div>
     </section>
 
-    <div class="container-app relative">
+    <div class="container-app relative z-10">
         <?php if (!$category): ?>
             <section class="pt-6">
                 <div class="flex items-center justify-between">

@@ -49,7 +49,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
         <div class="absolute inset-x-0 bottom-0 h-8 rounded-t-[1.7rem] bg-cream-50"></div>
     </section>
 
-    <div class="container-app -mt-2">
+    <div class="container-app relative z-10 -mt-2">
         <div class="grid gap-6 lg:grid-cols-[1.35fr_.65fr] lg:items-start">
             <div class="space-y-5 min-w-0">
                 <section class="card p-4 sm:p-5">

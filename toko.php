@@ -99,7 +99,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
         <div class="absolute inset-x-0 bottom-0 h-8 rounded-t-[1.7rem] bg-cream-50"></div>
     </section>
 
-    <div class="container-app -mt-2">
+    <div class="container-app relative z-10 -mt-2">
         <div class="overflow-hidden rounded-[1.5rem] border border-line bg-white shadow-soft">
             <div id="store-map" class="h-[24rem] w-full sm:h-[30rem]" aria-label="Peta cabang Rentify"></div>
         </div>

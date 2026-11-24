@@ -60,6 +60,14 @@ $homeLink = $isAdminArea ? 'admin/dashboard.php' : ($currentUser ? 'beranda.php'
 </div>
 
 <script>
+if (performance.getEntriesByType('navigation')[0]?.type === 'reload') {
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+    window.addEventListener('load', () => window.scrollTo(0, 0));
+}
+</script>
+<script>
 window.RENTIFY = <?= json_encode([
     'base' => BASE_URL,
     'api' => url('api/'),

@@ -44,7 +44,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
 <main id="main" class="pb-16 lg:pb-24">
     <section class="app-hero !pb-14">
         <div class="absolute inset-0 topo-bg opacity-15"></div>
-        <div class="container-app relative pt-3">
+        <div class="container-app relative pt-4 lg:pt-6">
             <div class="flex items-center justify-between">
                 <a href="<?= e(url('beranda.php')) ?>" class="icon-btn icon-btn-dark h-10 w-10 lg:hidden" aria-label="Kembali"><?= icon('arrow-left', 'h-[1.1rem] w-[1.1rem]') ?></a>
                 <div class="text-center lg:mx-auto">
@@ -71,7 +71,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
         <div class="absolute inset-x-0 bottom-0 h-8 rounded-t-[1.7rem] bg-cream-50"></div>
     </section>
 
-    <div class="container-app -mt-2">
+    <div class="container-app relative z-10 -mt-2">
         <div class="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0">
             <?php foreach ($tabs as $key => $tab): ?>
                 <a href="<?= e(url('pesanan.php' . ($key !== 'semua' ? '?status=' . $key : ''))) ?>" class="chip shrink-0 <?= $status === $key ? 'chip-active' : '' ?>">

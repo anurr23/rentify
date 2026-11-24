@@ -40,7 +40,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
         <div class="absolute inset-x-0 bottom-0 h-8 rounded-t-[1.7rem] bg-cream-50"></div>
     </section>
 
-    <div class="container-app -mt-2">
+    <div class="container-app relative z-10 -mt-2">
         <?php if (!$items): ?>
             <div class="rounded-[1.5rem] border border-dashed border-line bg-white px-6 py-16 text-center">
                 <span class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-cream-100 text-muted"><?= icon('heart', 'h-7 w-7') ?></span>

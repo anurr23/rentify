@@ -51,7 +51,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
         <div class="absolute inset-x-0 bottom-0 h-8 rounded-t-[1.7rem] bg-cream-50"></div>
     </section>
 
-    <div class="container-app relative -mt-4">
+    <div class="container-app relative z-10 -mt-4">
         <div class="grid gap-6 lg:grid-cols-[.92fr_1.08fr] lg:items-start">
             <form class="card p-5 sm:p-6 lg:sticky lg:top-24" data-ai-form novalidate>
                 <input type="hidden" name="store_id" value="<?= (int) ($aiStore['id'] ?? 0) ?>">
