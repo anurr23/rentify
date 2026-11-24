@@ -250,6 +250,26 @@ if (!function_exists('rentify_migrate')) {
             $pdo->exec('ALTER TABLE bookings ADD COLUMN store_id BIGINT UNSIGNED DEFAULT NULL AFTER user_id');
             $messages[] = 'Kolom bookings.store_id ditambahkan.';
         }
+        if (!rentify_migrate_has_column($pdo, 'bookings', 'paid_amount')) {
+            $pdo->exec('ALTER TABLE bookings ADD COLUMN paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER total');
+            $messages[] = 'Kolom bookings.paid_amount ditambahkan.';
+        }
+        if (!rentify_migrate_has_column($pdo, 'payments', 'payment_type')) {
+            $pdo->exec("ALTER TABLE payments ADD COLUMN payment_type ENUM('dp','settlement','full') NOT NULL DEFAULT 'full' AFTER method");
+            $messages[] = 'Kolom payments.payment_type ditambahkan.';
+        }
+        $paymentStatusType = (string) $pdo->query(
+            "SELECT COLUMN_TYPE FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bookings' AND COLUMN_NAME = 'payment_status'"
+        )->fetchColumn();
+        if ($paymentStatusType !== '' && strpos($paymentStatusType, "'partial'") === false) {
+            $pdo->exec("ALTER TABLE bookings MODIFY payment_status ENUM('unpaid','waiting','partial','paid','refunded') NOT NULL DEFAULT 'unpaid'");
+            $messages[] = "Status pembayaran 'partial' (DP) ditambahkan.";
+        }
+        $pdo->exec(
+            "INSERT IGNORE INTO settings (setting_key, setting_value, setting_group, setting_type)
+             VALUES ('dp_percent', '30', 'pembayaran', 'number')"
+        );
 
         $insertStore = $pdo->prepare(
             'INSERT INTO stores (code, name, slug, address, district, city, province, postal_code, phone, whatsapp, email,
@@ -467,6 +487,11 @@ if (!function_exists('rentify_migrate')) {
              WHERE payment_status = 'waiting' AND status = 'cancelled'"
         );
         $messages[] = 'Status pembayaran pesanan yang sudah diproses diselaraskan.';
+
+        $pdo->exec(
+            "UPDATE bookings SET paid_amount = total
+             WHERE payment_status = 'paid' AND paid_amount = 0"
+        );
 
         return ['success' => true, 'messages' => $messages];
     }

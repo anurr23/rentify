@@ -111,6 +111,8 @@ if ($booking) {
                         <h3 class="text-sm font-extrabold text-forest-900">Pembayaran</h3>
                         <a href="<?= e(url('pesanan_detail.php?id=' . $booking['id'] . '#pembayaran')) ?>" target="_blank" class="text-[0.68rem] font-bold text-forest-600">Lihat halaman customer</a>
                     </div>
+                    <?php $paymentInfo = Booking::paymentAmounts($booking); ?>
+                    <p class="mt-1 text-[0.68rem] text-muted">Dibayar <?= e(format_rupiah($paymentInfo['paid'])) ?> dari <?= e(format_rupiah($paymentInfo['total'])) ?> · sisa <?= e(format_rupiah($paymentInfo['remaining'])) ?></p>
                     <div class="mt-3 space-y-2">
                         <?php if (!$payments): ?>
                             <p class="rounded-xl bg-cream-50 px-3 py-5 text-center text-xs text-muted">Belum ada pembayaran diunggah.</p>
@@ -119,7 +121,7 @@ if ($booking) {
                             <div class="rounded-xl border border-line p-3">
                                 <div class="flex flex-wrap items-start justify-between gap-2">
                                     <div>
-                                        <p class="text-xs font-extrabold text-forest-900"><?= e(payment_method_label($payment['method'])) ?> · <?= e(format_rupiah($payment['amount'])) ?></p>
+                                        <p class="text-xs font-extrabold text-forest-900"><?= e(payment_type_label($payment['payment_type'] ?? 'full')) ?> · <?= e(payment_method_label($payment['method'])) ?> · <?= e(format_rupiah($payment['amount'])) ?></p>
                                         <p class="mt-0.5 text-[0.62rem] text-muted"><?= e(format_datetime_id($payment['created_at'])) ?><?= $payment['verifier_name'] ? ' · diverifikasi ' . e($payment['verifier_name']) : '' ?></p>
                                         <?php if ($payment['note']): ?><p class="mt-1 text-[0.65rem] text-forest-700">Catatan: <?= e($payment['note']) ?></p><?php endif; ?>
                                     </div>
@@ -251,7 +253,7 @@ require ROOT_PATH . '/includes/admin_header.php';
         </select>
         <select class="select input !py-2.5 text-sm" name="payment_status">
             <option value="semua">Semua pembayaran</option>
-            <?php foreach (['unpaid', 'waiting', 'paid', 'refunded'] as $status): ?>
+            <?php foreach (['unpaid', 'waiting', 'partial', 'paid', 'refunded'] as $status): ?>
                 <option value="<?= e($status) ?>" <?= $filters['payment_status'] === $status ? 'selected' : '' ?>><?= e(payment_status_label($status)) ?></option>
             <?php endforeach; ?>
         </select>

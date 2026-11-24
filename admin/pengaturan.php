@@ -22,6 +22,7 @@ $fieldLabels = [
     'payment_account_name' => 'Nama pemilik rekening',
     'qris_image' => 'Gambar QRIS',
     'delivery_fee' => 'Biaya antar (Rp)',
+    'dp_percent' => 'DP (%)',
     'hold_hours' => 'Batas bayar (jam)',
     'ai_enabled' => 'AI Planner',
 ];

@@ -33,9 +33,10 @@ foreach ($stmt->fetchAll() as $row) {
     $reviewedItemIds[] = (int) $row['item_id'];
 }
 $canReview = in_array($booking['status'], ['returned', 'completed'], true);
-$canPay = in_array($booking['payment_status'], ['unpaid'], true) && !in_array($booking['status'], ['cancelled', 'completed'], true);
-$canCancel = in_array($booking['status'], ['pending', 'confirmed'], true) && $booking['payment_status'] !== 'paid';
+$canPay = in_array($booking['payment_status'], ['unpaid', 'partial'], true) && !in_array($booking['status'], ['cancelled', 'completed'], true);
+$canCancel = in_array($booking['status'], ['pending', 'confirmed'], true) && !in_array($booking['payment_status'], ['paid', 'partial'], true);
 $latestPayment = $payments[0] ?? null;
+$paymentInfo = Booking::paymentAmounts($booking);
 $bank = setting('payment_bank', 'BCA');
 $account = setting('payment_account', '1234567890');
 $accountName = setting('payment_account_name', 'Rentify Outdoor Karawang');
@@ -45,7 +46,7 @@ $waLink = phone_wa_link(setting('whatsapp', '6281234567890'), 'Halo Rentify, say
 $isDelivery = ($booking['pickup_method'] ?? 'pickup') === 'delivery';
 $steps = [
     'pending' => ['label' => 'Pesanan dibuat', 'icon' => 'receipt'],
-    'confirmed' => ['label' => 'Pembayaran lunas', 'icon' => 'check-circle'],
+    'confirmed' => ['label' => 'Pembayaran diterima', 'icon' => 'check-circle'],
     'preparing' => ['label' => 'Pesanan disiapkan', 'icon' => 'package'],
     'ready' => ['label' => $isDelivery ? 'Pesanan diantar' : 'Siap diambil', 'icon' => $isDelivery ? 'truck' : 'map-pin'],
     'ongoing' => ['label' => 'Diterima', 'icon' => 'tent'],
@@ -266,6 +267,35 @@ require ROOT_PATH . '/includes/customer_nav.php';
                         <?php endif; ?>
                         <form class="mt-4 space-y-3" data-payment-form enctype="multipart/form-data">
                             <input type="hidden" name="booking_id" value="<?= (int) $booking['id'] ?>">
+                            <?php if ($paymentInfo['paid'] > 0): ?>
+                                <div class="rounded-xl border border-line bg-cream-50 px-3 py-2 text-[0.68rem] leading-relaxed text-forest-800">
+                                    Sudah dibayar <?= e(format_rupiah($paymentInfo['paid'])) ?>. Sisa tagihan <span class="font-extrabold"><?= e(format_rupiah($paymentInfo['remaining'])) ?></span>.
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($paymentInfo['dp_amount'] > 0): ?>
+                                <div>
+                                    <p class="field-label !mb-2">Tipe pembayaran</p>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="type" value="dp" class="peer sr-only" data-payment-type>
+                                            <span class="flex flex-col items-center justify-center rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-bold text-forest-800 peer-checked:border-forest-700 peer-checked:bg-mint-100">
+                                                DP <?= e(number_format((float) $paymentInfo['dp_percent'], 0, ',', '.')) ?>%
+                                                <span class="text-[0.62rem] font-semibold text-muted"><?= e(format_rupiah($paymentInfo['dp_amount'])) ?></span>
+                                            </span>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="type" value="full" class="peer sr-only" data-payment-type checked>
+                                            <span class="flex flex-col items-center justify-center rounded-xl border border-line bg-white px-3 py-2.5 text-xs font-bold text-forest-800 peer-checked:border-forest-700 peer-checked:bg-mint-100">
+                                                Lunas
+                                                <span class="text-[0.62rem] font-semibold text-muted"><?= e(format_rupiah($paymentInfo['remaining'])) ?></span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <p class="helper mt-1">Pilih DP untuk membayar sebagian dulu, sisa dilunasi di halaman ini.</p>
+                                </div>
+                            <?php else: ?>
+                                <input type="hidden" name="type" value="full">
+                            <?php endif; ?>
                             <div>
                                 <p class="field-label !mb-2">Metode pembayaran</p>
                                 <div class="grid grid-cols-2 gap-2">
@@ -314,9 +344,9 @@ require ROOT_PATH . '/includes/customer_nav.php';
                                 <input id="payment-note" class="input !py-2.5 text-xs" name="note" placeholder="mis. transfer dari BCA a.n. Galih">
                             </div>
                             <div class="rounded-xl bg-forest-900 p-3 text-white">
-                                <p class="text-[0.6rem] font-semibold uppercase tracking-wide text-mint-300">Total yang harus dibayar</p>
-                                <p class="mt-0.5 text-xl font-extrabold"><?= e(format_rupiah($booking['total'])) ?></p>
-                                <p class="mt-0.5 text-[0.6rem] text-white/50">Termasuk deposit <?= e(format_rupiah($booking['deposit_total'])) ?> yang dikembalikan.</p>
+                                <p class="text-[0.6rem] font-semibold uppercase tracking-wide text-mint-300"><?= $paymentInfo['paid'] > 0 ? 'Sisa yang harus dibayar' : 'Total yang harus dibayar' ?></p>
+                                <p class="mt-0.5 text-xl font-extrabold"><?= e(format_rupiah($paymentInfo['remaining'])) ?></p>
+                                <p class="mt-0.5 text-[0.6rem] text-white/50">Total pesanan <?= e(format_rupiah($paymentInfo['total'])) ?> · termasuk deposit <?= e(format_rupiah($booking['deposit_total'])) ?> yang dikembalikan.</p>
                             </div>
                             <button type="submit" class="btn btn-primary w-full" data-payment-submit><?= icon('upload', 'h-4 w-4') ?> Kirim bukti pembayaran</button>
                         </form>
@@ -331,7 +361,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                                 <?php foreach ($payments as $payment): ?>
                                     <div class="flex items-center justify-between gap-2 text-[0.68rem]">
                                         <div>
-                                            <p class="font-bold text-forest-900"><?= e(payment_method_label($payment['method'])) ?> · <?= e(format_rupiah($payment['amount'])) ?></p>
+                                            <p class="font-bold text-forest-900"><?= e(payment_type_label($payment['payment_type'] ?? 'full')) ?> · <?= e(payment_method_label($payment['method'])) ?> · <?= e(format_rupiah($payment['amount'])) ?></p>
                                             <p class="text-muted"><?= e(format_datetime_id($payment['created_at'])) ?><?= $payment['note'] ? ' · ' . e($payment['note']) : '' ?></p>
                                         </div>
                                         <span class="badge <?= $payment['status'] === 'verified' ? 'badge-success' : ($payment['status'] === 'rejected' ? 'badge-danger' : 'badge-warning') ?>"><?= e(['verified' => 'Terverifikasi', 'rejected' => 'Ditolak', 'pending' => 'Menunggu'][$payment['status']] ?? $payment['status']) ?></span>

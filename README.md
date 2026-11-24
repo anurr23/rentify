@@ -83,14 +83,14 @@ Setiap item bisa di-include/exclude, diubah jumlahnya, lalu dimasukkan ke keranj
 - Ringkasan subtotal, deposit, biaya antar, dan total transparan.
 - Tanggal sewa fleksibel dengan perhitungan **2D1N = 2 hari**.
 - Stok ditahan sementara agar tidak bentrok dengan penyewa lain.
-- Pembayaran transfer bank atau QRIS, lalu unggah bukti.
+- Pembayaran **DP** (persentase dari pengaturan) atau **lunas**, transfer bank atau QRIS, lalu unggah bukti.
 
 ### 📦 Pesanan yang transparan
 
 ![Daftar pesanan customer](docs/screenshots/pesanan.jpg)
 
-- Timeline status: Pesanan dibuat → Pembayaran lunas → Pesanan disiapkan → Siap diambil / Pesanan diantar → Diterima → Dikembalikan → Selesai.
-- Status pembayaran, batas waktu bayar, dan riwayat verifikasi.
+- Timeline status: Pesanan dibuat → Pembayaran diterima → Pesanan disiapkan → Siap diambil / Pesanan diantar → Diterima → Dikembalikan → Selesai.
+- Status pembayaran (termasuk DP), batas waktu bayar, sisa tagihan, dan riwayat verifikasi.
 - Kode pengambilan, pembatalan, dan tombol chat admin.
 - Review dan rating setelah gear dikembalikan.
 
@@ -366,7 +366,7 @@ Semua respons berupa JSON. Request non-GET wajib menyertakan header `X-CSRF-Toke
 | POST | `/api/auth.php` | Login, register, logout |
 | GET/POST | `/api/ai_recommend.php` | Meta AI / buat rekomendasi |
 | GET/POST | `/api/booking.php` | Detail, quote, create, cancel |
-| GET/POST | `/api/payment.php` | Info pembayaran / unggah bukti |
+| GET/POST | `/api/payment.php` | Info pembayaran / unggah bukti (DP atau lunas) |
 | POST | `/api/review.php` | Kirim review |
 | POST | `/api/profile.php` | Update profil / ganti sandi |
 | GET/POST | `/api/notifications.php` | List / read / read all |

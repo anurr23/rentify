@@ -52,21 +52,14 @@ class Payment extends Model
                 "UPDATE payments SET status = ?, verified_by = ?, note = ?, updated_at = NOW() WHERE id = ?"
             )->execute([$approve ? 'verified' : 'rejected', $adminId, $note ?: null, $paymentId]);
 
-            if ($approve) {
-                $db->prepare(
-                    "UPDATE bookings SET payment_status = 'paid',
-                        status = CASE WHEN status = 'pending' THEN 'confirmed' ELSE status END
-                     WHERE id = ?"
-                )->execute([$payment['booking_id']]);
-                if ($payment['booking_status'] === 'pending') {
-                    $db->prepare(
-                        "INSERT INTO booking_status_logs (booking_id, status, note, changed_by) VALUES (?, 'confirmed', ?, ?)"
-                    )->execute([$payment['booking_id'], 'Pembayaran diverifikasi admin.', $adminId]);
-                }
-            } else {
-                $db->prepare("UPDATE bookings SET payment_status = 'unpaid' WHERE id = ?")
+            if ($approve && $payment['booking_status'] === 'pending') {
+                $db->prepare("UPDATE bookings SET status = 'confirmed' WHERE id = ?")
                     ->execute([$payment['booking_id']]);
+                $db->prepare(
+                    "INSERT INTO booking_status_logs (booking_id, status, note, changed_by) VALUES (?, 'confirmed', ?, ?)"
+                )->execute([$payment['booking_id'], 'Pembayaran diverifikasi admin.', $adminId]);
             }
+            Booking::syncPaymentTotals((int) $payment['booking_id']);
             $db->commit();
         } catch (Throwable $exception) {
             $db->rollBack();
@@ -74,15 +67,28 @@ class Payment extends Model
             return ['success' => false, 'message' => 'Gagal memproses pembayaran.'];
         }
 
+        $booking = Booking::find((int) $payment['booking_id']);
+        $amounts = $booking ? Booking::paymentAmounts($booking) : ['remaining' => 0.0];
+        $isPaid = ($booking['payment_status'] ?? '') === 'paid';
         notify(
             (int) $payment['user_id'],
             'payment',
             $approve ? 'Pembayaran ' . $payment['booking_code'] . ' diverifikasi' : 'Pembayaran ' . $payment['booking_code'] . ' ditolak',
-            $approve ? 'Pesanan Anda sudah lunas dan sedang diproses.' : ('Alasan: ' . ($note ?: 'Bukti pembayaran tidak valid.')),
+            $approve
+                ? ($isPaid ? 'Pesanan Anda sudah lunas dan sedang diproses.' : 'Pembayaran sebagian diterima. Sisa ' . format_rupiah($amounts['remaining']) . '.')
+                : ('Alasan: ' . ($note ?: 'Bukti pembayaran tidak valid.')),
             'pesanan_detail.php?id=' . $payment['booking_id']
         );
         log_audit('payment.' . ($approve ? 'verify' : 'reject'), 'payment', $paymentId, ['booking_id' => $payment['booking_id']]);
-        return ['success' => true, 'message' => $approve ? 'Pembayaran diverifikasi, pesanan dikonfirmasi.' : 'Pembayaran ditolak.'];
+        if (!$approve) {
+            return ['success' => true, 'message' => 'Pembayaran ditolak.'];
+        }
+        return [
+            'success' => true,
+            'message' => $isPaid
+                ? 'Pembayaran diverifikasi, pesanan lunas.'
+                : 'Pembayaran DP diverifikasi. Sisa ' . format_rupiah($amounts['remaining']) . '.',
+        ];
     }
 
     public static function revenueThisMonth(): float

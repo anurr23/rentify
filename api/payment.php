@@ -22,6 +22,10 @@ $method = (string) input('method', 'transfer');
 if (!in_array($method, ['transfer', 'qris', 'cash'], true)) {
     json_error('Metode pembayaran tidak valid.');
 }
+$type = (string) input('type', 'full');
+if (!in_array($type, ['dp', 'full'], true)) {
+    json_error('Tipe pembayaran tidak valid.');
+}
 $booking = Booking::find($bookingId);
 if (!$booking) {
     json_error('Pesanan tidak ditemukan.', 404);
@@ -60,8 +64,8 @@ if ($method === 'cash' && !$isStaff) {
 
 $result = Booking::markPaid(
     $bookingId,
-    (float) $booking['total'],
     $method,
+    $type,
     $proofPath,
     trim((string) input('note', '')) ?: null
 );
@@ -72,7 +76,7 @@ if (!$result['success']) {
     json_error($result['message']);
 }
 
-log_audit('payment.upload', 'booking', $bookingId, ['method' => $method, 'amount' => (float) $booking['total']]);
+log_audit('payment.upload', 'booking', $bookingId, ['method' => $method, 'type' => $type, 'amount' => (float) ($result['amount'] ?? 0)]);
 json_success([
     'message' => $result['message'],
     'payment_status' => 'waiting',

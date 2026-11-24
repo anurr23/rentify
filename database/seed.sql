@@ -259,6 +259,7 @@ INSERT IGNORE INTO settings (setting_key, setting_value, setting_group, setting_
 ('payment_account_name', 'Rentify Outdoor Karawang', 'pembayaran', 'text'),
 ('qris_image', '', 'pembayaran', 'image'),
 ('delivery_fee', '15000', 'pembayaran', 'number'),
+('dp_percent', '30', 'pembayaran', 'number'),
 ('hold_hours', '24', 'sistem', 'number'),
 ('ai_enabled', '1', 'sistem', 'boolean');
 

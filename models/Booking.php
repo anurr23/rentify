@@ -233,7 +233,7 @@ class Booking extends Model
         return self::fetchAll(
             'SELECT p.*, u.name AS verifier_name FROM payments p
              LEFT JOIN users u ON u.id = p.verified_by
-             WHERE p.booking_id = ? ORDER BY p.created_at DESC',
+             WHERE p.booking_id = ? ORDER BY p.created_at DESC, p.id DESC',
             [$bookingId]
         );
     }
@@ -350,12 +350,6 @@ class Booking extends Model
         try {
             $sets = ['status = ?'];
             $params = [$newStatus];
-            if ($syncPayment) {
-                $sets[] = "payment_status = 'paid'";
-            }
-            if ($cancelWaitingPayment) {
-                $sets[] = "payment_status = 'unpaid'";
-            }
             if ($newStatus === 'completed') {
                 $sets[] = 'completed_at = NOW()';
             }
@@ -382,6 +376,9 @@ class Booking extends Model
                         note = 'Pesanan dibatalkan.', updated_at = NOW()
                      WHERE booking_id = ? AND status = 'pending'"
                 )->execute([$adminId, $bookingId]);
+            }
+            if ($syncPayment || $cancelWaitingPayment) {
+                self::syncPaymentTotals($bookingId);
             }
 
             $logNote = $note ?: status_label($newStatus, $booking['pickup_method'] ?? null);
@@ -421,25 +418,83 @@ class Booking extends Model
         if (!in_array($booking['status'], ['pending', 'confirmed'], true)) {
             return ['success' => false, 'message' => 'Pesanan dengan status ini tidak bisa dibatalkan. Hubungi admin.'];
         }
-        if ($booking['payment_status'] === 'paid') {
+        if (in_array($booking['payment_status'], ['paid', 'partial'], true)) {
             return ['success' => false, 'message' => 'Pesanan sudah dibayar. Hubungi admin untuk pembatalan dan refund.'];
         }
         return self::updateStatus($bookingId, 'cancelled', $reason ?: 'Dibatalkan oleh customer.', $userId);
     }
 
-    public static function markPaid(int $bookingId, float $amount, string $method, ?string $proofPath = null, ?string $note = null): array
+    /**
+     * Ringkasan nominal pembayaran: total, sudah dibayar, sisa, dan nominal DP.
+     */
+    public static function paymentAmounts(array $booking): array
+    {
+        $total = round((float) $booking['total'], 2);
+        $paid = round((float) ($booking['paid_amount'] ?? 0), 2);
+        $remaining = max(0.0, round($total - $paid, 2));
+        $percent = (float) setting('dp_percent', '30');
+        $dpAmount = ($percent > 0 && $percent < 100) ? round($total * $percent / 100, 2) : 0.0;
+        if ($paid > 0 || $dpAmount <= 0 || $dpAmount >= $remaining) {
+            $dpAmount = 0.0;
+        }
+        return ['total' => $total, 'paid' => $paid, 'remaining' => $remaining, 'dp_percent' => $percent, 'dp_amount' => $dpAmount];
+    }
+
+    /**
+     * Hitung ulang paid_amount dan payment_status dari pembayaran terverifikasi.
+     */
+    public static function syncPaymentTotals(int $bookingId): void
+    {
+        self::pdo()->prepare(
+            "UPDATE bookings b SET
+                paid_amount = (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.booking_id = b.id AND p.status = 'verified'),
+                payment_status = CASE
+                    WHEN (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.booking_id = b.id AND p.status = 'verified') <= 0 THEN 'unpaid'
+                    WHEN (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.booking_id = b.id AND p.status = 'verified') + 0.01 >= b.total THEN 'paid'
+                    ELSE 'partial'
+                END
+             WHERE b.id = ?"
+        )->execute([$bookingId]);
+    }
+
+    public static function markPaid(int $bookingId, string $method, string $type = 'full', ?string $proofPath = null, ?string $note = null): array
     {
         $booking = self::find($bookingId);
         if (!$booking) {
             return ['success' => false, 'message' => 'Pesanan tidak ditemukan.'];
         }
+        if ($booking['status'] === 'cancelled') {
+            return ['success' => false, 'message' => 'Pesanan sudah dibatalkan.'];
+        }
+        $amounts = self::paymentAmounts($booking);
+        if ($amounts['remaining'] <= 0) {
+            return ['success' => false, 'message' => 'Pesanan ini sudah lunas.'];
+        }
+        $pending = (int) self::fetchValue(
+            "SELECT COUNT(*) FROM payments WHERE booking_id = ? AND status = 'pending'",
+            [$bookingId]
+        );
+        if ($pending > 0) {
+            return ['success' => false, 'message' => 'Masih ada pembayaran yang menunggu verifikasi admin.'];
+        }
+        if ($type === 'dp') {
+            if ($amounts['dp_amount'] <= 0) {
+                return ['success' => false, 'message' => 'Pembayaran DP tidak tersedia untuk pesanan ini.'];
+            }
+            $amount = $amounts['dp_amount'];
+            $paymentType = 'dp';
+        } else {
+            $amount = $amounts['remaining'];
+            $paymentType = $amounts['paid'] > 0 ? 'settlement' : 'full';
+        }
+
         $db = self::pdo();
         $db->beginTransaction();
         try {
             $db->prepare(
-                "INSERT INTO payments (booking_id, method, amount, proof_path, status, paid_at, note, created_at)
-                 VALUES (?, ?, ?, ?, 'pending', NOW(), ?, NOW())"
-            )->execute([$bookingId, $method, $amount, $proofPath, $note]);
+                "INSERT INTO payments (booking_id, method, payment_type, amount, proof_path, status, paid_at, note, created_at)
+                 VALUES (?, ?, ?, ?, ?, 'pending', NOW(), ?, NOW())"
+            )->execute([$bookingId, $method, $paymentType, $amount, $proofPath, $note]);
             $db->prepare("UPDATE bookings SET payment_status = 'waiting' WHERE id = ?")->execute([$bookingId]);
             $db->commit();
         } catch (Throwable $exception) {
@@ -455,7 +510,13 @@ class Booking extends Model
             notify((int) $admin['id'], 'admin', 'Pembayaran baru ' . $booking['code'], 'Bukti pembayaran menunggu verifikasi.', 'admin/pesanan.php?id=' . $bookingId);
         }
         notify((int) $booking['user_id'], 'payment', 'Bukti pembayaran diterima', 'Pembayaran pesanan ' . $booking['code'] . ' sedang diverifikasi admin.', 'pesanan_detail.php?id=' . $bookingId);
-        return ['success' => true, 'message' => 'Bukti pembayaran berhasil dikirim. Menunggu verifikasi admin.'];
+        return [
+            'success' => true,
+            'message' => $paymentType === 'dp'
+                ? 'Bukti pembayaran DP ' . format_rupiah($amount) . ' dikirim. Menunggu verifikasi admin.'
+                : 'Bukti pembayaran dikirim. Menunggu verifikasi admin.',
+            'amount' => $amount,
+        ];
     }
 
     public static function statusCounts(?int $storeId = null): array

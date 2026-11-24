@@ -24,7 +24,7 @@ return [
     'timeout' => (int) env('RENTIFY_AI_TIMEOUT'),
     'connect_timeout' => 8,
     'temperature' => 0.2,
-    'max_tokens' => 1600,
+    'max_tokens' => (int) (env_non_empty('RENTIFY_AI_MAX_TOKENS') ?? 4096),
     'cache_ttl' => 86400,
     'rate_limit_per_hour' => 20,
 ];

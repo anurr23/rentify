@@ -371,6 +371,7 @@ function payment_status_label(string $status): string
     return [
         'unpaid' => 'Belum Bayar',
         'waiting' => 'Menunggu Verifikasi',
+        'partial' => 'DP Dibayar',
         'paid' => 'Lunas',
         'refunded' => 'Dikembalikan',
     ][$status] ?? ucfirst($status);
@@ -381,9 +382,15 @@ function payment_status_class(string $status): string
     return [
         'unpaid' => 'badge-warning',
         'waiting' => 'badge-info',
+        'partial' => 'badge-mint',
         'paid' => 'badge-success',
         'refunded' => 'badge-neutral',
     ][$status] ?? 'badge-neutral';
+}
+
+function payment_type_label(string $type): string
+{
+    return ['dp' => 'DP', 'settlement' => 'Pelunasan', 'full' => 'Lunas'][$type] ?? ucfirst($type);
 }
 
 function payment_method_label(string $method): string

@@ -122,7 +122,7 @@ require ROOT_PATH . '/includes/customer_nav.php';
                                 </div>
                             </div>
                             <div class="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-stretch">
-                                <?php if ($booking['payment_status'] === 'unpaid' && !in_array($booking['status'], ['cancelled', 'completed'], true)): ?>
+                                <?php if (in_array($booking['payment_status'], ['unpaid', 'partial'], true) && !in_array($booking['status'], ['cancelled', 'completed'], true)): ?>
                                     <a href="<?= e(url('pesanan_detail.php?id=' . $booking['id'] . '#pembayaran')) ?>" class="btn btn-primary btn-sm">Bayar sekarang</a>
                                 <?php endif; ?>
                                 <a href="<?= e(url('pesanan_detail.php?id=' . $booking['id'])) ?>" class="btn btn-outline btn-sm">Detail <?= icon('arrow-right', 'h-3.5 w-3.5') ?></a>
