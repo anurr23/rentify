@@ -254,6 +254,14 @@ if (!function_exists('rentify_migrate')) {
             $pdo->exec('ALTER TABLE bookings ADD COLUMN paid_amount DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER total');
             $messages[] = 'Kolom bookings.paid_amount ditambahkan.';
         }
+        if (!rentify_migrate_has_column($pdo, 'bookings', 'delivery_lat')) {
+            $pdo->exec('ALTER TABLE bookings ADD COLUMN delivery_lat DECIMAL(10,7) DEFAULT NULL AFTER delivery_address');
+            $messages[] = 'Kolom bookings.delivery_lat ditambahkan.';
+        }
+        if (!rentify_migrate_has_column($pdo, 'bookings', 'delivery_lng')) {
+            $pdo->exec('ALTER TABLE bookings ADD COLUMN delivery_lng DECIMAL(10,7) DEFAULT NULL AFTER delivery_lat');
+            $messages[] = 'Kolom bookings.delivery_lng ditambahkan.';
+        }
         if (!rentify_migrate_has_column($pdo, 'payments', 'payment_type')) {
             $pdo->exec("ALTER TABLE payments ADD COLUMN payment_type ENUM('dp','settlement','full') NOT NULL DEFAULT 'full' AFTER method");
             $messages[] = 'Kolom payments.payment_type ditambahkan.';

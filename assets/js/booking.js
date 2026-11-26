@@ -27,8 +27,18 @@
     const storeCityEls = checkoutRoot.querySelectorAll('[data-store-city-label]');
     const storeMapsEl = checkoutRoot.querySelector('[data-store-maps]');
     const feeLabels = checkoutRoot.querySelectorAll('[data-delivery-fee-label]');
+    const mapEl = checkoutRoot.querySelector('[data-delivery-map]');
+    const latInput = checkoutRoot.querySelector('[data-delivery-lat]');
+    const lngInput = checkoutRoot.querySelector('[data-delivery-lng]');
+    const coordEl = checkoutRoot.querySelector('[data-delivery-coord]');
+    const geoStatusEl = checkoutRoot.querySelector('[data-delivery-geocode-status]');
+    const useLocationBtn = checkoutRoot.querySelector('[data-use-my-location]');
     let baseFee = Number(checkoutRoot.dataset.deliveryFee || 0);
     let busy = false;
+    let map = null;
+    let marker = null;
+    let geocodeTimer = null;
+    let autoAddress = '';
 
     function currentMethod() {
       return checkoutRoot.querySelector('[data-pickup-method]:checked')?.value || 'pickup';
@@ -69,8 +79,130 @@
       deliveryFields?.classList.toggle('hidden', !delivery);
       if (pickupSelect) pickupSelect.required = false;
       if (deliveryAddress) deliveryAddress.required = delivery;
+      if (delivery) initDeliveryMap();
       updateQuote();
     }
+
+    /* ---------- Peta titik pengantaran (Leaflet + reverse geocoding Nominatim) ---------- */
+    function num(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function defaultCenter() {
+      const lat = num(checkoutRoot.dataset.storeLat);
+      const lng = num(checkoutRoot.dataset.storeLng);
+      if (lat !== null && lng !== null && lat !== 0 && lng !== 0) return [lat, lng];
+      const ulat = num(checkoutRoot.dataset.userLat);
+      const ulng = num(checkoutRoot.dataset.userLng);
+      if (ulat !== null && ulng !== null && ulat !== 0 && ulng !== 0) return [ulat, ulng];
+      return [-6.3011, 107.3055]; /* Karawang */
+    }
+
+    function updatePointLabel(lat, lng) {
+      const text = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      if (coordEl) coordEl.textContent = `Titik dipilih: ${text}`;
+      if (latInput) latInput.value = lat.toFixed(7);
+      if (lngInput) lngInput.value = lng.toFixed(7);
+    }
+
+    function setPoint(lat, lng, options = {}) {
+      if (!map) return;
+      const zoom = options.zoom || Math.max(map.getZoom(), 16);
+      if (!marker) {
+        marker = window.L.marker([lat, lng], { draggable: true }).addTo(map);
+        marker.on('dragend', () => {
+          const pos = marker.getLatLng();
+          updatePointLabel(pos.lat, pos.lng);
+          scheduleGeocode(pos.lat, pos.lng);
+        });
+      } else {
+        marker.setLatLng([lat, lng]);
+      }
+      map.setView([lat, lng], zoom);
+      updatePointLabel(lat, lng);
+      if (options.geocode !== false) scheduleGeocode(lat, lng);
+    }
+
+    function scheduleGeocode(lat, lng) {
+      window.clearTimeout(geocodeTimer);
+      if (geoStatusEl) geoStatusEl.textContent = 'Mencari alamat dari titik ini...';
+      /* Nominatim: maksimal 1 permintaan/detik */
+      geocodeTimer = window.setTimeout(() => reverseGeocode(lat, lng), 1200);
+    }
+
+    async function reverseGeocode(lat, lng) {
+      try {
+        const url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1'
+          + `&accept-language=id&lat=${lat}&lon=${lng}`;
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const a = data.address || {};
+        const parts = [
+          a.road || a.pedestrian || a.footway,
+          a.house_number,
+          a.neighbourhood || a.suburb || a.village || a.hamlet,
+          a.city_district || a.district || a.town || a.city || a.county,
+          a.state,
+        ].filter(Boolean);
+        const line = parts.join(', ') || data.display_name || '';
+        if (!line) {
+          if (geoStatusEl) geoStatusEl.textContent = 'Alamat tidak ditemukan, isi manual di kolom bawah.';
+          return;
+        }
+        if (geoStatusEl) geoStatusEl.textContent = 'Alamat terisi otomatis dari titik peta — boleh dilengkapi patokan.';
+        if (deliveryAddress) {
+          const current = deliveryAddress.value.trim();
+          /* jangan menimpa alamat yang diketik manual user */
+          if (!current || current === autoAddress) {
+            deliveryAddress.value = line;
+            autoAddress = line;
+            deliveryAddress.classList.remove('input-error');
+          }
+        }
+      } catch (error) {
+        if (geoStatusEl) geoStatusEl.textContent = 'Gagal mengambil alamat otomatis. Isi manual di kolom bawah.';
+      }
+    }
+
+    function initDeliveryMap() {
+      if (map || !mapEl || !window.L) return;
+      const center = defaultCenter();
+      map = window.L.map(mapEl, { scrollWheelZoom: true, zoomControl: true, attributionControl: false })
+        .setView(center, 14);
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+      map.on('click', (event) => setPoint(event.latlng.lat, event.latlng.lng));
+      window.setTimeout(() => map && map.invalidateSize(), 180);
+
+      const ulat = num(checkoutRoot.dataset.userLat);
+      const ulng = num(checkoutRoot.dataset.userLng);
+      if (ulat !== null && ulng !== null && ulat !== 0 && ulng !== 0) {
+        setPoint(ulat, ulng, { geocode: false });
+      }
+    }
+
+    useLocationBtn?.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        api.toast('Perangkat ini tidak mendukung penentuan lokasi.', 'warning');
+        return;
+      }
+      api.setLoading(useLocationBtn, true, 'Mencari...');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          api.setLoading(useLocationBtn, false);
+          initDeliveryMap();
+          setPoint(pos.coords.latitude, pos.coords.longitude);
+        },
+        () => {
+          api.setLoading(useLocationBtn, false);
+          api.toast('Lokasi tidak bisa diambil. Coba geser pin di peta.', 'warning');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    });
 
     async function updateQuote() {
       if (deliveryEl) deliveryEl.textContent = currentMethod() === 'delivery' ? api.formatRupiah(baseFee) : api.formatRupiah(0);
@@ -106,6 +238,12 @@
       if (currentMethod() === 'delivery' && !deliveryAddress?.value.trim()) {
         api.toast('Alamat pengantaran wajib diisi.', 'warning');
         deliveryAddress?.focus();
+        return;
+      }
+      if (currentMethod() === 'delivery' && (!latInput?.value || !lngInput?.value)) {
+        api.toast('Pilih titik lokasi pengantaran di peta (klik atau geser pin).', 'warning');
+        initDeliveryMap();
+        mapEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       if (currentMethod() === 'pickup' && !pickupSelect?.value) {

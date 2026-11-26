@@ -248,6 +248,11 @@ Uji juga endpoint yang berubah, termasuk request non-GET dengan CSRF.
 - **Admin cabang melihat semua data**: lupa menerapkan `admin_store_id()` pada query.
 - **Store_id di booking kosong**: checkout harus mengirim `store_id`, dan `Booking::createFromCart()` memvalidasi cabang aktif + pickup point milik cabang.
 - **Peta Leaflet tidak muncul**: cek `$pageStyles`/`$pageVendorScripts`, modal diinisialisasi lewat event `admin:modal-open`, dan panggil `map.invalidateSize()` setelah modal tampil.
+- **Leaflet di halaman detail admin tidak jalan**: `admin/pesanan.php` memakai `require admin_footer; exit;` lebih awal, jadi script init **harus diletakkan sebelum baris itu**. Leaflet baru dimuat di footer, jadi init wajib retry (`if (!window.L) setTimeout(boot, 150)`), bukan langsung dipanggil.
+- **Peta tinggi 2px / kosong**: `assets/css/tailwind.css` sudah ter-compile, kelas baru seperti `h-56` tidak otomatis ada. Pakai kelas yang sudah tersedia (`h-48`) atau jalankan `npm run build:css`.
+- **Reverse geocoding Nominatim**: debounce minimal 1 detik (rate-limit 1 req/detik) dan jangan menimpa alamat yang sudah diketik user — simpan nilai hasil autofill lalu bandingkan sebelum mengganti.
+- **Watermark peta**: pemilik proyek minta peta bersih, jadi kedua peta memakai `attributionControl: false` dan `tileLayer` tanpa opsi `attribution`. Jangan menambahkan atribusi Leaflet/OSM kembali.
+- **Titik antar tidak tersimpan**: kolom `bookings.delivery_lat`/`delivery_lng` nullable; validasi (pasangan lengkap, numerik, dalam rentang, bukan 0,0) ada di `Booking::createFromCart()`, bukan hanya di JS. Hidden input checkout memakai `data-delivery-lat`/`data-delivery-lng`.
 - **GPS tidak bekerja**: header `Permissions-Policy` harus `geolocation=(self)`, dan permintaan lokasi harus lewat HTTPS atau localhost.
 - **Pickup point dobel**: gunakan `Store::syncPickupPoint()`; jangan membuat pickup point manual untuk cabang yang sama.
 - **Stok cabang salah sumber**: katalog/keranjang/booking harus memakai `store_items`, bukan `items.stock_total`.

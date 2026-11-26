@@ -47,11 +47,13 @@ $pageTitle = 'Checkout — Rentify Outdoor Karawang';
 $metaDescription = 'Lengkapi data pengambilan dan buat pesanan sewa gear outdoor.';
 $activeNav = 'katalog';
 $bodyClass = 'pb-16 lg:pb-0';
+$pageStyles = ['vendor/leaflet/leaflet.css'];
+$pageVendorScripts = ['leaflet/leaflet.js'];
 $pageScripts = ['location.js', 'booking.js'];
 require ROOT_PATH . '/includes/header.php';
 require ROOT_PATH . '/includes/customer_nav.php';
 ?>
-<main id="main" class="pb-16 lg:pb-24" data-checkout-root data-delivery-fee="<?= $deliveryFee ?>">
+<main id="main" class="pb-16 lg:pb-24" data-checkout-root data-delivery-fee="<?= $deliveryFee ?>" data-store-lat="<?= e((string) ($selectedStore['latitude'] ?? '')) ?>" data-store-lng="<?= e((string) ($selectedStore['longitude'] ?? '')) ?>" data-user-lat="<?= e((string) ($currentUser['last_latitude'] ?? '')) ?>" data-user-lng="<?= e((string) ($currentUser['last_longitude'] ?? '')) ?>">
     <section class="app-hero !pb-14">
         <div class="absolute inset-0 topo-bg opacity-15"></div>
         <div class="container-app relative pt-3">
@@ -179,10 +181,26 @@ require ROOT_PATH . '/includes/customer_nav.php';
                         </div>
                     </div>
 
-                    <div class="mt-4 hidden" data-delivery-fields>
-                        <label class="field-label" for="delivery-address">Alamat pengantaran</label>
-                        <textarea id="delivery-address" class="input min-h-[5rem]" name="delivery_address" rows="2" placeholder="Tulis alamat lengkap, patokan, dan nama penerima."><?= e($currentUser['address'] ?? '') ?></textarea>
-                        <p class="helper mt-1.5">Pengantaran area <span data-store-city-label><?= e($selectedStore['city'] ?? 'Karawang') ?></span>. Admin cabang akan konfirmasi jadwal via WhatsApp.</p>
+                    <div class="mt-4 hidden space-y-3" data-delivery-fields>
+                        <div class="rounded-2xl border border-line bg-white p-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <p class="text-[0.62rem] font-extrabold uppercase tracking-[0.12em] text-muted">Titik lokasi pengantaran</p>
+                                    <p class="mt-0.5 text-[0.68rem] leading-relaxed text-muted">Geser pin ke lokasi antar, alamat terisi otomatis.</p>
+                                </div>
+                                <button type="button" class="btn btn-outline btn-sm shrink-0" data-use-my-location>Lokasi saya</button>
+                            </div>
+                            <div id="delivery-map" class="mt-2.5 h-48 w-full overflow-hidden rounded-xl border border-line bg-cream-100" data-delivery-map></div>
+                            <p class="mt-2 text-[0.62rem] font-extrabold text-forest-700" data-delivery-coord>Belum ada titik dipilih.</p>
+                            <p class="mt-1 text-[0.62rem] leading-relaxed text-muted" data-delivery-geocode-status>Titik peta membantu admin cabang menemukan lokasi antar.</p>
+                        </div>
+                        <div>
+                            <label class="field-label" for="delivery-address">Alamat pengantaran</label>
+                            <textarea id="delivery-address" class="input min-h-[5rem]" name="delivery_address" rows="2" placeholder="Tulis alamat lengkap, patokan, dan nama penerima."><?= e($currentUser['address'] ?? '') ?></textarea>
+                            <p class="helper mt-1.5">Pengantaran area <span data-store-city-label><?= e($selectedStore['city'] ?? 'Karawang') ?></span>. Admin cabang akan konfirmasi jadwal via WhatsApp.</p>
+                        </div>
+                        <input type="hidden" name="delivery_lat" value="" data-delivery-lat>
+                        <input type="hidden" name="delivery_lng" value="" data-delivery-lng>
                     </div>
                 </section>
 

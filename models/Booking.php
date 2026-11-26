@@ -28,6 +28,31 @@ class Booking extends Model
         if ($pickupMethod === 'delivery' && !$deliveryAddress) {
             return ['success' => false, 'message' => 'Alamat pengantaran wajib diisi.'];
         }
+
+        // Titik pengantaran dari peta (opsional, wajib numerik & dalam rentang valid)
+        $deliveryLat = null;
+        $deliveryLng = null;
+        if ($pickupMethod === 'delivery') {
+            $rawLat = $data['delivery_lat'] ?? null;
+            $rawLng = $data['delivery_lng'] ?? null;
+            $hasLat = $rawLat !== null && $rawLat !== '' && $rawLat !== 'null';
+            $hasLng = $rawLng !== null && $rawLng !== '' && $rawLng !== 'null';
+            if ($hasLat xor $hasLng) {
+                return ['success' => false, 'message' => 'Titik pengantaran tidak lengkap. Pilih ulang lokasi pada peta.'];
+            }
+            if ($hasLat && $hasLng) {
+                if (!is_numeric($rawLat) || !is_numeric($rawLng)) {
+                    return ['success' => false, 'message' => 'Koordinat titik pengantaran tidak valid.'];
+                }
+                $lat = (float) $rawLat;
+                $lng = (float) $rawLng;
+                if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180 || ($lat === 0.0 && $lng === 0.0)) {
+                    return ['success' => false, 'message' => 'Koordinat titik pengantaran di luar rentang yang valid.'];
+                }
+                $deliveryLat = round($lat, 7);
+                $deliveryLng = round($lng, 7);
+            }
+        }
         if (!$start || !$end || $end < $start) {
             return ['success' => false, 'message' => 'Tanggal sewa tidak valid.'];
         }
@@ -118,13 +143,13 @@ class Booking extends Model
 
             $stmt = $db->prepare(
                 "INSERT INTO bookings (code, user_id, store_id, pickup_point_id, start_date, end_date, duration_days,
-                    pickup_method, delivery_address, subtotal, deposit_total, delivery_fee, discount, total,
+                    pickup_method, delivery_address, delivery_lat, delivery_lng, subtotal, deposit_total, delivery_fee, discount, total,
                     status, payment_status, notes, hold_expires_at, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid', ?, DATE_ADD(NOW(), INTERVAL ? HOUR), NOW())"
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'unpaid', ?, DATE_ADD(NOW(), INTERVAL ? HOUR), NOW())"
             );
             $stmt->execute([
                 $code, $userId, $storeId, $pickupPointId, $start, $end, $duration,
-                $pickupMethod, $deliveryAddress, $subtotal, $deposit, $deliveryFee, $discount, $total,
+                $pickupMethod, $deliveryAddress, $deliveryLat, $deliveryLng, $subtotal, $deposit, $deliveryFee, $discount, $total,
                 trim((string) ($data['notes'] ?? '')) ?: null, $holdHours,
             ]);
             $bookingId = (int) $db->lastInsertId();

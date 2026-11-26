@@ -80,6 +80,7 @@ Setiap item bisa di-include/exclude, diubah jumlahnya, lalu dimasukkan ke keranj
 ![Halaman checkout Rentify](docs/screenshots/checkout.jpg)
 
 - Ambil di basecamp atau antar ke lokasi (area Karawang).
+- **Antar ke lokasi**: pilih titik antar langsung di peta Leaflet (klik peta, geser pin, atau tombol **Lokasi saya**). Alamat pengantaran terisi otomatis lewat reverse geocoding OpenStreetMap (Nominatim) dan tetap bisa dilengkapi patokan manual. Titik tersimpan sebagai `bookings.delivery_lat` / `delivery_lng`.
 - Ringkasan subtotal, deposit, biaya antar, dan total transparan.
 - Tanggal sewa fleksibel dengan perhitungan **2D1N = 2 hari**.
 - Stok ditahan sementara agar tidak bentrok dengan penyewa lain.
@@ -166,6 +167,7 @@ Satu akun, banyak basecamp. Superadmin mengelola master toko dan titik lokasinya
 - Metrik pendapatan, pesanan, pelanggan, dan utilisasi stok.
 - Grafik tren 8 bulan dan distribusi status pesanan.
 - Daftar pesanan terbaru dan pembayaran yang menunggu verifikasi.
+- **Detail pesanan antar**: mini-map Leaflet menampilkan titik pengantaran customer. Pin bisa diklik untuk membuka **rute Google Maps** dari cabang ke lokasi antar (ada juga tombol *Rute ke lokasi* dan *Buka titik saja*).
 
 <div align="center">
 <table>
@@ -332,7 +334,7 @@ Seed berisi **7 toko cabang, 7 admin cabang, 12 kategori, 34 gear, 5 pesanan, pe
 | Pengguna | `users` (+ `store_id` untuk admin cabang, `preferred_store_id` & lokasi terakhir customer), `remember_tokens`, `password_resets`, `notifications` |
 | Katalog | `categories`, `category_filters`, `items` (+ `owner_store_id`), `store_items`, `store_item_variants`, `item_images`, `item_variants`, `item_filter_values` |
 | Perjalanan | `activities`, `destinations`, `activity_gear_rules`, `pickup_points` (+ `store_id`) |
-| Transaksi | `bookings` (+ `store_id`), `booking_items` (+ `store_item_id`), `booking_status_logs`, `payments` |
+| Transaksi | `bookings` (+ `store_id`, `delivery_lat`/`delivery_lng` untuk titik antar), `booking_items` (+ `store_item_id`), `booking_status_logs`, `payments` |
 | Interaksi | `reviews`, `wishlists` |
 | AI | `ai_sessions`, `ai_session_items`, `ai_cache` |
 | Sistem | `settings`, `audit_logs` |
@@ -365,7 +367,7 @@ Semua respons berupa JSON. Request non-GET wajib menyertakan header `X-CSRF-Toke
 | GET/POST | `/api/wishlist.php` | List / toggle wishlist |
 | POST | `/api/auth.php` | Login, register, logout |
 | GET/POST | `/api/ai_recommend.php` | Meta AI / buat rekomendasi |
-| GET/POST | `/api/booking.php` | Detail, quote, create, cancel |
+| GET/POST | `/api/booking.php` | Detail, quote, create, cancel. Saat `pickup_method=delivery`, sertakan `delivery_address` + `delivery_lat`/`delivery_lng` (koordinat opsional dari peta) |
 | GET/POST | `/api/payment.php` | Info pembayaran / unggah bukti (DP atau lunas) |
 | POST | `/api/review.php` | Kirim review |
 | POST | `/api/profile.php` | Update profil / ganti sandi |

@@ -68,6 +68,8 @@ if ($action === 'create') {
         'store_id' => input_int('store_id'),
         'pickup_point_id' => input_int('pickup_point_id'),
         'delivery_address' => (string) input('delivery_address', ''),
+        'delivery_lat' => input('delivery_lat', null),
+        'delivery_lng' => input('delivery_lng', null),
         'notes' => (string) input('notes', ''),
     ];
     $result = Booking::createFromCart((int) $user['id'], $data);

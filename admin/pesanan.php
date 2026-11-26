@@ -4,8 +4,8 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 
 require_admin();
-$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css'];
-$pageVendorScripts = ['datatables/dataTables.core.min.js', 'datatables/dataTables.min.js'];
+$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css', 'vendor/leaflet/leaflet.css'];
+$pageVendorScripts = ['datatables/dataTables.core.min.js', 'datatables/dataTables.min.js', 'leaflet/leaflet.js'];
 $pageScripts = ['admin-tables.js'];
 $storeScope = admin_store_id();
 $bookingId = (int) ($_GET['id'] ?? 0);
@@ -75,6 +75,39 @@ if ($booking) {
                         <div class="mt-3 rounded-xl border border-line p-3">
                             <p class="text-[0.6rem] font-bold uppercase tracking-wide text-muted">Alamat pengantaran</p>
                             <p class="mt-1 text-xs leading-relaxed text-forest-700"><?= nl2br(e($booking['delivery_address'])) ?></p>
+                            <?php if (!empty($booking['delivery_lat']) && !empty($booking['delivery_lng'])): ?>
+                                <?php
+                                $dlat = (float) $booking['delivery_lat'];
+                                $dlng = (float) $booking['delivery_lng'];
+                                $slat = isset($booking['store_latitude']) ? (float) $booking['store_latitude'] : null;
+                                $slng = isset($booking['store_longitude']) ? (float) $booking['store_longitude'] : null;
+                                $hasStore = $slat !== null && $slng !== null && $slat !== 0.0 && $slng !== 0.0;
+                                $dest = number_format($dlat, 7, '.', '') . ',' . number_format($dlng, 7, '.', '');
+                                $gmapsDir = 'https://www.google.com/maps/dir/?api=1&destination=' . $dest . '&travelmode=driving';
+                                $gmapsDirFromStore = $hasStore
+                                    ? 'https://www.google.com/maps/dir/?api=1&origin=' . number_format($slat, 7, '.', '') . ',' . number_format($slng, 7, '.', '') . '&destination=' . $dest . '&travelmode=driving'
+                                    : $gmapsDir;
+                                ?>
+                                <div id="booking-delivery-map" class="mt-2.5 h-48 w-full overflow-hidden rounded-xl border border-line bg-cream-100"
+                                     data-lat="<?= e((string) $dlat) ?>" data-lng="<?= e((string) $dlng) ?>"
+                                     data-store-lat="<?= $hasStore ? e((string) $slat) : '' ?>"
+                                     data-store-lng="<?= $hasStore ? e((string) $slng) : '' ?>"
+                                     data-gmaps="<?= e($gmapsDir) ?>"
+                                     data-gmaps-store="<?= e($gmapsDirFromStore) ?>"></div>
+                                <div class="mt-2 flex flex-wrap items-center gap-2">
+                                    <a class="btn btn-primary btn-sm" target="_blank" rel="noopener" href="<?= e($gmapsDirFromStore) ?>">
+                                        <?= icon('map-pin', 'h-3.5 w-3.5') ?> Rute ke lokasi (Google Maps)
+                                    </a>
+                                    <a class="btn btn-outline btn-sm" target="_blank" rel="noopener" href="<?= e($gmapsDir) ?>">Buka titik saja</a>
+                                </div>
+                                <p class="mt-1.5 text-[0.6rem] font-bold text-forest-700">
+                                    Titik peta: <?= e(number_format($dlat, 6, '.', '')) ?>, <?= e(number_format($dlng, 6, '.', '')) ?>
+                                    · <a class="underline" target="_blank" rel="noopener"
+                                         href="https://www.openstreetmap.org/?mlat=<?= e((string) $dlat) ?>&amp;mlon=<?= e((string) $dlng) ?>#map=17/<?= e((string) $dlat) ?>/<?= e((string) $dlng) ?>">Buka di OSM</a>
+                                </p>
+                            <?php else: ?>
+                                <p class="mt-1.5 text-[0.6rem] text-muted">Customer belum menandai titik lokasi di peta.</p>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                     <?php if ($booking['notes']): ?>
@@ -192,6 +225,34 @@ if ($booking) {
             </aside>
         </div>
     </div>
+    <script>
+    (() => {
+      const boot = () => {
+        const el = document.getElementById('booking-delivery-map');
+        if (!el) return;
+        if (!window.L) { window.setTimeout(boot, 150); return; } // leaflet dimuat di footer
+        if (el.dataset.mapReady === '1') return;
+        const lat = Number(el.dataset.lat);
+        const lng = Number(el.dataset.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        el.dataset.mapReady = '1';
+        const map = window.L.map(el, { scrollWheelZoom: false, attributionControl: false })
+          .setView([lat, lng], 16);
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+        }).addTo(map);
+        const route = el.dataset.gmapsStore || el.dataset.gmaps || '';
+        const marker = window.L.marker([lat, lng]).addTo(map);
+        marker.bindTooltip('Klik pin untuk buka rute di Google Maps', { direction: 'top', offset: [0, -12] });
+        marker.on('click', () => {
+          if (route) window.open(route, '_blank', 'noopener');
+        });
+        if (route) marker.getElement()?.style.setProperty('cursor', 'pointer');
+        window.setTimeout(() => map.invalidateSize(), 200);
+      };
+      boot();
+    })();
+    </script>
     <?php require ROOT_PATH . '/includes/admin_footer.php';
     exit;
 }
