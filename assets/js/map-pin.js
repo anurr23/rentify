@@ -71,8 +71,9 @@
       label: 'Satelit',
       hint: 'Citra bumi + nama tempat & jalan',
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      /* overlay label Esri: nama jalan, tempat, batas wilayah */
-      overlay: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      /* overlay label (teks putih + halo) di atas citra: nama jalan, tempat, wilayah */
+      overlay: 'https://basemaps.cartocdn.com/rastertiles/dark_only_labels/{z}/{x}/{y}{r}.png',
+      maxNativeZoom: 19,
       maxZoom: 19,
     },
   };

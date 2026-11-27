@@ -182,6 +182,7 @@
         window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
       }
       map.on('click', (event) => setPoint(event.latlng.lat, event.latlng.lng));
+      mapEl._rentifyMap = map; /* handle untuk debug/uji otomatis */
       window.setTimeout(() => map && map.invalidateSize(), 180);
 
       /* penanda cabang asal gear, biar user tahu jarak ambil/antar */
