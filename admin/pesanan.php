@@ -4,9 +4,9 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/config.php';
 
 require_admin();
-$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css', 'vendor/leaflet/leaflet.css'];
+$pageStyles = ['vendor/datatables/dataTables.min.css', 'css/datatables.css', 'vendor/leaflet/leaflet.css', 'css/map-pin.css'];
 $pageVendorScripts = ['datatables/dataTables.core.min.js', 'datatables/dataTables.min.js', 'leaflet/leaflet.js'];
-$pageScripts = ['admin-tables.js'];
+$pageScripts = ['admin-tables.js', 'map-pin.js'];
 $storeScope = admin_store_id();
 $bookingId = (int) ($_GET['id'] ?? 0);
 $booking = $bookingId ? Booking::find($bookingId) : null;
@@ -230,7 +230,10 @@ if ($booking) {
       const boot = () => {
         const el = document.getElementById('booking-delivery-map');
         if (!el) return;
-        if (!window.L) { window.setTimeout(boot, 150); return; } // leaflet dimuat di footer
+        if (!window.L || typeof window.rentifyPinIcon !== 'function') {
+          window.setTimeout(boot, 150); // leaflet & map-pin.js dimuat di footer
+          return;
+        }
         if (el.dataset.mapReady === '1') return;
         const lat = Number(el.dataset.lat);
         const lng = Number(el.dataset.lng);
@@ -242,8 +245,12 @@ if ($booking) {
           maxZoom: 19,
         }).addTo(map);
         const route = el.dataset.gmapsStore || el.dataset.gmaps || '';
-        const marker = window.L.marker([lat, lng]).addTo(map);
-        marker.bindTooltip('Klik pin untuk buka rute di Google Maps', { direction: 'top', offset: [0, -12] });
+        const marker = window.L.marker([lat, lng], { icon: window.rentifyPinIcon(window.L, {}) }).addTo(map);
+        marker.bindTooltip('Klik pin untuk buka rute di Google Maps', {
+          direction: 'top',
+          offset: [0, -10],
+          className: 'leaflet-pin-tooltip',
+        });
         marker.on('click', () => {
           if (route) window.open(route, '_blank', 'noopener');
         });

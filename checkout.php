@@ -47,9 +47,9 @@ $pageTitle = 'Checkout — Rentify Outdoor Karawang';
 $metaDescription = 'Lengkapi data pengambilan dan buat pesanan sewa gear outdoor.';
 $activeNav = 'katalog';
 $bodyClass = 'pb-16 lg:pb-0';
-$pageStyles = ['vendor/leaflet/leaflet.css'];
+$pageStyles = ['vendor/leaflet/leaflet.css', 'css/map-pin.css'];
 $pageVendorScripts = ['leaflet/leaflet.js'];
-$pageScripts = ['location.js', 'booking.js'];
+$pageScripts = ['location.js', 'map-pin.js', 'booking.js'];
 require ROOT_PATH . '/includes/header.php';
 require ROOT_PATH . '/includes/customer_nav.php';
 ?>

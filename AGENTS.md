@@ -142,7 +142,8 @@ Uji juga endpoint yang berubah, termasuk request non-GET dengan CSRF.
 | `api/` | Endpoint JSON + `_bootstrap.php` + `location.php` |
 | `assets/css/app.css` | Sumber Tailwind + komponen kustom |
 | `assets/css/tailwind.css` | Hasil build, **di-commit** |
-| `assets/js/` | `app.js`, `catalog.js`, `detail.js`, `ai.js`, `cart.js`, `booking.js`, `profile.js`, `auth.js`, `admin.js`, `inputs.js`, `admin-tables.js`, `landing-3d.js`, `location.js`, `map-stores.js`, `admin-stores.js` |
+| `assets/css/map-pin.css` | Gaya pin peta kustom (teardrop + glyph tenda) untuk checkout & admin |
+| `assets/js/` | `app.js`, `catalog.js`, `detail.js`, `ai.js`, `cart.js`, `booking.js`, `profile.js`, `auth.js`, `admin.js`, `inputs.js`, `admin-tables.js`, `landing-3d.js`, `location.js`, `map-pin.js`, `map-stores.js`, `admin-stores.js` |
 | `assets/vendor/` | Three.js, Chart.js, Leaflet (JS/CSS/marker), Flatpickr, Tom Select, DataTables hasil salinan |
 | `config/` | Bootstrap, database, AI, env |
 | `database/` | `rentify.sql`, `seed.sql`, `migrate.php` |

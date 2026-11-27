@@ -109,8 +109,11 @@
     function setPoint(lat, lng, options = {}) {
       if (!map) return;
       const zoom = options.zoom || Math.max(map.getZoom(), 16);
+      const pinIcon = typeof window.rentifyPinIcon === 'function'
+        ? window.rentifyPinIcon(window.L, { draggable: true })
+        : new window.L.Icon.Default();
       if (!marker) {
-        marker = window.L.marker([lat, lng], { draggable: true }).addTo(map);
+        marker = window.L.marker([lat, lng], { draggable: true, icon: pinIcon }).addTo(map);
         marker.on('dragend', () => {
           const pos = marker.getLatLng();
           updatePointLabel(pos.lat, pos.lng);
@@ -118,6 +121,7 @@
         });
       } else {
         marker.setLatLng([lat, lng]);
+        marker.setIcon(pinIcon);
       }
       map.setView([lat, lng], zoom);
       updatePointLabel(lat, lng);
@@ -176,6 +180,22 @@
       }).addTo(map);
       map.on('click', (event) => setPoint(event.latlng.lat, event.latlng.lng));
       window.setTimeout(() => map && map.invalidateSize(), 180);
+
+      /* penanda cabang asal gear, biar user tahu jarak ambil/antar */
+      const slat = num(checkoutRoot.dataset.storeLat);
+      const slng = num(checkoutRoot.dataset.storeLng);
+      if (slat !== null && slng !== null && slat !== 0 && slng !== 0) {
+        const storePin = typeof window.rentifyPinIcon === 'function'
+          ? window.rentifyPinIcon(window.L, { variant: 'store' })
+          : new window.L.Icon.Default();
+        window.L.marker([slat, slng], { icon: storePin, interactive: true })
+          .addTo(map)
+          .bindTooltip('Cabang penyiapan gear', {
+            direction: 'top',
+            offset: [0, -8],
+            className: 'leaflet-pin-tooltip',
+          });
+      }
 
       const ulat = num(checkoutRoot.dataset.userLat);
       const ulng = num(checkoutRoot.dataset.userLng);
