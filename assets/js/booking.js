@@ -39,6 +39,7 @@
     let marker = null;
     let geocodeTimer = null;
     let autoAddress = '';
+    let addressDirty = false;
 
     function currentMethod() {
       return checkoutRoot.querySelector('[data-pickup-method]:checked')?.value || 'pickup';
@@ -109,6 +110,8 @@
     function setPoint(lat, lng, options = {}) {
       if (!map) return;
       const zoom = options.zoom || Math.max(map.getZoom(), 16);
+      /* pin dipindah user -> alamat boleh ditimpa hasil geocode titik baru */
+      if (options.keepAddress !== true) addressDirty = false;
       const pinIcon = typeof window.rentifyPinIcon === 'function'
         ? window.rentifyPinIcon(window.L, { draggable: true })
         : new window.L.Icon.Default();
@@ -144,26 +147,31 @@
         const data = await res.json();
         const a = data.address || {};
         const parts = [
-          a.road || a.pedestrian || a.footway,
+          a.road || a.pedestrian || a.footway || a.neighbourhood || a.suburb || a.village,
           a.house_number,
-          a.neighbourhood || a.suburb || a.village || a.hamlet,
+          a.hamlet,
           a.city_district || a.district || a.town || a.city || a.county,
           a.state,
         ].filter(Boolean);
-        const line = parts.join(', ') || data.display_name || '';
+        /* buang duplikat berdekatan (mis. "Karawang Barat, Karawang Barat") */
+        const unique = parts.filter((part, i) => part && parts.indexOf(part) === i);
+        const line = unique.join(', ') || data.display_name || '';
         if (!line) {
-          if (geoStatusEl) geoStatusEl.textContent = 'Alamat tidak ditemukan, isi manual di kolom bawah.';
+          if (geoStatusEl) geoStatusEl.textContent = 'Alamat titik ini tidak ditemukan, isi manual di kolom bawah.';
           return;
         }
-        if (geoStatusEl) geoStatusEl.textContent = 'Alamat terisi otomatis dari titik peta — boleh dilengkapi patokan.';
         if (deliveryAddress) {
-          const current = deliveryAddress.value.trim();
-          /* jangan menimpa alamat yang diketik manual user */
-          if (!current || current === autoAddress) {
-            deliveryAddress.value = line;
-            autoAddress = line;
-            deliveryAddress.classList.remove('input-error');
+          if (addressDirty) {
+            /* user sudah mengetik sendiri setelah pin terakhir dipindah */
+            if (geoStatusEl) geoStatusEl.textContent = 'Alamat diketik manual. Geser pin lagi kalau mau isi otomatis.';
+            return;
           }
+          deliveryAddress.value = line;
+          autoAddress = line;
+          deliveryAddress.classList.remove('input-error');
+        }
+        if (geoStatusEl) {
+          geoStatusEl.textContent = `Alamat terisi otomatis: ${line} — boleh ditambah patokan.`;
         }
       } catch (error) {
         if (geoStatusEl) geoStatusEl.textContent = 'Gagal mengambil alamat otomatis. Isi manual di kolom bawah.';
@@ -204,7 +212,7 @@
       const ulat = num(checkoutRoot.dataset.userLat);
       const ulng = num(checkoutRoot.dataset.userLng);
       if (ulat !== null && ulng !== null && ulat !== 0 && ulng !== 0) {
-        setPoint(ulat, ulng, { geocode: false });
+        setPoint(ulat, ulng, { geocode: false, keepAddress: true });
       }
     }
 
@@ -248,6 +256,8 @@
       storeTimer = window.setTimeout(syncStore, 80);
     });
     methods.forEach((radio) => radio.addEventListener('change', syncMethod));
+    /* kalau user mengetik sendiri, hasil geocode tidak menimpa alamat */
+    deliveryAddress?.addEventListener('input', () => { addressDirty = true; });
     syncStore();
     syncMethod();
 
