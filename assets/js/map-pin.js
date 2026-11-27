@@ -69,8 +69,10 @@
     },
     satelit: {
       label: 'Satelit',
-      hint: 'Citra bumi / satelit',
+      hint: 'Citra bumi + nama tempat & jalan',
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      /* overlay label Esri: nama jalan, tempat, batas wilayah */
+      overlay: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
       maxZoom: 19,
     },
   };
@@ -82,8 +84,12 @@
   function rentifyAddBaseLayers(L, map, options = {}) {
     const modes = Object.keys(BASE_LAYERS);
     const layers = {};
+    const overlays = {};
     modes.forEach((mode) => {
       layers[mode] = L.tileLayer(BASE_LAYERS[mode].url, { maxZoom: BASE_LAYERS[mode].maxZoom });
+      if (BASE_LAYERS[mode].overlay) {
+        overlays[mode] = L.tileLayer(BASE_LAYERS[mode].overlay, { maxZoom: BASE_LAYERS[mode].maxZoom });
+      }
     });
 
     const STORAGE_KEY = 'rentify:map-mode';
@@ -93,13 +99,16 @@
     const preferred = options.initial || saved;
     let active = modes.includes(preferred) ? preferred : 'peta';
     layers[active].addTo(map);
+    if (overlays[active]) overlays[active].addTo(map);
 
     let controlApi = null;
 
     function applyMode(mode) {
       if (!modes.includes(mode) || mode === active) return;
       map.removeLayer(layers[active]);
+      if (overlays[active]) map.removeLayer(overlays[active]);
       layers[mode].addTo(map);
+      if (overlays[mode]) overlays[mode].addTo(map);
       active = mode;
       try { window.localStorage.setItem(STORAGE_KEY, mode); } catch (_) { /* ignore */ }
       if (controlApi) controlApi.setActive(mode);
