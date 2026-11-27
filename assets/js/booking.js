@@ -175,9 +175,12 @@
       const center = defaultCenter();
       map = window.L.map(mapEl, { scrollWheelZoom: true, zoomControl: true, attributionControl: false })
         .setView(center, 14);
-      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-      }).addTo(map);
+      /* layer dasar + tombol ganti mode Peta/Satelit (dari map-pin.js) */
+      if (typeof window.rentifyAddBaseLayers === 'function') {
+        window.rentifyAddBaseLayers(window.L, map);
+      } else {
+        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      }
       map.on('click', (event) => setPoint(event.latlng.lat, event.latlng.lng));
       window.setTimeout(() => map && map.invalidateSize(), 180);
 

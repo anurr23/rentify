@@ -58,4 +58,95 @@
   }
 
   window.rentifyPinIcon = rentifyPinIcon;
+
+  /* ---------- Mode tampilan peta (layer dasar) ---------- */
+  const BASE_LAYERS = {
+    peta: {
+      label: 'Peta',
+      hint: 'Peta jalan standar',
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      maxZoom: 19,
+    },
+    satelit: {
+      label: 'Satelit',
+      hint: 'Citra bumi / satelit',
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      maxZoom: 19,
+    },
+  };
+
+  /**
+   * Pasang layer dasar + tombol ganti mode (Peta / Satelit).
+   * @returns {{ setMode: (mode: string) => void, current: () => string }}
+   */
+  function rentifyAddBaseLayers(L, map, options = {}) {
+    const modes = Object.keys(BASE_LAYERS);
+    const layers = {};
+    modes.forEach((mode) => {
+      layers[mode] = L.tileLayer(BASE_LAYERS[mode].url, { maxZoom: BASE_LAYERS[mode].maxZoom });
+    });
+
+    const STORAGE_KEY = 'rentify:map-mode';
+    const saved = (() => {
+      try { return window.localStorage.getItem(STORAGE_KEY); } catch (_) { return null; }
+    })();
+    const preferred = options.initial || saved;
+    let active = modes.includes(preferred) ? preferred : 'peta';
+    layers[active].addTo(map);
+
+    let controlApi = null;
+
+    function applyMode(mode) {
+      if (!modes.includes(mode) || mode === active) return;
+      map.removeLayer(layers[active]);
+      layers[mode].addTo(map);
+      active = mode;
+      try { window.localStorage.setItem(STORAGE_KEY, mode); } catch (_) { /* ignore */ }
+      if (controlApi) controlApi.setActive(mode);
+    }
+
+    const ctl = L.control({ position: 'topright' });
+    ctl.onAdd = () => {
+      const wrap = L.DomUtil.create('div', 'rentify-layer-switch');
+      wrap.setAttribute('role', 'group');
+      wrap.setAttribute('aria-label', 'Mode tampilan peta');
+      const buttons = {};
+
+      modes.forEach((mode) => {
+        const btn = L.DomUtil.create('button', 'rentify-layer-switch__btn', wrap);
+        btn.type = 'button';
+        btn.dataset.mode = mode;
+        btn.title = BASE_LAYERS[mode].hint;
+        btn.textContent = BASE_LAYERS[mode].label;
+        buttons[mode] = btn;
+        L.DomEvent.on(btn, 'click', (event) => {
+          L.DomEvent.stop(event);
+          applyMode(mode);
+        });
+      });
+
+      L.DomEvent.disableClickPropagation(wrap);
+      L.DomEvent.disableScrollPropagation(wrap);
+
+      controlApi = {
+        setActive(mode) {
+          Object.entries(buttons).forEach(([key, btn]) => {
+            btn.classList.toggle('is-active', key === mode);
+            btn.setAttribute('aria-pressed', key === mode ? 'true' : 'false');
+          });
+        },
+      };
+      controlApi.setActive(active);
+      return wrap;
+    };
+    ctl.addTo(map);
+
+    return {
+      setMode: applyMode,
+      current: () => active,
+    };
+  }
+
+  window.rentifyAddBaseLayers = rentifyAddBaseLayers;
+  window.rentifyBaseLayers = BASE_LAYERS;
 })();

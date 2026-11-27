@@ -80,7 +80,7 @@ Setiap item bisa di-include/exclude, diubah jumlahnya, lalu dimasukkan ke keranj
 ![Halaman checkout Rentify](docs/screenshots/checkout.jpg)
 
 - Ambil di basecamp atau antar ke lokasi (area Karawang).
-- **Antar ke lokasi**: pilih titik antar langsung di peta Leaflet (klik peta, geser pin, atau tombol **Lokasi saya**). Alamat pengantaran terisi otomatis lewat reverse geocoding OpenStreetMap (Nominatim) dan tetap bisa dilengkapi patokan manual. Titik tersimpan sebagai `bookings.delivery_lat` / `delivery_lng`. Pin peta memakai desain kustom Rentify (teardrop hijau forest + glyph tenda), terpisah antara pin titik antar dan pin cabang asal gear.
+- **Antar ke lokasi**: pilih titik antar langsung di peta Leaflet (klik peta, geser pin, atau tombol **Lokasi saya**). Alamat pengantaran terisi otomatis lewat reverse geocoding OpenStreetMap (Nominatim) dan tetap bisa dilengkapi patokan manual. Titik tersimpan sebagai `bookings.delivery_lat` / `delivery_lng`. Pin peta memakai desain kustom Rentify (teardrop hijau forest + glyph tenda), terpisah antara pin titik antar dan pin cabang asal gear. Peta bisa diganti mode **Peta / Satelit** (citra bumi) lewat tombol di pojok kanan atas, dan pilihannya diingat browser.
 - Ringkasan subtotal, deposit, biaya antar, dan total transparan.
 - Tanggal sewa fleksibel dengan perhitungan **2D1N = 2 hari**.
 - Stok ditahan sementara agar tidak bentrok dengan penyewa lain.

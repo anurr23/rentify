@@ -241,9 +241,11 @@ if ($booking) {
         el.dataset.mapReady = '1';
         const map = window.L.map(el, { scrollWheelZoom: false, attributionControl: false })
           .setView([lat, lng], 16);
-        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-        }).addTo(map);
+        if (typeof window.rentifyAddBaseLayers === 'function') {
+          window.rentifyAddBaseLayers(window.L, map);
+        } else {
+          window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        }
         const route = el.dataset.gmapsStore || el.dataset.gmaps || '';
         const marker = window.L.marker([lat, lng], { icon: window.rentifyPinIcon(window.L, {}) }).addTo(map);
         marker.bindTooltip('Klik pin untuk buka rute di Google Maps', {

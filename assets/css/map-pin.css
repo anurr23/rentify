@@ -44,3 +44,42 @@
 .leaflet-pin-tooltip::before {
   border-top-color: #032517;
 }
+
+/* Tombol ganti mode peta (Peta / Satelit) */
+.rentify-layer-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  background: rgba(248, 250, 246, 0.94);
+  box-shadow: 0 8px 18px rgba(3, 22, 14, 0.22);
+  backdrop-filter: blur(6px);
+  border: 1px solid #e3e6e0;
+}
+
+.rentify-layer-switch__btn {
+  border: 0;
+  cursor: pointer;
+  border-radius: 9999px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #1b3b2b;
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.rentify-layer-switch__btn:hover {
+  background: #ecf6ec;
+}
+
+.rentify-layer-switch__btn.is-active {
+  background: #032517;
+  color: #ecf6ec;
+}
+
+.leaflet-top.leaflet-right .rentify-layer-switch {
+  margin: 8px 8px 0 0;
+}
+
