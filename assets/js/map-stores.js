@@ -13,10 +13,18 @@
     attributionControl: false,
   }).setView([-6.301, 107.305], 7);
 
-  // Basemap topografi: elevasi, kontur, dan label nama tempat tetap terlihat.
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 19,
-  }).addTo(map);
+  // Layer dasar + tombol mode Peta/Satelit (helper bersama di map-pin.js).
+  if (typeof window.rentifyAddBaseLayers === 'function') {
+    window.rentifyAddBaseLayers(L, map);
+  } else {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  }
+
+  function storeIcon(draggable = false) {
+    return typeof window.rentifyPinIcon === 'function'
+      ? window.rentifyPinIcon(L, { variant: 'store', draggable })
+      : new L.Icon.Default();
+  }
 
   const bounds = [];
   const markers = new Map();
@@ -29,7 +37,7 @@
 
   stores.forEach((store) => {
     if (store.latitude === null || store.longitude === null) return;
-    const marker = L.marker([store.latitude, store.longitude]).addTo(map);
+    const marker = L.marker([store.latitude, store.longitude], { icon: storeIcon() }).addTo(map);
     marker.bindPopup(`
       <div style="min-width:13rem;font-family:system-ui,sans-serif">
         <p style="margin:0;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#486255">${escapeHtml(store.code)}</p>
@@ -69,11 +77,11 @@
     const userLng = payload.longitude;
     if (userLat !== null && userLat !== undefined && userLng !== null && userLng !== undefined && userMarker === null) {
       userMarker = L.circleMarker([userLat, userLng], {
-        radius: 7,
-        color: '#0C1D14',
-        weight: 2,
-        fillColor: '#53CF6C',
-        fillOpacity: 0.9,
+        radius: 8,
+        color: '#032517',
+        weight: 2.5,
+        fillColor: '#cbe8ce',
+        fillOpacity: 0.95,
       }).addTo(map).bindPopup('Lokasi kamu');
     }
 

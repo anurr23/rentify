@@ -19,14 +19,18 @@
     if (latInput) latInput.value = Number(lat).toFixed(7);
     if (lngInput) lngInput.value = Number(lng).toFixed(7);
     if (!map) return;
+    const icon = typeof window.rentifyPinIcon === 'function'
+      ? window.rentifyPinIcon(L, { draggable: true })
+      : new L.Icon.Default();
     if (!marker) {
-      marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+      marker = L.marker([lat, lng], { draggable: true, icon }).addTo(map);
       marker.on('dragend', () => {
         const pos = marker.getLatLng();
         setPoint(form, pos.lat, pos.lng, false);
       });
     } else {
       marker.setLatLng([lat, lng]);
+      marker.setIcon(icon);
     }
     if (pan) map.setView([lat, lng], Math.max(map.getZoom(), 13));
     setStatus(form, `Titik dipilih: ${Number(lat).toFixed(7)}, ${Number(lng).toFixed(7)}`);
@@ -48,10 +52,12 @@
     const lng = hasPoint ? Number(lngInput.value) : 107.305;
 
     map = L.map(container, { scrollWheelZoom: false, attributionControl: false }).setView([lat, lng], hasPoint ? 13 : 10);
-    // Basemap topografi: elevasi, kontur, dan label nama tempat tetap terlihat.
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-    }).addTo(map);
+    // Layer dasar + tombol mode Peta/Satelit (helper bersama di map-pin.js).
+    if (typeof window.rentifyAddBaseLayers === 'function') {
+      window.rentifyAddBaseLayers(L, map);
+    } else {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    }
 
     if (hasPoint) {
       setPoint(form, lat, lng, false);

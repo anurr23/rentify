@@ -97,7 +97,7 @@ Setiap item bisa di-include/exclude, diubah jumlahnya, lalu dimasukkan ke keranj
 
 ### 🗺️ Jaringan toko cabang & lokasi
 
-Satu akun, banyak basecamp. Superadmin mengelola master toko dan titik lokasinya lewat peta Leaflet, sementara customer melihat cabang terdekat berdasarkan lokasi GPS.
+Satu akun, banyak basecamp. Superadmin mengelola master toko dan titik lokasinya lewat peta Leaflet, sementara customer melihat cabang terdekat berdasarkan lokasi GPS. Semua peta di aplikasi (peta cabang customer, pemilih lokasi toko di admin, titik antar di checkout, dan mini-map pesanan) memakai pin dan tema yang sama: pin teardrop hijau forest dengan glyph tenda serta tombol mode **Peta / Satelit**.
 
 ![Halaman toko cabang dengan peta Leaflet](docs/screenshots/toko.jpg)
 

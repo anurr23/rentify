@@ -11,9 +11,9 @@ $defaultStore = Store::defaultStore();
 
 $adminTitle = 'Toko Cabang';
 $adminPage = 'toko';
-$pageStyles = ['vendor/leaflet/leaflet.css', 'vendor/datatables/dataTables.min.css', 'css/datatables.css'];
+$pageStyles = ['vendor/leaflet/leaflet.css', 'css/map-pin.css', 'vendor/datatables/dataTables.min.css', 'css/datatables.css'];
 $pageVendorScripts = ['leaflet/leaflet.js', 'datatables/dataTables.core.min.js', 'datatables/dataTables.min.js'];
-$pageScripts = ['admin-stores.js', 'admin-tables.js'];
+$pageScripts = ['map-pin.js', 'admin-stores.js', 'admin-tables.js'];
 require ROOT_PATH . '/includes/admin_header.php';
 ?>
 <div class="space-y-4">
