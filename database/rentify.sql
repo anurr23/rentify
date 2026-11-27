@@ -329,6 +329,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   duration_days INT NOT NULL DEFAULT 1,
   pickup_method ENUM('pickup','delivery') NOT NULL DEFAULT 'pickup',
   delivery_address TEXT DEFAULT NULL,
+  delivery_lat DECIMAL(10,7) DEFAULT NULL,
+  delivery_lng DECIMAL(10,7) DEFAULT NULL,
   subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
   deposit_total DECIMAL(12,2) NOT NULL DEFAULT 0,
   delivery_fee DECIMAL(12,2) NOT NULL DEFAULT 0,
