@@ -69,11 +69,13 @@
     },
     satelit: {
       label: 'Satelit',
-      hint: 'Citra bumi + nama tempat & jalan',
+      hint: 'Citra bumi + lapisan jalan/nama tempat',
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      /* overlay label (teks putih + halo) di atas citra: nama jalan, tempat, wilayah */
-      overlay: 'https://basemaps.cartocdn.com/rastertiles/dark_only_labels/{z}/{x}/{y}{r}.png',
-      maxNativeZoom: 19,
+      /* Lapisan kedua: tile peta jalan OSM ditumpuk transparan di atas citra,
+         supaya nama jalan & tempat tetap terbaca tanpa layanan label berbayar. */
+      overlay: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      overlayClassName: 'rentify-osm-overlay',
+      overlayOpacity: 0.55,
       maxZoom: 19,
     },
   };
@@ -89,7 +91,11 @@
     modes.forEach((mode) => {
       layers[mode] = L.tileLayer(BASE_LAYERS[mode].url, { maxZoom: BASE_LAYERS[mode].maxZoom });
       if (BASE_LAYERS[mode].overlay) {
-        overlays[mode] = L.tileLayer(BASE_LAYERS[mode].overlay, { maxZoom: BASE_LAYERS[mode].maxZoom });
+        overlays[mode] = L.tileLayer(BASE_LAYERS[mode].overlay, {
+          maxZoom: BASE_LAYERS[mode].maxZoom,
+          className: BASE_LAYERS[mode].overlayClassName || '',
+          opacity: BASE_LAYERS[mode].overlayOpacity ?? 1,
+        });
       }
     });
 

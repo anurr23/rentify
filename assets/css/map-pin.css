@@ -79,6 +79,13 @@
   color: #ecf6ec;
 }
 
+/* Lapisan peta jalan OSM di atas citra satelit — dibikin transparan
+   supaya citra bumi tetap kelihatan tapi nama jalan/tempat terbaca. */
+.rentify-osm-overlay {
+  opacity: 0.55;
+  filter: saturate(0.85) contrast(1.05);
+}
+
 .leaflet-top.leaflet-right .rentify-layer-switch {
   margin: 8px 8px 0 0;
 }
